@@ -1,0 +1,10 @@
+[package]
+name = "hvf"
+description = "Safe wrapper over Hypervisor.framework for Avo's VM engine"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+hvf-sys = { path = "../hvf-sys" }

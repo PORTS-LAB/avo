@@ -1,0 +1,19 @@
+{
+  "schema": 1,
+  "id": "oneplus-12",
+  "name": "OnePlus 12",
+  "properties": {
+    "ro.product.brand": "OnePlus",
+    "ro.product.manufacturer": "OnePlus",
+    "ro.product.model": "CPH2581",
+    "ro.product.device": "OP595DL1",
+    "ro.product.name": "CPH2581EEA",
+    "ro.build.fingerprint": "OnePlus/CPH2581EEA/OP595DL1:14/UKQ1.230924.001/T.R4T2.1c2a6c4-1-3:user/release-keys"
+  },
+  "display": {
+    "width": 1440,
+    "height": 3168,
+    "dpi": 560
+  },
+  "notes": "Community-maintained template. Values follow the device's stock build.prop format; verify them against a current firmware dump before relying on them in a pull request."
+}

@@ -1,0 +1,19 @@
+{
+  "schema": 1,
+  "id": "asus-rog-phone-8",
+  "name": "ASUS ROG Phone 8",
+  "properties": {
+    "ro.product.brand": "asus",
+    "ro.product.manufacturer": "asus",
+    "ro.product.model": "ASUS_AI2401_A",
+    "ro.product.device": "ASUS_AI2401",
+    "ro.product.name": "WW_AI2401",
+    "ro.build.fingerprint": "asus/WW_AI2401/ASUS_AI2401:14/UKQ1.231108.001/34.1004.0204.81:user/release-keys"
+  },
+  "display": {
+    "width": 1080,
+    "height": 2400,
+    "dpi": 420
+  },
+  "notes": "Community-maintained template. Values follow the device's stock build.prop format; verify them against a current firmware dump before relying on them in a pull request."
+}

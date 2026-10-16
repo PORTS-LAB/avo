@@ -1,0 +1,16 @@
+# Avo boot steps. avo_init applies the per-boot settings the host writes to
+# the read-only avo_config disk (host: BootConfig in AvoDaemonCore).
+
+on post-fs-data
+    mkdir /data/vendor/avo 0750 system system
+    exec_start avo_init
+
+service avo_init /system_ext/bin/avo_init
+    class core
+    user root
+    group root system shell
+    oneshot
+    disabled
+    seclabel u:r:avo_init:s0
+
+# The Bridge Agent is a persistent app; nothing else to start here.

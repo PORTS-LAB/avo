@@ -1,0 +1,356 @@
+// Avo host <-> guest Control channel (virtio-vsock port 6000).
+//
+// Framing: the stream is a sequence of `Envelope` messages, each prefixed by
+// its byte length as a base-128 varint (protobuf "delimited" encoding:
+// Java `writeDelimitedTo`/`parseDelimitedFrom`, Swift
+// `BinaryDelimited.serialize`/`parse`). Maximum frame size is 8 MiB.
+//
+// Versioning: every Envelope carries the sender's protocol version. The first
+// message in each direction must be `Hello`. Peers agree on
+// min(host.protocol_version, guest.protocol_version) as long as that value is
+// at least the other side's `min_protocol_version`; otherwise the side that
+// detects the mismatch sends `Goodbye` and closes the stream. Fields are only
+// ever added, never renumbered, so the host app and the Android image can be
+// updated independently.
+//
+// See docs/protocol.md for the message flows.
+
+syntax = "proto3";
+
+package avo.v1;
+
+option java_package = "dev.avo.bridge.proto";
+option java_multiple_files = true;
+option java_outer_classname = "ControlProto";
+
+// Bumped whenever messages or semantics change. Kept in sync with
+// AvoProtocol.version (Swift) and Protocol.VERSION (Java).
+enum ProtocolVersion {
+  PROTOCOL_VERSION_UNSPECIFIED = 0;
+  PROTOCOL_VERSION_CURRENT = 1;
+}
+
+message Envelope {
+  uint32 protocol_version = 1;
+  // Non-zero when the sender expects a `Reply` (or a typed response such as
+  // `AppList`) carrying the same id. Ids are chosen by the requester and only
+  // need to be unique per connection and direction.
+  uint64 request_id = 2;
+
+  oneof payload {
+    // Both directions.
+    Hello hello = 10;
+    Goodbye goodbye = 11;
+    Ping ping = 12;
+    Pong pong = 13;
+    Reply reply = 14;
+
+    // Host -> guest.
+    Launch launch = 20;
+    Resize resize = 21;
+    Close close = 22;
+    Install install = 23;
+    Uninstall uninstall = 24;
+    SetClipboard set_clipboard = 25;
+    ListApps list_apps = 26;
+    ForceStop force_stop = 27;
+    DeleteAppData delete_app_data = 28;
+    GetPermissions get_permissions = 29;
+    SetPermission set_permission = 30;
+    ShareFiles share_files = 31;
+    SetDisplayVisibility set_display_visibility = 32;
+    OpenNotification open_notification = 33;
+    DismissNotification dismiss_notification = 34;
+    SetRefreshRate set_refresh_rate = 35;
+
+    // Guest -> host.
+    AppInstalled app_installed = 50;
+    AppRemoved app_removed = 51;
+    DisplayReady display_ready = 52;
+    TaskClosed task_closed = 53;
+    Notification notification = 54;
+    NotificationRemoved notification_removed = 55;
+    ClipboardChanged clipboard_changed = 56;
+    OrientationRequest orientation_request = 57;
+    AppList app_list = 58;
+    PermissionList permission_list = 59;
+    DisplayContentChanged display_content_changed = 60;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Session
+
+message Hello {
+  // Highest version the sender speaks (PROTOCOL_VERSION_CURRENT at build time).
+  uint32 protocol_version = 1;
+  // Oldest peer version the sender still accepts.
+  uint32 min_protocol_version = 2;
+  // Human-readable build of the sender, e.g. "avo-host 0.1.0 (42)" or
+  // "avo-image 16.0.0-20261016".
+  string software_version = 3;
+  // Optional features, e.g. "notifications", "clipboard", "permissions".
+  repeated string capabilities = 4;
+  // Guest only: Android SDK level and the device profile currently applied.
+  uint32 android_sdk = 5;
+  string device_profile_id = 6;
+  bool rooted = 7;
+}
+
+message Goodbye {
+  enum Reason {
+    REASON_UNSPECIFIED = 0;
+    REASON_SHUTDOWN = 1;
+    REASON_INCOMPATIBLE_VERSION = 2;
+    REASON_PROTOCOL_ERROR = 3;
+  }
+  Reason reason = 1;
+  string message = 2;
+}
+
+message Ping {
+  uint64 nonce = 1;
+}
+
+message Pong {
+  uint64 nonce = 1;
+}
+
+// Generic completion for requests that have no typed response.
+message Reply {
+  enum Status {
+    STATUS_OK = 0;
+    STATUS_FAILED = 1;
+    STATUS_NOT_FOUND = 2;
+    STATUS_INVALID_ARGUMENT = 3;
+    STATUS_UNSUPPORTED = 4;
+    STATUS_PERMISSION_DENIED = 5;
+  }
+  Status status = 1;
+  string message = 2;
+}
+
+// ---------------------------------------------------------------------------
+// Displays and tasks
+//
+// Display ids are allocated by the host (the daemon) and are unique for the
+// lifetime of a VM boot. One display hosts exactly one task.
+
+message Launch {
+  string package = 1;
+  uint32 display_id = 2;
+  // Size of the display in physical pixels and its density in dpi.
+  uint32 width = 3;
+  uint32 height = 4;
+  uint32 dpi = 5;
+  // Optional explicit component ("com.example/.MainActivity"). Defaults to the
+  // package's launcher activity.
+  string component = 6;
+  // Optional: start the content intent of this notification on the new
+  // display instead of the launcher activity (notification click on macOS).
+  string notification_key = 7;
+  // Optional: VIEW intent data URI (e.g. a file shared via "Open With").
+  string data_uri = 8;
+  string mime_type = 9;
+  // Frame rate cap for the display (Control Panel "batas FPS"); 0 = 60.
+  uint32 refresh_rate = 10;
+}
+
+message Resize {
+  uint32 display_id = 1;
+  uint32 width = 2;
+  uint32 height = 3;
+  // 0 keeps the current density.
+  uint32 dpi = 4;
+}
+
+message Close {
+  uint32 display_id = 1;
+}
+
+// Changes the frame rate cap without a restart. display_id 0 applies it to
+// every display and becomes the default for new ones.
+message SetRefreshRate {
+  uint32 display_id = 1;
+  uint32 fps = 2;
+}
+
+// Window minimised or fully occluded: the guest may stop rendering the
+// display to save GPU time.
+message SetDisplayVisibility {
+  uint32 display_id = 1;
+  bool visible = 2;
+}
+
+message DisplayReady {
+  uint32 display_id = 1;
+  string package = 2;
+}
+
+message TaskClosed {
+  uint32 display_id = 1;
+  string package = 2;
+}
+
+// Top activity of a display changed (title, package) so the window can update
+// its title and Dock badge.
+message DisplayContentChanged {
+  uint32 display_id = 1;
+  string package = 2;
+  string title = 3;
+}
+
+enum Orientation {
+  ORIENTATION_UNSPECIFIED = 0;
+  ORIENTATION_PORTRAIT = 1;
+  ORIENTATION_LANDSCAPE = 2;
+  ORIENTATION_REVERSE_PORTRAIT = 3;
+  ORIENTATION_REVERSE_LANDSCAPE = 4;
+}
+
+message OrientationRequest {
+  uint32 display_id = 1;
+  Orientation orientation = 2;
+}
+
+// ---------------------------------------------------------------------------
+// Packages
+
+// Adaptive icon layers rendered at 432x432 px (108 dp at xxxhdpi), the visible
+// safe zone being the centred 288x288 px circle/squircle.
+message AdaptiveIcon {
+  bytes background_png = 1;
+  bytes foreground_png = 2;
+  bytes monochrome_png = 3;
+}
+
+message AppInfo {
+  string package = 1;
+  string label = 2;
+  string version_name = 3;
+  int64 version_code = 4;
+  // Flattened launcher icon (PNG, 192x192 or larger).
+  bytes icon_png = 5;
+  // Present when the launcher icon is an AdaptiveIconDrawable.
+  AdaptiveIcon adaptive_icon = 6;
+  // APK + data + cache, in bytes, when known.
+  int64 size_bytes = 7;
+  int64 first_install_time_ms = 8;
+  int64 last_update_time_ms = 9;
+  bool system_app = 10;
+  // Has a launcher activity (only launchable apps get an App Shim).
+  bool launchable = 11;
+  string installer_package = 12;
+}
+
+message AppInstalled {
+  AppInfo app = 1;
+  // True when this replaces an existing install (update).
+  bool replacing = 2;
+}
+
+message AppRemoved {
+  string package = 1;
+  // True when the removal is part of an update (an AppInstalled follows).
+  bool replacing = 2;
+}
+
+message ListApps {
+  // Include icons (large); the host omits them when it already has them.
+  bool include_icons = 1;
+  bool include_system = 2;
+}
+
+message AppList {
+  repeated AppInfo apps = 1;
+}
+
+// Installs an APK that already exists on the guest filesystem (pushed over the
+// ADB channel). Split APK sets use `pm install-create/-write/-commit` over ADB
+// instead; see docs/protocol.md.
+message Install {
+  string path = 1;
+  repeated string split_paths = 2;
+}
+
+message Uninstall {
+  string package = 1;
+}
+
+message ForceStop {
+  string package = 1;
+}
+
+// "Clear data" in Android settings: removes the app's data and cache.
+message DeleteAppData {
+  string package = 1;
+}
+
+message Permission {
+  string name = 1;
+  string label = 2;
+  bool granted = 3;
+  // Dangerous (runtime) permissions can be toggled from the Control Panel.
+  bool runtime = 4;
+}
+
+message GetPermissions {
+  string package = 1;
+}
+
+message PermissionList {
+  string package = 1;
+  repeated Permission permissions = 2;
+}
+
+message SetPermission {
+  string package = 1;
+  string permission = 2;
+  bool granted = 3;
+}
+
+// Files already copied to the guest (normally /sdcard/Download) are offered
+// to the app on `display_id` through ACTION_SEND / ACTION_SEND_MULTIPLE.
+message ShareFiles {
+  uint32 display_id = 1;
+  repeated string paths = 2;
+  repeated string mime_types = 3;
+}
+
+// ---------------------------------------------------------------------------
+// Notifications and clipboard
+
+message Notification {
+  string package = 1;
+  // StatusBarNotification key; stable for updates of the same notification.
+  string key = 2;
+  string title = 3;
+  string body = 4;
+  int64 posted_at_ms = 5;
+  bytes large_icon_png = 6;
+  string group = 7;
+  bool ongoing = 8;
+  bool silent = 9;
+}
+
+message NotificationRemoved {
+  string key = 1;
+}
+
+message OpenNotification {
+  string key = 1;
+  // Display to start the content intent on (0: let the guest decide).
+  uint32 display_id = 2;
+}
+
+message DismissNotification {
+  string key = 1;
+}
+
+message SetClipboard {
+  string text = 1;
+}
+
+message ClipboardChanged {
+  string text = 1;
+}

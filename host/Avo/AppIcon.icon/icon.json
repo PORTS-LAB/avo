@@ -1,0 +1,36 @@
+{
+  "fill": {
+    "solid": "srgb:0.84706,0.90980,0.65490,1.00000"
+  },
+  "groups": [
+    {
+      "layers": [
+        {
+          "image-name": "Pit.svg",
+          "name": "Pit"
+        },
+        {
+          "image-name": "Flesh.svg",
+          "name": "Flesh"
+        },
+        {
+          "image-name": "Skin.svg",
+          "name": "Skin"
+        }
+      ],
+      "shadow": {
+        "kind": "neutral",
+        "opacity": 0.5
+      },
+      "translucency": {
+        "enabled": false,
+        "value": 0.5
+      }
+    }
+  ],
+  "supported-platforms": {
+    "squares": [
+      "macOS"
+    ]
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "schema": 1,
+  "id": "google-pixel-9-pro",
+  "name": "Google Pixel 9 Pro",
+  "properties": {
+    "ro.product.brand": "google",
+    "ro.product.manufacturer": "Google",
+    "ro.product.model": "Pixel 9 Pro",
+    "ro.product.device": "caiman",
+    "ro.product.name": "caiman",
+    "ro.build.fingerprint": "google/caiman/caiman:15/AP4A.250205.002/12821496:user/release-keys"
+  },
+  "display": {
+    "width": 1280,
+    "height": 2856,
+    "dpi": 480
+  },
+  "notes": "Community-maintained template. Values follow the device's stock build.prop format; verify them against a current firmware dump before relying on them in a pull request."
+}

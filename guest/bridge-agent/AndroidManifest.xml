@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Avo Bridge Agent: the only link between Android and macOS (spec: "Bridge
+     Agent (privileged system app, ditandatangani platform key)"). -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="dev.avo.bridge"
+    coreApp="true">
+
+    <!-- Displays and launching activities on them. -->
+    <uses-permission android:name="android.permission.ADD_TRUSTED_DISPLAY" />
+    <uses-permission android:name="android.permission.CAPTURE_VIDEO_OUTPUT" />
+    <uses-permission android:name="android.permission.CAPTURE_SECURE_VIDEO_OUTPUT" />
+    <uses-permission android:name="android.permission.INTERNAL_SYSTEM_WINDOW" />
+    <uses-permission android:name="android.permission.START_ACTIVITIES_FROM_BACKGROUND" />
+    <uses-permission android:name="android.permission.REORDER_TASKS" />
+    <uses-permission android:name="android.permission.MANAGE_ACTIVITY_TASKS" />
+    <!-- Input injection (keyboard, mouse, touch, gamepad). -->
+    <uses-permission android:name="android.permission.INJECT_EVENTS" />
+    <!-- Packages: list, install, uninstall, force stop, clear data, permissions. -->
+    <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" />
+    <uses-permission android:name="android.permission.INSTALL_PACKAGES" />
+    <uses-permission android:name="android.permission.DELETE_PACKAGES" />
+    <uses-permission android:name="android.permission.FORCE_STOP_PACKAGES" />
+    <uses-permission android:name="android.permission.CLEAR_APP_USER_DATA" />
+    <uses-permission android:name="android.permission.GRANT_RUNTIME_PERMISSIONS" />
+    <uses-permission android:name="android.permission.REVOKE_RUNTIME_PERMISSIONS" />
+    <uses-permission android:name="android.permission.PACKAGE_USAGE_STATS" />
+    <!-- Notifications and clipboard. -->
+    <uses-permission android:name="android.permission.MANAGE_NOTIFICATION_LISTENERS" />
+    <uses-permission android:name="android.permission.READ_CLIPBOARD_IN_BACKGROUND" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SYSTEM_EXEMPTED" />
+    <uses-permission android:name="android.permission.WRITE_SECURE_SETTINGS" />
+
+    <application
+        android:name=".BridgeApplication"
+        android:label="@string/app_name"
+        android:persistent="true"
+        android:directBootAware="true"
+        android:allowBackup="false"
+        android:supportsRtl="true">
+
+        <!-- Replaces the launcher: Android never shows a home screen (spec §1). -->
+        <activity
+            android:name=".HomeActivity"
+            android:exported="true"
+            android:excludeFromRecents="true"
+            android:launchMode="singleTask"
+            android:theme="@android:style/Theme.NoDisplay">
+            <intent-filter android:priority="1000">
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.HOME" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
+
+        <service
+            android:name=".BridgeService"
+            android:exported="false"
+            android:foregroundServiceType="systemExempted" />
+
+        <service
+            android:name=".notify.NotificationBridge"
+            android:exported="true"
+            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
+            <intent-filter>
+                <action android:name="android.service.notification.NotificationListenerService" />
+            </intent-filter>
+        </service>
+
+        <receiver
+            android:name=".BootReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.LOCKED_BOOT_COMPLETED" />
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
+
+    </application>
+</manifest>

@@ -1,0 +1,7 @@
+cc_binary {
+    name: "avo_init",
+    srcs: ["avo_init.cpp"],
+    cflags: ["-Wall", "-Werror"],
+    shared_libs: ["libbase", "libjsoncpp", "liblog", "libcutils"],
+    system_ext_specific: true,
+}

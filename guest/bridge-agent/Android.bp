@@ -1,0 +1,57 @@
+// Avo Bridge Agent, built as part of the Avo AOSP image (guest/device/avo).
+// Platform-signed privileged system app; its privileges are listed in
+// privapp-permissions-avo.xml.
+
+package {
+    default_applicable_licenses: ["Android-Apache-2.0"],
+}
+
+java_library_static {
+    name: "avo-protocol-java",
+    srcs: ["proto/avo/v1/*.proto"], // symlink to <repo>/proto
+    proto: {
+        type: "lite",
+        canonical_path_from_root: false,
+        local_include_dirs: ["proto"],
+    },
+    sdk_version: "core_current",
+    static_libs: ["libprotobuf-java-lite"],
+}
+
+android_app {
+    name: "AvoBridgeAgent",
+    srcs: ["src/**/*.java"],
+    resource_dirs: ["res"],
+    manifest: "AndroidManifest.xml",
+    platform_apis: true,
+    certificate: "platform",
+    privileged: true,
+    system_ext_specific: true,
+    static_libs: ["avo-protocol-java"],
+    jni_libs: ["libavobridge_jni"],
+    required: ["privapp-permissions-avo.xml"],
+    optimize: {
+        enabled: false,
+    },
+}
+
+cc_library_shared {
+    name: "libavobridge_jni",
+    srcs: ["jni/avobridge_jni.cpp"],
+    cflags: ["-Wall", "-Werror", "-DAVO_GFXSTREAM"],
+    header_libs: ["jni_headers"],
+    shared_libs: [
+        "libandroid",
+        "liblog",
+        "libnativewindow",
+        "libOpenglSystemCommon",
+    ],
+    system_ext_specific: true,
+}
+
+prebuilt_etc {
+    name: "privapp-permissions-avo.xml",
+    src: "privapp-permissions-avo.xml",
+    sub_dir: "permissions",
+    system_ext_specific: true,
+}

@@ -1,0 +1,175 @@
+# XcodeGen spec for the macOS host. Generate the project with:
+#
+#   cd host && xcodegen generate
+#
+# Product layout (spec: "Komponen host macOS"):
+#
+#   Avo.app                                   Control Panel (SwiftUI)
+#     Contents/MacOS/Avo
+#     Contents/Library/Helpers/AvoDaemon.app  Runtime Daemon (LaunchAgent) + Menu Bar Item
+#     Contents/Library/LaunchAgents/dev.avo.daemon.plist
+#     Contents/Library/Shim/AvoShim.app       App Shim template, copied per Android app
+#     Contents/Frameworks/AvoWindowHost.framework   Window Host, loaded by every shim
+#     Contents/Resources/profiles/            device and keymap profiles
+#     Contents/MacOS/crosvm                   Engine VM (crosvm-hvf, see engine/)
+
+name: Avo
+options:
+  bundleIdPrefix: dev.avo
+  deploymentTarget:
+    macOS: "15.0"
+  createIntermediateGroups: true
+  generateEmptyDirectories: true
+  groupSortPosition: top
+
+configFiles:
+  Debug: Config/Base.xcconfig
+  Release: Config/Base.xcconfig
+
+settings:
+  base:
+    PRODUCT_BUNDLE_IDENTIFIER_PREFIX: $(AVO_BUNDLE_ID_PREFIX)
+
+packages:
+  AvoKit:
+    path: AvoKit
+
+targets:
+  Avo:
+    type: application
+    platform: macOS
+    sources:
+      - path: Avo
+        excludes:
+          - "LaunchAgents/**"
+      - path: Avo/LaunchAgents
+        buildPhase:
+          copyFiles:
+            destination: wrapper
+            subpath: Contents/Library/LaunchAgents
+      - path: ../profiles
+        type: folder
+        buildPhase: resources
+    dependencies:
+      - package: AvoKit
+        product: AvoHostKit
+        embed: true
+        codeSign: true
+      - target: AvoDaemon
+        embed: true
+        codeSign: true
+        copy:
+          destination: wrapper
+          subpath: Contents/Library/Helpers
+      - target: AvoWindowHost
+        embed: true
+        codeSign: true
+      - target: AvoShim
+        embed: true
+        codeSign: true
+        copy:
+          destination: wrapper
+          subpath: Contents/Library/Shim
+      - target: avoctl
+        embed: true
+        codeSign: true
+        copy:
+          destination: executables
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: $(AVO_BUNDLE_ID_PREFIX).Avo
+        PRODUCT_NAME: Avo
+        INFOPLIST_FILE: Avo/Info.plist
+        CODE_SIGN_ENTITLEMENTS: Avo/Avo.entitlements
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AvoSkin
+        ENABLE_PREVIEWS: YES
+        LD_RUNPATH_SEARCH_PATHS: "$(inherited) @executable_path/../Frameworks"
+
+  AvoDaemon:
+    type: application
+    platform: macOS
+    sources:
+      - AvoDaemon
+      # Same icon and menu bar template image as the Control Panel.
+      - path: Avo/Assets.xcassets
+      - path: Avo/AppIcon.icon
+    dependencies:
+      - package: AvoKit
+        product: AvoHostKit
+        embed: false
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: $(AVO_BUNDLE_ID_PREFIX).daemon
+        PRODUCT_NAME: AvoDaemon
+        INFOPLIST_FILE: AvoDaemon/Info.plist
+        CODE_SIGN_ENTITLEMENTS: AvoDaemon/AvoDaemon.entitlements
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ENABLE_DEBUG_DYLIB: NO
+        SKIP_INSTALL: YES
+        # AvoHostKit.framework lives in Avo.app/Contents/Frameworks.
+        LD_RUNPATH_SEARCH_PATHS: "$(inherited) @executable_path/../../../../Frameworks"
+
+  AvoWindowHost:
+    type: framework
+    platform: macOS
+    sources: [AvoWindowHost]
+    dependencies:
+      - package: AvoKit
+        product: AvoHostKit
+        embed: false
+      - sdk: Metal.framework
+      - sdk: GameController.framework
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: $(AVO_BUNDLE_ID_PREFIX).WindowHost
+        PRODUCT_NAME: AvoWindowHost
+        INFOPLIST_FILE: AvoWindowHost/Info.plist
+        GENERATE_INFOPLIST_FILE: NO
+        DEFINES_MODULE: YES
+        SKIP_INSTALL: YES
+        # Shims load this framework from Avo.app while running from
+        # ~/Applications/Android Apps, so its dependencies are found next to
+        # it (Avo.app/Contents/Frameworks), not next to the executable.
+        LD_RUNPATH_SEARCH_PATHS: "$(inherited) @loader_path/../../.. @executable_path/../Frameworks"
+
+  avoctl:
+    type: tool
+    platform: macOS
+    sources: [avoctl]
+    dependencies:
+      - package: AvoKit
+        product: AvoHostKit
+        embed: false
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: $(AVO_BUNDLE_ID_PREFIX).avoctl
+        PRODUCT_NAME: avoctl
+        SKIP_INSTALL: YES
+        # Installed as Avo.app/Contents/MacOS/avoctl.
+        LD_RUNPATH_SEARCH_PATHS: "$(inherited) @executable_path/../Frameworks"
+
+  AvoShim:
+    type: application
+    platform: macOS
+    sources: [AvoShim]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: $(AVO_BUNDLE_ID_PREFIX).shim.template
+        PRODUCT_NAME: AvoShim
+        INFOPLIST_FILE: AvoShim/Info.plist
+        ENABLE_DEBUG_DYLIB: NO
+        SKIP_INSTALL: YES
+        # Shims are re-signed ad hoc per app and must load AvoWindowHost.framework
+        # from Avo.app, so the template does not use the hardened runtime.
+        ENABLE_HARDENED_RUNTIME: NO
+
+schemes:
+  Avo:
+    build:
+      targets:
+        Avo: all
+    run:
+      config: Debug
+    archive:
+      config: Release

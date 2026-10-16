@@ -1,0 +1,19 @@
+{
+  "schema": 1,
+  "id": "samsung-galaxy-s24-ultra",
+  "name": "Samsung Galaxy S24 Ultra",
+  "properties": {
+    "ro.product.brand": "samsung",
+    "ro.product.manufacturer": "samsung",
+    "ro.product.model": "SM-S928B",
+    "ro.product.device": "e3q",
+    "ro.product.name": "e3qxxx",
+    "ro.build.fingerprint": "samsung/e3qxxx/e3q:14/UP1A.231005.007/S928BXXU1AXB5:user/release-keys"
+  },
+  "display": {
+    "width": 1080,
+    "height": 2340,
+    "dpi": 450
+  },
+  "notes": "Community-maintained template. Values follow the device's stock build.prop format; verify them against a current firmware dump before relying on them in a pull request."
+}

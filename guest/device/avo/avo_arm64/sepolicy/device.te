@@ -1,0 +1,2 @@
+type avo_config_block_device, dev_type;
+type avo_boot_prop, property_type;

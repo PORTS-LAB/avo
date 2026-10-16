@@ -1,0 +1,26 @@
+// Settings shared by every Avo target.
+//
+// The bundle identifier prefix depends on the project domain, which is still an
+// open question in docs/spec.md. Keep it in sync with AvoIdentifiers.prefix
+// (AvoKit); IdentifierTests checks that they match.
+AVO_BUNDLE_ID_PREFIX = dev.avo
+
+// Marketing version of the macOS app; the Android image is versioned separately.
+MARKETING_VERSION = 0.1.0
+CURRENT_PROJECT_VERSION = 1
+
+MACOSX_DEPLOYMENT_TARGET = 15.0
+ARCHS = arm64
+SWIFT_VERSION = 6.0
+SWIFT_STRICT_CONCURRENCY = complete
+ENABLE_HARDENED_RUNTIME = YES
+DEAD_CODE_STRIPPING = YES
+ENABLE_USER_SCRIPT_SANDBOXING = YES
+
+// Set AVO_TEAM_ID (or DEVELOPMENT_TEAM) in Local.xcconfig for Developer ID builds.
+// Without it the targets are signed to run locally (ad hoc).
+CODE_SIGN_STYLE = Automatic
+CODE_SIGN_IDENTITY = -
+DEVELOPMENT_TEAM = $(AVO_TEAM_ID)
+
+#include? "Local.xcconfig"

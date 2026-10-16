@@ -1,0 +1,22 @@
+# macOS
+.DS_Store
+
+# Xcode / SwiftPM
+xcuserdata/
+*.xcuserstate
+DerivedData/
+.build/
+.swiftpm/
+host/AvoKit/.build/
+host/Config/Local.xcconfig
+
+# Android
+guest/bridge-agent/build/
+*.keystore
+local.properties
+
+# Rust (engine)
+target/
+
+# Python
+__pycache__/

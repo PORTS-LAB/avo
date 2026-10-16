@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Framework configuration for Avo. Values to re-check on every AOSP bump. -->
+<resources>
+    <!-- Each Mac window is a display with its own focused app, so keys typed in a
+         window reach the app in that window. -->
+    <bool name="config_perDisplayFocusEnabled">true</bool>
+    <!-- Dock and Mission Control replace Home and Recents (spec §1). -->
+    <bool name="config_hasRecents">false</bool>
+    <!-- Apps may run on any display, including untrusted virtual ones. -->
+    <bool name="config_supportsMultiDisplay">true</bool>
+    <bool name="config_supportsSystemDecorsOnSecondaryDisplays">false</bool>
+    <!-- The VM never sleeps on its own; the host decides when to stop it. -->
+    <integer name="config_minimumScreenOffTimeout">2147483647</integer>
+    <bool name="config_allowAutoBrightnessWhileDozing">false</bool>
+    <bool name="config_dozeAfterScreenOffByDefault">false</bool>
+</resources>

@@ -1,0 +1,7 @@
+{
+  "schema": 1,
+  "id": "avo-virtual-device",
+  "name": "Avo Virtual Device",
+  "properties": {},
+  "notes": "Default. Keeps the Android image's own identity; nothing is overridden."
+}

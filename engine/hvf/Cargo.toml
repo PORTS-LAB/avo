@@ -1,0 +1,11 @@
+# Avo's Hypervisor.framework backend, developed standalone and destined for
+# crosvm's hypervisor crate (docs/engine.md, milestone 1).
+[workspace]
+resolver = "3"
+members = ["hvf-sys", "hvf", "probe"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+license = "BSD-3-Clause"
+publish = false

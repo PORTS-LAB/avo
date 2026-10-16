@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Privileged permissions of the Avo Bridge Agent (signature permissions come
+     from the platform certificate). Installed to /system_ext/etc/permissions. -->
+<permissions>
+    <privapp-permissions package="dev.avo.bridge">
+        <permission name="android.permission.INSTALL_PACKAGES" />
+        <permission name="android.permission.DELETE_PACKAGES" />
+        <permission name="android.permission.FORCE_STOP_PACKAGES" />
+        <permission name="android.permission.CLEAR_APP_USER_DATA" />
+        <permission name="android.permission.GRANT_RUNTIME_PERMISSIONS" />
+        <permission name="android.permission.REVOKE_RUNTIME_PERMISSIONS" />
+        <permission name="android.permission.PACKAGE_USAGE_STATS" />
+        <permission name="android.permission.MANAGE_NOTIFICATION_LISTENERS" />
+        <permission name="android.permission.READ_CLIPBOARD_IN_BACKGROUND" />
+        <permission name="android.permission.START_ACTIVITIES_FROM_BACKGROUND" />
+        <permission name="android.permission.WRITE_SECURE_SETTINGS" />
+        <permission name="android.permission.CAPTURE_VIDEO_OUTPUT" />
+    </privapp-permissions>
+</permissions>

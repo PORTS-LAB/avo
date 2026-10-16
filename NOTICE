@@ -1,0 +1,15 @@
+Avo
+Copyright 2026 Avo contributors
+
+This product includes software developed by the Avo contributors and is
+licensed under the Apache License, Version 2.0 (see LICENSE).
+
+Third-party components:
+- SwiftProtobuf (Apache License 2.0), https://github.com/apple/swift-protobuf
+- Protocol Buffers Java Lite runtime (BSD-3-Clause), bundled in the Bridge Agent
+- crosvm (BSD-3-Clause), used as the VM engine
+- The Linux kernel and KernelSU (GPL-2.0) are built and distributed separately
+  with their source, as the GPL requires.
+
+Android is a trademark of Google LLC. Device names in profiles/devices are used
+only so apps see a familiar device; they are not Avo branding.

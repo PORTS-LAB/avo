@@ -1,0 +1,182 @@
+{
+  "schema": 1,
+  "package": "com.proxima.dfm",
+  "name": "Delta Force - starter",
+  "author": "Avo contributors",
+  "notes": "Starter layout for the game's default HUD on a landscape window. Positions are normalized (0-1); open the editor with Cmd+Shift+K to adjust them, then share your version.",
+  "controls": [
+    {
+      "id": "move",
+      "type": "dpad",
+      "center": [
+        0.14,
+        0.72
+      ],
+      "radius": 0.12,
+      "up": "key:W",
+      "down": "key:S",
+      "left": "key:A",
+      "right": "key:D",
+      "stick": "left"
+    },
+    {
+      "id": "camera",
+      "type": "aim",
+      "area": [
+        0.45,
+        0.05,
+        1.0,
+        0.78
+      ],
+      "sensitivity": {
+        "x": 1.0,
+        "y": 1.0
+      },
+      "ads_sensitivity": {
+        "x": 0.6,
+        "y": 0.6
+      },
+      "exponent": 1.0,
+      "deadzone": 0,
+      "invert_y": false,
+      "stick": "right"
+    },
+    {
+      "id": "fire",
+      "type": "hold",
+      "position": [
+        0.86,
+        0.6
+      ],
+      "triggers": [
+        "mouse:left",
+        "pad:rightTrigger"
+      ],
+      "layer": "locked"
+    },
+    {
+      "id": "scope",
+      "type": "ads",
+      "position": [
+        0.92,
+        0.42
+      ],
+      "toggle": true,
+      "triggers": [
+        "mouse:right",
+        "pad:leftTrigger"
+      ],
+      "layer": "locked"
+    },
+    {
+      "id": "jump",
+      "type": "tap",
+      "position": [
+        0.93,
+        0.7
+      ],
+      "triggers": [
+        "key:Space",
+        "pad:a"
+      ]
+    },
+    {
+      "id": "crouch",
+      "type": "tap",
+      "position": [
+        0.88,
+        0.88
+      ],
+      "triggers": [
+        "key:C",
+        "pad:b"
+      ]
+    },
+    {
+      "id": "prone",
+      "type": "tap",
+      "position": [
+        0.95,
+        0.88
+      ],
+      "triggers": [
+        "key:Z"
+      ]
+    },
+    {
+      "id": "reload",
+      "type": "tap",
+      "position": [
+        0.8,
+        0.86
+      ],
+      "triggers": [
+        "key:R",
+        "pad:x"
+      ]
+    },
+    {
+      "id": "weapon-1",
+      "type": "tap",
+      "position": [
+        0.42,
+        0.88
+      ],
+      "triggers": [
+        "key:1",
+        "scroll:up"
+      ]
+    },
+    {
+      "id": "weapon-2",
+      "type": "tap",
+      "position": [
+        0.58,
+        0.88
+      ],
+      "triggers": [
+        "key:2",
+        "scroll:down"
+      ]
+    },
+    {
+      "id": "interact",
+      "type": "tap",
+      "position": [
+        0.62,
+        0.45
+      ],
+      "triggers": [
+        "key:F",
+        "pad:y"
+      ]
+    },
+    {
+      "id": "inventory",
+      "type": "tap",
+      "position": [
+        0.04,
+        0.86
+      ],
+      "triggers": [
+        "key:Tab",
+        "pad:options"
+      ]
+    },
+    {
+      "id": "map",
+      "type": "tap",
+      "position": [
+        0.92,
+        0.06
+      ],
+      "triggers": [
+        "key:M"
+      ]
+    }
+  ],
+  "fps": {
+    "cursor_toggle": "key:Option",
+    "aim_control": "camera"
+  }
+}

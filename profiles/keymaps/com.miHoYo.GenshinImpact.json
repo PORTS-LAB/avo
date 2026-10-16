@@ -1,0 +1,190 @@
+{
+  "schema": 1,
+  "package": "com.miHoYo.GenshinImpact",
+  "name": "Genshin Impact - starter",
+  "author": "Avo contributors",
+  "notes": "Starter layout for the game's default HUD on a landscape window. Positions are normalized (0-1); open the editor with Cmd+Shift+K to adjust them, then share your version.",
+  "controls": [
+    {
+      "id": "move",
+      "type": "dpad",
+      "center": [
+        0.15,
+        0.7
+      ],
+      "radius": 0.1,
+      "up": "key:W",
+      "down": "key:S",
+      "left": "key:A",
+      "right": "key:D",
+      "stick": "left"
+    },
+    {
+      "id": "camera",
+      "type": "aim",
+      "area": [
+        0.35,
+        0.05,
+        1.0,
+        0.62
+      ],
+      "sensitivity": {
+        "x": 1.2,
+        "y": 1.0
+      },
+      "ads_sensitivity": {
+        "x": 0.7,
+        "y": 0.6
+      },
+      "exponent": 1.0,
+      "deadzone": 0,
+      "invert_y": false,
+      "stick": "right"
+    },
+    {
+      "id": "attack",
+      "type": "hold",
+      "position": [
+        0.9,
+        0.8
+      ],
+      "triggers": [
+        "mouse:left",
+        "pad:x"
+      ],
+      "layer": "locked"
+    },
+    {
+      "id": "aim-bow",
+      "type": "ads",
+      "position": [
+        0.95,
+        0.4
+      ],
+      "toggle": true,
+      "triggers": [
+        "mouse:right"
+      ],
+      "layer": "locked"
+    },
+    {
+      "id": "skill",
+      "type": "hold",
+      "position": [
+        0.78,
+        0.84
+      ],
+      "triggers": [
+        "key:E",
+        "pad:leftShoulder"
+      ]
+    },
+    {
+      "id": "burst",
+      "type": "tap",
+      "position": [
+        0.8,
+        0.64
+      ],
+      "triggers": [
+        "key:Q",
+        "pad:rightShoulder"
+      ]
+    },
+    {
+      "id": "jump",
+      "type": "tap",
+      "position": [
+        0.93,
+        0.62
+      ],
+      "triggers": [
+        "key:Space",
+        "pad:a"
+      ]
+    },
+    {
+      "id": "sprint",
+      "type": "hold",
+      "position": [
+        0.96,
+        0.84
+      ],
+      "triggers": [
+        "key:Shift",
+        "pad:b"
+      ]
+    },
+    {
+      "id": "interact",
+      "type": "tap",
+      "position": [
+        0.62,
+        0.5
+      ],
+      "triggers": [
+        "key:F",
+        "pad:y"
+      ]
+    },
+    {
+      "id": "party-1",
+      "type": "tap",
+      "position": [
+        0.92,
+        0.25
+      ],
+      "triggers": [
+        "key:1"
+      ]
+    },
+    {
+      "id": "party-2",
+      "type": "tap",
+      "position": [
+        0.92,
+        0.33
+      ],
+      "triggers": [
+        "key:2"
+      ]
+    },
+    {
+      "id": "party-3",
+      "type": "tap",
+      "position": [
+        0.92,
+        0.41
+      ],
+      "triggers": [
+        "key:3"
+      ]
+    },
+    {
+      "id": "party-4",
+      "type": "tap",
+      "position": [
+        0.92,
+        0.49
+      ],
+      "triggers": [
+        "key:4"
+      ]
+    },
+    {
+      "id": "map",
+      "type": "tap",
+      "position": [
+        0.1,
+        0.15
+      ],
+      "triggers": [
+        "key:M"
+      ]
+    }
+  ],
+  "fps": {
+    "cursor_toggle": "key:Option",
+    "aim_control": "camera"
+  }
+}

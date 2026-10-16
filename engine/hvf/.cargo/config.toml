@@ -1,0 +1,4 @@
+# Binaries that create VMs need the hypervisor entitlement; this runner signs
+# them ad hoc before running (cargo run / cargo test).
+[target.aarch64-apple-darwin]
+runner = "./run-signed.sh"

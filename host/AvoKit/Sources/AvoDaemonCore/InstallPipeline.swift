@@ -1,0 +1,86 @@
+import AvoADB
+import AvoIO
+import AvoKit
+import AvoPackages
+import Foundation
+
+/// Installs a package file from the Mac (spec §3): inspect it, boot Android if
+/// needed, stream the selected APKs through `pm install-create/-write/-commit`
+/// and copy XAPK OBB files to /sdcard/Android/obb/.
+public struct InstallPipeline: Sendable {
+    public typealias Report = @Sendable (InstallProgress) -> Void
+
+    public init() {}
+
+    /// Returns the installed package name. The registry and shortcuts update
+    /// when the Bridge Agent reports PACKAGE_ADDED.
+    public func run(_ request: InstallRequest, file: OwnedDescriptor, guestSDK: Int = PackageArchive.guestSDK,
+                    ensureRunning: @Sendable () async throws -> Void,
+                    adb: @Sendable () async throws -> ADBConnection,
+                    report: @escaping Report) async throws -> String {
+        let id = request.id
+        report(InstallProgress(id: id, phase: .inspecting))
+        let archive: PackageArchive
+        do {
+            archive = try PackageArchive(fileDescriptor: file.value, url: URL(filePath: request.path), guestSDK: guestSDK)
+        } catch let error as PackageError {
+            throw AvoError.unsupportedPackage(error.localizedDescription)
+        }
+        let summary = archive.summary
+        if let issue = summary.compatibility.first(where: \.isBlocking) {
+            throw AvoError.unsupportedPackage(issue.message)
+        }
+
+        report(InstallProgress(id: id, phase: .startingVM, package: summary.packageName))
+        try await ensureRunning()
+        let connection = try await adb()
+
+        let parts = summary.parts.map { part in
+            ADBConnection.InstallPart(name: part.installName, size: part.size) {
+                ChunkPipe { send in try archive.stream(part) { try send($0) } }.stream()
+            }
+        }
+        report(InstallProgress(id: id, phase: .transferring, fraction: 0, package: summary.packageName))
+        do {
+            try await connection.install(parts) { done, total in
+                let fraction = total == 0 ? 1 : Double(done) / Double(total)
+                report(InstallProgress(id: id, phase: done < total ? .transferring : .installing,
+                                       fraction: fraction, package: summary.packageName))
+            }
+        } catch let error as ADBError {
+            throw AvoError.installFailed(Self.friendly(error.description))
+        }
+
+        if !summary.obbFiles.isEmpty {
+            let total = summary.obbBytes
+            var copied: UInt64 = 0
+            for obb in summary.obbFiles {
+                let base = copied
+                report(InstallProgress(id: id, phase: .copyingOBB, fraction: total == 0 ? 0 : Double(base) / Double(total),
+                                       package: summary.packageName))
+                try await connection.push(ChunkPipe { send in try archive.stream(obb) { try send($0) } },
+                                          to: "/sdcard/" + obb.destination, mode: 0o660) { sent in
+                    report(InstallProgress(id: id, phase: .copyingOBB, fraction: Double(base + sent) / Double(max(total, 1)),
+                                           package: summary.packageName))
+                }
+                copied += obb.size
+            }
+        }
+        return summary.packageName
+    }
+
+    /// Turns PackageManager failure codes into sentences.
+    static func friendly(_ message: String) -> String {
+        let known: [(String, String)] = [
+            ("INSTALL_FAILED_NO_MATCHING_ABIS", "the app has no 64-bit ARM code"),
+            ("INSTALL_FAILED_INSUFFICIENT_STORAGE", "Android is out of storage; enlarge the data disk in Settings › Storage"),
+            ("INSTALL_FAILED_UPDATE_INCOMPATIBLE", "an installed version is signed with a different key; uninstall it first"),
+            ("INSTALL_FAILED_VERSION_DOWNGRADE", "a newer version is already installed"),
+            ("INSTALL_FAILED_OLDER_SDK", "the app needs a newer Android version"),
+            ("INSTALL_PARSE_FAILED_NO_CERTIFICATES", "the package is not signed"),
+            ("INSTALL_FAILED_MISSING_SPLIT", "a required split APK is missing from the bundle"),
+        ]
+        for (code, sentence) in known where message.contains(code) { return "\(sentence) (\(code))" }
+        return message
+    }
+}

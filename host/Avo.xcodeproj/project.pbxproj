@@ -1,0 +1,997 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		0249D1AE6991C4C85CD03995 /* StatusViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = F11C20BD16E21123B21D88FB /* StatusViews.swift */; };
+		06EF44144268EDA889E46D1C /* AppsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FCD2536A0FD4B7C10F14C8E7 /* AppsView.swift */; };
+		0A9337658A7DD39148033B8D /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = DCA411BF620B4A6CD56B68BF /* main.swift */; };
+		1138D23B2432621A0392F88E /* SettingsPanes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57272A45292573622BEB9050 /* SettingsPanes.swift */; };
+		128569D3D4414E7CCAC8FBF0 /* AvoWindowHost.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 248B6565DC21EC727F3D7C71 /* AvoWindowHost.framework */; };
+		18D8C01B3F511120069B064D /* KeymapController.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2A074AE3498D751BAF59ECA /* KeymapController.swift */; };
+		1B1204EF16529C260E2187CD /* AvoHostKit in Embed Frameworks */ = {isa = PBXBuildFile; productRef = 957B5B66D0F5E689DE4D838D /* AvoHostKit */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		207D13F006F0924979DBC841 /* FrameRouter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 75A225255260D6D6FA585B52 /* FrameRouter.swift */; };
+		2AED51731E0D9A583415A9D3 /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7041D0AA8B7A00CB09C30AC6 /* main.swift */; };
+		2E063FFE47A966F37777D8A2 /* MacIntegrations.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CD6BB66680DDF324313F398 /* MacIntegrations.swift */; };
+		326B9CFA8AD399ABB0184081 /* AvoShim.app in Embed Dependencies */ = {isa = PBXBuildFile; fileRef = 1F7E23E566F49F341DAF90C1 /* AvoShim.app */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		3B17A894C265E7F52B64E424 /* avoctl in Embed Dependencies */ = {isa = PBXBuildFile; fileRef = C07D584FB71811F8CF054BA0 /* avoctl */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		40BB43C8EB6FA24466005634 /* AvoHostKit in Frameworks */ = {isa = PBXBuildFile; productRef = 1309BB8E795B40B4B3FCC1E4 /* AvoHostKit */; };
+		461C56E9076279938C7ADE84 /* DaemonApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 247F00D3F568BF9DAA251E37 /* DaemonApp.swift */; };
+		47016DFED92044DBDCC83456 /* AvoDaemon.app in Embed Dependencies */ = {isa = PBXBuildFile; fileRef = 441AA532CF90E8475DCB42F9 /* AvoDaemon.app */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		58DE4815D562C7B6789AAE9A /* AppIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = F4F9010B156E6BEDCE8E4756 /* AppIcon.icon */; };
+		5AF67682AFB60C03BCDA58C6 /* AvoHostKit in Frameworks */ = {isa = PBXBuildFile; productRef = 957B5B66D0F5E689DE4D838D /* AvoHostKit */; };
+		69A85120010849C649C6A0DF /* DisplayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EF84B0D93E7B26F1EBC816E3 /* DisplayView.swift */; };
+		6D9ACB9B75426991EF98DB74 /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = 96ED77A3C55350AFFABBD5A8 /* main.swift */; };
+		736A59C7F9BD129ACC6395F7 /* AvoHostKit in Frameworks */ = {isa = PBXBuildFile; productRef = B4FF4D9F0E4B7565B6EA4F98 /* AvoHostKit */; };
+		7E57825E3D6A11593F1C53C1 /* AppIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = F4F9010B156E6BEDCE8E4756 /* AppIcon.icon */; };
+		80F7B035228CE63F63182E75 /* PermissionNames.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27670785BC1057938A994E09 /* PermissionNames.swift */; };
+		8481943B1628A9A6E92AE05F /* dev.avo.daemon.plist in CopyFiles */ = {isa = PBXBuildFile; fileRef = 169AFA72B5D4B196DA73B69A /* dev.avo.daemon.plist */; };
+		87A7CC06BD009B6726F40C66 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = F64C8E34E5447E3EB40D0D3F /* Assets.xcassets */; };
+		87A880D6FA3C9978CCB0C05D /* AvoHostKit in Frameworks */ = {isa = PBXBuildFile; productRef = 23CC27DBEFD245E22566CC33 /* AvoHostKit */; };
+		95568F6EAC87B4A342D6471D /* AvoApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A444BBF9A53642B1FE34256B /* AvoApp.swift */; };
+		975035318C6C0A56A30D6A8B /* InstallSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2CED382FE79AE02774664344 /* InstallSheet.swift */; };
+		9899E4177398D1E0CDCC2C99 /* KeymapOverlayWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3EFC2752BCAA2F03354DD338 /* KeymapOverlayWindow.swift */; };
+		A9658D77E881DBF56C0FB819 /* AndroidWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6B98E4EAC479449B37A4DA1 /* AndroidWindowController.swift */; };
+		B1D83C8A856243F3A4F513DF /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = F64C8E34E5447E3EB40D0D3F /* Assets.xcassets */; };
+		B67F6DA128DF5A02F67CC4F5 /* ShimMain.swift in Sources */ = {isa = PBXBuildFile; fileRef = 76B7EBE203806538C8FDEE11 /* ShimMain.swift */; };
+		BD48D8CBC92099D5ABED9C1D /* AvoWindowHost.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 248B6565DC21EC727F3D7C71 /* AvoWindowHost.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		C58D74218817BA514A70A572 /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 2D9DA4A74ED2CAFCD7573F60 /* Metal.framework */; };
+		C8AFDD75D978DCB7FBEDF4EC /* ControlPanelModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA39192F6A11BA3E0270D69A /* ControlPanelModel.swift */; };
+		D053AC40519BA30307D9AD8E /* MetalRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFE4EAF3EB3EE68AD571ECAB /* MetalRenderer.swift */; };
+		D274969A8BFA690ADC2E7160 /* MenuBarController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0618B7045A2A842D4AD57B6E /* MenuBarController.swift */; };
+		D535237D658E53A31CF2FE9F /* profiles in Resources */ = {isa = PBXBuildFile; fileRef = 01DE9A3E8C4D5762AC330531 /* profiles */; };
+		EBE23F89B051409E896BA37B /* GameController.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1F46F80A9E9D0903E9D98E01 /* GameController.framework */; };
+		ECB289C356315F65BD9872C6 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BEACB0E1606E0C9E8530E4F /* ContentView.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		244D2BA1F1C333DC716B885D /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = F110EACC3625723C5C5EF47B /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 41761C4E2C66BAA7B6933779;
+			remoteInfo = AvoDaemon;
+		};
+		308972D269D6F21093513D9C /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = F110EACC3625723C5C5EF47B /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 694851832BD5A0D904312EAF;
+			remoteInfo = AvoWindowHost;
+		};
+		351FDA740C137B9F9F55BF58 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = F110EACC3625723C5C5EF47B /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 4F7A38BABD13756D57420C24;
+			remoteInfo = AvoShim;
+		};
+		77FC28C291658C9D8AE0D75D /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = F110EACC3625723C5C5EF47B /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 42DEABA5A84D92F2DA57154E;
+			remoteInfo = avoctl;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		1D53782E6B5857E8BE21FBDA /* Embed Dependencies */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = Contents/Library/Helpers;
+			dstSubfolderSpec = 1;
+			files = (
+				47016DFED92044DBDCC83456 /* AvoDaemon.app in Embed Dependencies */,
+			);
+			name = "Embed Dependencies";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		9B5483BA2FEF5F7A9BECF5F2 /* Embed Dependencies */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 6;
+			files = (
+				3B17A894C265E7F52B64E424 /* avoctl in Embed Dependencies */,
+			);
+			name = "Embed Dependencies";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		C7672177C149A74FB486AFCE /* Embed Dependencies */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = Contents/Library/Shim;
+			dstSubfolderSpec = 1;
+			files = (
+				326B9CFA8AD399ABB0184081 /* AvoShim.app in Embed Dependencies */,
+			);
+			name = "Embed Dependencies";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		CA1CF985AF47AA65A860EEAD /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = Contents/Library/LaunchAgents;
+			dstSubfolderSpec = 1;
+			files = (
+				8481943B1628A9A6E92AE05F /* dev.avo.daemon.plist in CopyFiles */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		FB96360A10ACF5CEBD4E1878 /* Embed Frameworks */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 10;
+			files = (
+				1B1204EF16529C260E2187CD /* AvoHostKit in Embed Frameworks */,
+				BD48D8CBC92099D5ABED9C1D /* AvoWindowHost.framework in Embed Frameworks */,
+			);
+			name = "Embed Frameworks";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		01DE9A3E8C4D5762AC330531 /* profiles */ = {isa = PBXFileReference; lastKnownFileType = folder; name = profiles; path = ../profiles; sourceTree = SOURCE_ROOT; };
+		0618B7045A2A842D4AD57B6E /* MenuBarController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarController.swift; sourceTree = "<group>"; };
+		0A1FB6938150613451067A2F /* Base.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Base.xcconfig; sourceTree = "<group>"; };
+		169AFA72B5D4B196DA73B69A /* dev.avo.daemon.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = dev.avo.daemon.plist; sourceTree = "<group>"; };
+		1EE603498A6803B96C622035 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		1F46F80A9E9D0903E9D98E01 /* GameController.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = GameController.framework; path = System/Library/Frameworks/GameController.framework; sourceTree = SDKROOT; };
+		1F7E23E566F49F341DAF90C1 /* AvoShim.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = AvoShim.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		247F00D3F568BF9DAA251E37 /* DaemonApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DaemonApp.swift; sourceTree = "<group>"; };
+		248B6565DC21EC727F3D7C71 /* AvoWindowHost.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = AvoWindowHost.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		27670785BC1057938A994E09 /* PermissionNames.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PermissionNames.swift; sourceTree = "<group>"; };
+		2CED382FE79AE02774664344 /* InstallSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InstallSheet.swift; sourceTree = "<group>"; };
+		2D9DA4A74ED2CAFCD7573F60 /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = System/Library/Frameworks/Metal.framework; sourceTree = SDKROOT; };
+		3CD6BB66680DDF324313F398 /* MacIntegrations.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacIntegrations.swift; sourceTree = "<group>"; };
+		3EFC2752BCAA2F03354DD338 /* KeymapOverlayWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeymapOverlayWindow.swift; sourceTree = "<group>"; };
+		441AA532CF90E8475DCB42F9 /* AvoDaemon.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = AvoDaemon.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		57272A45292573622BEB9050 /* SettingsPanes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsPanes.swift; sourceTree = "<group>"; };
+		7041D0AA8B7A00CB09C30AC6 /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
+		75A225255260D6D6FA585B52 /* FrameRouter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FrameRouter.swift; sourceTree = "<group>"; };
+		76B7EBE203806538C8FDEE11 /* ShimMain.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShimMain.swift; sourceTree = "<group>"; };
+		7A4D9E1DB1788819C8F17DA9 /* AvoDaemon.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = AvoDaemon.entitlements; sourceTree = "<group>"; };
+		8BEACB0E1606E0C9E8530E4F /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		946A4C5DF4F4F105214BC3E3 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		96ED77A3C55350AFFABBD5A8 /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
+		A444BBF9A53642B1FE34256B /* AvoApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AvoApp.swift; sourceTree = "<group>"; };
+		B587F0282FF38F5309AE568C /* Avo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Avo.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		C07D584FB71811F8CF054BA0 /* avoctl */ = {isa = PBXFileReference; includeInIndex = 0; path = avoctl; sourceTree = BUILT_PRODUCTS_DIR; };
+		CADCBB41CA0B270422E1160A /* AvoKit */ = {isa = PBXFileReference; lastKnownFileType = folder; name = AvoKit; path = AvoKit; sourceTree = SOURCE_ROOT; };
+		CB9BB689581B4EBDE7AC7F0B /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		CFE4EAF3EB3EE68AD571ECAB /* MetalRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetalRenderer.swift; sourceTree = "<group>"; };
+		D06BF8BFE54A40E75F1AA198 /* Avo.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Avo.entitlements; sourceTree = "<group>"; };
+		DCA411BF620B4A6CD56B68BF /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
+		E2A074AE3498D751BAF59ECA /* KeymapController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeymapController.swift; sourceTree = "<group>"; };
+		E6B98E4EAC479449B37A4DA1 /* AndroidWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AndroidWindowController.swift; sourceTree = "<group>"; };
+		EF84B0D93E7B26F1EBC816E3 /* DisplayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisplayView.swift; sourceTree = "<group>"; };
+		F11C20BD16E21123B21D88FB /* StatusViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusViews.swift; sourceTree = "<group>"; };
+		F4F9010B156E6BEDCE8E4756 /* AppIcon.icon */ = {isa = PBXFileReference; lastKnownFileType = wrapper.icon; path = AppIcon.icon; sourceTree = "<group>"; };
+		F64C8E34E5447E3EB40D0D3F /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		FA39192F6A11BA3E0270D69A /* ControlPanelModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControlPanelModel.swift; sourceTree = "<group>"; };
+		FAF5216DF42DA9568829A3D0 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		FCD2536A0FD4B7C10F14C8E7 /* AppsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppsView.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		02CE3BDB5B17DD19008E6F1D /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				87A880D6FA3C9978CCB0C05D /* AvoHostKit in Frameworks */,
+				C58D74218817BA514A70A572 /* Metal.framework in Frameworks */,
+				EBE23F89B051409E896BA37B /* GameController.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		37A3300FCE2F8EC2B569CEF6 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				5AF67682AFB60C03BCDA58C6 /* AvoHostKit in Frameworks */,
+				128569D3D4414E7CCAC8FBF0 /* AvoWindowHost.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		3FFAD21D4747D43F22ACC645 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				40BB43C8EB6FA24466005634 /* AvoHostKit in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4CF07243BFF6301B55BD96A8 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				736A59C7F9BD129ACC6395F7 /* AvoHostKit in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		1172DD0AD31DDF8DA29C477A /* avo */ = {
+			isa = PBXGroup;
+			children = (
+				01DE9A3E8C4D5762AC330531 /* profiles */,
+			);
+			name = avo;
+			path = ..;
+			sourceTree = "<group>";
+		};
+		2A506A8BDC686CDD7C2443EE /* AvoShim */ = {
+			isa = PBXGroup;
+			children = (
+				1EE603498A6803B96C622035 /* Info.plist */,
+				7041D0AA8B7A00CB09C30AC6 /* main.swift */,
+			);
+			path = AvoShim;
+			sourceTree = "<group>";
+		};
+		3BBC235D5FE2E5C667744CC5 = {
+			isa = PBXGroup;
+			children = (
+				8884137A2D8A72EA20FE6F28 /* Avo */,
+				1172DD0AD31DDF8DA29C477A /* avo */,
+				A7476617DA7B529836987A10 /* avoctl */,
+				D47E8630A3C1286789D7F14B /* AvoDaemon */,
+				2A506A8BDC686CDD7C2443EE /* AvoShim */,
+				DB845F15F9A2152809A95F7E /* AvoWindowHost */,
+				FBA6D5D52CAF2627DF55D613 /* Config */,
+				8BCA2D8D97B264CE7B2B7C56 /* Packages */,
+				A3CD55D0A94D59B727EFEEB2 /* Frameworks */,
+				3C132BBC38FF08956F3BFE6A /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		3C132BBC38FF08956F3BFE6A /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				B587F0282FF38F5309AE568C /* Avo.app */,
+				C07D584FB71811F8CF054BA0 /* avoctl */,
+				441AA532CF90E8475DCB42F9 /* AvoDaemon.app */,
+				1F7E23E566F49F341DAF90C1 /* AvoShim.app */,
+				248B6565DC21EC727F3D7C71 /* AvoWindowHost.framework */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		7BDDAFBF6FFB6597718A0D10 /* LaunchAgents */ = {
+			isa = PBXGroup;
+			children = (
+				169AFA72B5D4B196DA73B69A /* dev.avo.daemon.plist */,
+			);
+			path = LaunchAgents;
+			sourceTree = "<group>";
+		};
+		8884137A2D8A72EA20FE6F28 /* Avo */ = {
+			isa = PBXGroup;
+			children = (
+				7BDDAFBF6FFB6597718A0D10 /* LaunchAgents */,
+				F4F9010B156E6BEDCE8E4756 /* AppIcon.icon */,
+				FCD2536A0FD4B7C10F14C8E7 /* AppsView.swift */,
+				F64C8E34E5447E3EB40D0D3F /* Assets.xcassets */,
+				D06BF8BFE54A40E75F1AA198 /* Avo.entitlements */,
+				A444BBF9A53642B1FE34256B /* AvoApp.swift */,
+				8BEACB0E1606E0C9E8530E4F /* ContentView.swift */,
+				FA39192F6A11BA3E0270D69A /* ControlPanelModel.swift */,
+				946A4C5DF4F4F105214BC3E3 /* Info.plist */,
+				2CED382FE79AE02774664344 /* InstallSheet.swift */,
+				27670785BC1057938A994E09 /* PermissionNames.swift */,
+				57272A45292573622BEB9050 /* SettingsPanes.swift */,
+				F11C20BD16E21123B21D88FB /* StatusViews.swift */,
+			);
+			path = Avo;
+			sourceTree = "<group>";
+		};
+		8BCA2D8D97B264CE7B2B7C56 /* Packages */ = {
+			isa = PBXGroup;
+			children = (
+				CADCBB41CA0B270422E1160A /* AvoKit */,
+			);
+			name = Packages;
+			sourceTree = "<group>";
+		};
+		A3CD55D0A94D59B727EFEEB2 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				1F46F80A9E9D0903E9D98E01 /* GameController.framework */,
+				2D9DA4A74ED2CAFCD7573F60 /* Metal.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		A7476617DA7B529836987A10 /* avoctl */ = {
+			isa = PBXGroup;
+			children = (
+				96ED77A3C55350AFFABBD5A8 /* main.swift */,
+			);
+			path = avoctl;
+			sourceTree = "<group>";
+		};
+		D47E8630A3C1286789D7F14B /* AvoDaemon */ = {
+			isa = PBXGroup;
+			children = (
+				7A4D9E1DB1788819C8F17DA9 /* AvoDaemon.entitlements */,
+				247F00D3F568BF9DAA251E37 /* DaemonApp.swift */,
+				FAF5216DF42DA9568829A3D0 /* Info.plist */,
+				3CD6BB66680DDF324313F398 /* MacIntegrations.swift */,
+				DCA411BF620B4A6CD56B68BF /* main.swift */,
+				0618B7045A2A842D4AD57B6E /* MenuBarController.swift */,
+			);
+			path = AvoDaemon;
+			sourceTree = "<group>";
+		};
+		DB845F15F9A2152809A95F7E /* AvoWindowHost */ = {
+			isa = PBXGroup;
+			children = (
+				E6B98E4EAC479449B37A4DA1 /* AndroidWindowController.swift */,
+				EF84B0D93E7B26F1EBC816E3 /* DisplayView.swift */,
+				75A225255260D6D6FA585B52 /* FrameRouter.swift */,
+				CB9BB689581B4EBDE7AC7F0B /* Info.plist */,
+				E2A074AE3498D751BAF59ECA /* KeymapController.swift */,
+				3EFC2752BCAA2F03354DD338 /* KeymapOverlayWindow.swift */,
+				CFE4EAF3EB3EE68AD571ECAB /* MetalRenderer.swift */,
+				76B7EBE203806538C8FDEE11 /* ShimMain.swift */,
+			);
+			path = AvoWindowHost;
+			sourceTree = "<group>";
+		};
+		FBA6D5D52CAF2627DF55D613 /* Config */ = {
+			isa = PBXGroup;
+			children = (
+				0A1FB6938150613451067A2F /* Base.xcconfig */,
+			);
+			path = Config;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		243453C01CA644BAF15DD378 /* Avo */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = AC23D28D15DEB7D3FEBB6AA4 /* Build configuration list for PBXNativeTarget "Avo" */;
+			buildPhases = (
+				6FFB2E6DF28A0A7112CB07A3 /* Sources */,
+				1B38CED3834B9436E21B76CB /* Resources */,
+				CA1CF985AF47AA65A860EEAD /* CopyFiles */,
+				37A3300FCE2F8EC2B569CEF6 /* Frameworks */,
+				FB96360A10ACF5CEBD4E1878 /* Embed Frameworks */,
+				C7672177C149A74FB486AFCE /* Embed Dependencies */,
+				1D53782E6B5857E8BE21FBDA /* Embed Dependencies */,
+				9B5483BA2FEF5F7A9BECF5F2 /* Embed Dependencies */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				FE38E82FB77BBBBEA12FC992 /* PBXTargetDependency */,
+				80D7C78EAA1DD02975870D78 /* PBXTargetDependency */,
+				4FF28C3D43CF3618C5B8E03D /* PBXTargetDependency */,
+				04453BA93D9B244AEED92451 /* PBXTargetDependency */,
+			);
+			name = Avo;
+			packageProductDependencies = (
+				957B5B66D0F5E689DE4D838D /* AvoHostKit */,
+			);
+			productName = Avo;
+			productReference = B587F0282FF38F5309AE568C /* Avo.app */;
+			productType = "com.apple.product-type.application";
+		};
+		41761C4E2C66BAA7B6933779 /* AvoDaemon */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = EE9F6E309E65451E90D2854D /* Build configuration list for PBXNativeTarget "AvoDaemon" */;
+			buildPhases = (
+				757DD8BB22C7ADBC37C7B0B0 /* Sources */,
+				46555FE4EDAF169EB7F43160 /* Resources */,
+				3FFAD21D4747D43F22ACC645 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = AvoDaemon;
+			packageProductDependencies = (
+				1309BB8E795B40B4B3FCC1E4 /* AvoHostKit */,
+			);
+			productName = AvoDaemon;
+			productReference = 441AA532CF90E8475DCB42F9 /* AvoDaemon.app */;
+			productType = "com.apple.product-type.application";
+		};
+		42DEABA5A84D92F2DA57154E /* avoctl */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 82309ECB7EF395AB271C9BC8 /* Build configuration list for PBXNativeTarget "avoctl" */;
+			buildPhases = (
+				A3B01AE46C40575C7FD193A6 /* Sources */,
+				4CF07243BFF6301B55BD96A8 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = avoctl;
+			packageProductDependencies = (
+				B4FF4D9F0E4B7565B6EA4F98 /* AvoHostKit */,
+			);
+			productName = avoctl;
+			productReference = C07D584FB71811F8CF054BA0 /* avoctl */;
+			productType = "com.apple.product-type.tool";
+		};
+		4F7A38BABD13756D57420C24 /* AvoShim */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 30BE2466D0032AFC24D75235 /* Build configuration list for PBXNativeTarget "AvoShim" */;
+			buildPhases = (
+				D828A6C75FA3272BE54DD5CC /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = AvoShim;
+			packageProductDependencies = (
+			);
+			productName = AvoShim;
+			productReference = 1F7E23E566F49F341DAF90C1 /* AvoShim.app */;
+			productType = "com.apple.product-type.application";
+		};
+		694851832BD5A0D904312EAF /* AvoWindowHost */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = C530B2F505A7DD4FF5996D99 /* Build configuration list for PBXNativeTarget "AvoWindowHost" */;
+			buildPhases = (
+				65E40FA4CFC3E8FEB7CE47F3 /* Sources */,
+				02CE3BDB5B17DD19008E6F1D /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = AvoWindowHost;
+			packageProductDependencies = (
+				23CC27DBEFD245E22566CC33 /* AvoHostKit */,
+			);
+			productName = AvoWindowHost;
+			productReference = 248B6565DC21EC727F3D7C71 /* AvoWindowHost.framework */;
+			productType = "com.apple.product-type.framework";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		F110EACC3625723C5C5EF47B /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+					243453C01CA644BAF15DD378 = {
+						DevelopmentTeam = "$(AVO_TEAM_ID)";
+						ProvisioningStyle = Automatic;
+					};
+					41761C4E2C66BAA7B6933779 = {
+						DevelopmentTeam = "$(AVO_TEAM_ID)";
+						ProvisioningStyle = Automatic;
+					};
+					42DEABA5A84D92F2DA57154E = {
+						DevelopmentTeam = "$(AVO_TEAM_ID)";
+						ProvisioningStyle = Automatic;
+					};
+					4F7A38BABD13756D57420C24 = {
+						DevelopmentTeam = "$(AVO_TEAM_ID)";
+						ProvisioningStyle = Automatic;
+					};
+					694851832BD5A0D904312EAF = {
+						DevelopmentTeam = "$(AVO_TEAM_ID)";
+						ProvisioningStyle = Automatic;
+					};
+				};
+			};
+			buildConfigurationList = 6244C72290D4AEBB3573DA80 /* Build configuration list for PBXProject "Avo" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = 3BBC235D5FE2E5C667744CC5;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				00CB3CAD4394F787984A8A44 /* XCLocalSwiftPackageReference "AvoKit" */,
+			);
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 3C132BBC38FF08956F3BFE6A /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				243453C01CA644BAF15DD378 /* Avo */,
+				41761C4E2C66BAA7B6933779 /* AvoDaemon */,
+				4F7A38BABD13756D57420C24 /* AvoShim */,
+				694851832BD5A0D904312EAF /* AvoWindowHost */,
+				42DEABA5A84D92F2DA57154E /* avoctl */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		1B38CED3834B9436E21B76CB /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				58DE4815D562C7B6789AAE9A /* AppIcon.icon in Resources */,
+				87A7CC06BD009B6726F40C66 /* Assets.xcassets in Resources */,
+				D535237D658E53A31CF2FE9F /* profiles in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		46555FE4EDAF169EB7F43160 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				7E57825E3D6A11593F1C53C1 /* AppIcon.icon in Resources */,
+				B1D83C8A856243F3A4F513DF /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		65E40FA4CFC3E8FEB7CE47F3 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A9658D77E881DBF56C0FB819 /* AndroidWindowController.swift in Sources */,
+				69A85120010849C649C6A0DF /* DisplayView.swift in Sources */,
+				207D13F006F0924979DBC841 /* FrameRouter.swift in Sources */,
+				18D8C01B3F511120069B064D /* KeymapController.swift in Sources */,
+				9899E4177398D1E0CDCC2C99 /* KeymapOverlayWindow.swift in Sources */,
+				D053AC40519BA30307D9AD8E /* MetalRenderer.swift in Sources */,
+				B67F6DA128DF5A02F67CC4F5 /* ShimMain.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		6FFB2E6DF28A0A7112CB07A3 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				06EF44144268EDA889E46D1C /* AppsView.swift in Sources */,
+				95568F6EAC87B4A342D6471D /* AvoApp.swift in Sources */,
+				ECB289C356315F65BD9872C6 /* ContentView.swift in Sources */,
+				C8AFDD75D978DCB7FBEDF4EC /* ControlPanelModel.swift in Sources */,
+				975035318C6C0A56A30D6A8B /* InstallSheet.swift in Sources */,
+				80F7B035228CE63F63182E75 /* PermissionNames.swift in Sources */,
+				1138D23B2432621A0392F88E /* SettingsPanes.swift in Sources */,
+				0249D1AE6991C4C85CD03995 /* StatusViews.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		757DD8BB22C7ADBC37C7B0B0 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				461C56E9076279938C7ADE84 /* DaemonApp.swift in Sources */,
+				2E063FFE47A966F37777D8A2 /* MacIntegrations.swift in Sources */,
+				D274969A8BFA690ADC2E7160 /* MenuBarController.swift in Sources */,
+				0A9337658A7DD39148033B8D /* main.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A3B01AE46C40575C7FD193A6 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				6D9ACB9B75426991EF98DB74 /* main.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D828A6C75FA3272BE54DD5CC /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				2AED51731E0D9A583415A9D3 /* main.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		04453BA93D9B244AEED92451 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 42DEABA5A84D92F2DA57154E /* avoctl */;
+			targetProxy = 77FC28C291658C9D8AE0D75D /* PBXContainerItemProxy */;
+		};
+		4FF28C3D43CF3618C5B8E03D /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 4F7A38BABD13756D57420C24 /* AvoShim */;
+			targetProxy = 351FDA740C137B9F9F55BF58 /* PBXContainerItemProxy */;
+		};
+		80D7C78EAA1DD02975870D78 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 694851832BD5A0D904312EAF /* AvoWindowHost */;
+			targetProxy = 308972D269D6F21093513D9C /* PBXContainerItemProxy */;
+		};
+		FE38E82FB77BBBBEA12FC992 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 41761C4E2C66BAA7B6933779 /* AvoDaemon */;
+			targetProxy = 244D2BA1F1C333DC716B885D /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		0BB87B58642E10239F2E941C /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				COMBINE_HIDPI_IMAGES = YES;
+				ENABLE_DEBUG_DYLIB = NO;
+				ENABLE_HARDENED_RUNTIME = NO;
+				INFOPLIST_FILE = AvoShim/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "$(AVO_BUNDLE_ID_PREFIX).shim.template";
+				PRODUCT_NAME = AvoShim;
+				SDKROOT = macosx;
+				SKIP_INSTALL = YES;
+			};
+			name = Debug;
+		};
+		17155C898A63C2171A3898D3 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				COMBINE_HIDPI_IMAGES = YES;
+				DEFINES_MODULE = YES;
+				DYLIB_COMPATIBILITY_VERSION = 1;
+				DYLIB_CURRENT_VERSION = 1;
+				DYLIB_INSTALL_NAME_BASE = "@rpath";
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = AvoWindowHost/Info.plist;
+				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @loader_path/../../.. @executable_path/../Frameworks";
+				PRODUCT_BUNDLE_IDENTIFIER = "$(AVO_BUNDLE_ID_PREFIX).WindowHost";
+				PRODUCT_NAME = AvoWindowHost;
+				SDKROOT = macosx;
+				SKIP_INSTALL = YES;
+				VERSIONING_SYSTEM = "apple-generic";
+			};
+			name = Debug;
+		};
+		493DF8FC716FA8EF05C1E0E7 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = AvoDaemon/AvoDaemon.entitlements;
+				COMBINE_HIDPI_IMAGES = YES;
+				ENABLE_DEBUG_DYLIB = NO;
+				INFOPLIST_FILE = AvoDaemon/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../../../../Frameworks";
+				PRODUCT_BUNDLE_IDENTIFIER = "$(AVO_BUNDLE_ID_PREFIX).daemon";
+				PRODUCT_NAME = AvoDaemon;
+				SDKROOT = macosx;
+				SKIP_INSTALL = YES;
+			};
+			name = Debug;
+		};
+		626E2415393DE7EE1E656270 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AvoSkin;
+				CODE_SIGN_ENTITLEMENTS = Avo/Avo.entitlements;
+				COMBINE_HIDPI_IMAGES = YES;
+				ENABLE_PREVIEWS = YES;
+				INFOPLIST_FILE = Avo/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
+				PRODUCT_BUNDLE_IDENTIFIER = "$(AVO_BUNDLE_ID_PREFIX).Avo";
+				PRODUCT_NAME = Avo;
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+		70B28D1FF4EED8ECB3AE5F1C /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				COMBINE_HIDPI_IMAGES = YES;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
+				PRODUCT_BUNDLE_IDENTIFIER = "$(AVO_BUNDLE_ID_PREFIX).avoctl";
+				PRODUCT_NAME = avoctl;
+				SDKROOT = macosx;
+				SKIP_INSTALL = YES;
+			};
+			name = Release;
+		};
+		A9F1FDB648EAEFFA5F3622D2 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AvoSkin;
+				CODE_SIGN_ENTITLEMENTS = Avo/Avo.entitlements;
+				COMBINE_HIDPI_IMAGES = YES;
+				ENABLE_PREVIEWS = YES;
+				INFOPLIST_FILE = Avo/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
+				PRODUCT_BUNDLE_IDENTIFIER = "$(AVO_BUNDLE_ID_PREFIX).Avo";
+				PRODUCT_NAME = Avo;
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+		CE0570A1C4E21F6C080E9F0E /* Release */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 0A1FB6938150613451067A2F /* Base.xcconfig */;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_BUNDLE_IDENTIFIER_PREFIX = "$(AVO_BUNDLE_ID_PREFIX)";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+			};
+			name = Release;
+		};
+		F0651F0853AC41BCAB40CF92 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				COMBINE_HIDPI_IMAGES = YES;
+				DEFINES_MODULE = YES;
+				DYLIB_COMPATIBILITY_VERSION = 1;
+				DYLIB_CURRENT_VERSION = 1;
+				DYLIB_INSTALL_NAME_BASE = "@rpath";
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = AvoWindowHost/Info.plist;
+				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @loader_path/../../.. @executable_path/../Frameworks";
+				PRODUCT_BUNDLE_IDENTIFIER = "$(AVO_BUNDLE_ID_PREFIX).WindowHost";
+				PRODUCT_NAME = AvoWindowHost;
+				SDKROOT = macosx;
+				SKIP_INSTALL = YES;
+				VERSIONING_SYSTEM = "apple-generic";
+			};
+			name = Release;
+		};
+		F11FBC05BB0C1A792B7965C5 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				COMBINE_HIDPI_IMAGES = YES;
+				ENABLE_DEBUG_DYLIB = NO;
+				ENABLE_HARDENED_RUNTIME = NO;
+				INFOPLIST_FILE = AvoShim/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "$(AVO_BUNDLE_ID_PREFIX).shim.template";
+				PRODUCT_NAME = AvoShim;
+				SDKROOT = macosx;
+				SKIP_INSTALL = YES;
+			};
+			name = Release;
+		};
+		FC18D206F0B09C48CE027598 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 0A1FB6938150613451067A2F /* Base.xcconfig */;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_BUNDLE_IDENTIFIER_PREFIX = "$(AVO_BUNDLE_ID_PREFIX)";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		FDC160E0314CB8A03B2B243F /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				COMBINE_HIDPI_IMAGES = YES;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
+				PRODUCT_BUNDLE_IDENTIFIER = "$(AVO_BUNDLE_ID_PREFIX).avoctl";
+				PRODUCT_NAME = avoctl;
+				SDKROOT = macosx;
+				SKIP_INSTALL = YES;
+			};
+			name = Debug;
+		};
+		FE33D7ADF2CA7817BA2D131C /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = AvoDaemon/AvoDaemon.entitlements;
+				COMBINE_HIDPI_IMAGES = YES;
+				ENABLE_DEBUG_DYLIB = NO;
+				INFOPLIST_FILE = AvoDaemon/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../../../../Frameworks";
+				PRODUCT_BUNDLE_IDENTIFIER = "$(AVO_BUNDLE_ID_PREFIX).daemon";
+				PRODUCT_NAME = AvoDaemon;
+				SDKROOT = macosx;
+				SKIP_INSTALL = YES;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		30BE2466D0032AFC24D75235 /* Build configuration list for PBXNativeTarget "AvoShim" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				0BB87B58642E10239F2E941C /* Debug */,
+				F11FBC05BB0C1A792B7965C5 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		6244C72290D4AEBB3573DA80 /* Build configuration list for PBXProject "Avo" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				FC18D206F0B09C48CE027598 /* Debug */,
+				CE0570A1C4E21F6C080E9F0E /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		82309ECB7EF395AB271C9BC8 /* Build configuration list for PBXNativeTarget "avoctl" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				FDC160E0314CB8A03B2B243F /* Debug */,
+				70B28D1FF4EED8ECB3AE5F1C /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		AC23D28D15DEB7D3FEBB6AA4 /* Build configuration list for PBXNativeTarget "Avo" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A9F1FDB648EAEFFA5F3622D2 /* Debug */,
+				626E2415393DE7EE1E656270 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		C530B2F505A7DD4FF5996D99 /* Build configuration list for PBXNativeTarget "AvoWindowHost" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				17155C898A63C2171A3898D3 /* Debug */,
+				F0651F0853AC41BCAB40CF92 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		EE9F6E309E65451E90D2854D /* Build configuration list for PBXNativeTarget "AvoDaemon" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				493DF8FC716FA8EF05C1E0E7 /* Debug */,
+				FE33D7ADF2CA7817BA2D131C /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		00CB3CAD4394F787984A8A44 /* XCLocalSwiftPackageReference "AvoKit" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = AvoKit;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		1309BB8E795B40B4B3FCC1E4 /* AvoHostKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = AvoHostKit;
+		};
+		23CC27DBEFD245E22566CC33 /* AvoHostKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = AvoHostKit;
+		};
+		957B5B66D0F5E689DE4D838D /* AvoHostKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = AvoHostKit;
+		};
+		B4FF4D9F0E4B7565B6EA4F98 /* AvoHostKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = AvoHostKit;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = F110EACC3625723C5C5EF47B /* Project object */;
+}

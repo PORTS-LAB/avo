@@ -1,0 +1,81 @@
+// swift-tools-version: 6.0
+//
+// AvoKit: the host-side core of Avo, independent of AppKit UI so it can be
+// unit tested with `swift test`. The Xcode project (host/project.yml) links
+// these products into the Control Panel, the daemon, the Window Host and the
+// App Shim.
+
+import PackageDescription
+
+let package = Package(
+    name: "AvoKit",
+    platforms: [.macOS(.v15)],
+    products: [
+        // The one product the Xcode targets link: a single dynamic framework,
+        // so the app, the daemon and the Window Host never carry two copies
+        // of the same classes (which breaks NSXPC class checks).
+        .library(name: "AvoHostKit", type: .dynamic, targets: [
+            "AvoKit", "AvoProtocol", "AvoPackages", "AvoIO", "AvoADB", "AvoKeymap", "AvoShimKit", "AvoDaemonCore",
+        ]),
+        .library(name: "AvoKit", targets: ["AvoKit"]),
+        .library(name: "AvoProtocol", targets: ["AvoProtocol"]),
+        .library(name: "AvoPackages", targets: ["AvoPackages"]),
+        .library(name: "AvoIO", targets: ["AvoIO"]),
+        .library(name: "AvoADB", targets: ["AvoADB"]),
+        .library(name: "AvoKeymap", targets: ["AvoKeymap"]),
+        .library(name: "AvoShimKit", targets: ["AvoShimKit"]),
+        .library(name: "AvoDaemonCore", targets: ["AvoDaemonCore"]),
+    ],
+    dependencies: [
+        .package(url: "https://github.com/apple/swift-protobuf.git", from: "1.39.0"),
+    ],
+    targets: [
+        // Shared models, configuration, paths, identifiers and XPC interfaces.
+        .target(name: "AvoKit"),
+
+        // Control channel (protobuf) and Input channel (binary records).
+        .target(
+            name: "AvoProtocol",
+            dependencies: [.product(name: "SwiftProtobuf", package: "swift-protobuf")],
+            exclude: ["Generated/README.md"]
+        ),
+
+        // .apk / .xapk / .apkm / .apks inspection: ZIP, binary XML, resources.arsc.
+        .target(name: "AvoPackages"),
+
+        // Byte streams over file descriptors, Unix sockets and the engine's vsock bridge.
+        .target(name: "AvoIO"),
+
+        // ADB wire protocol client (auth, shell v2, exec, sync) over any byte stream.
+        .target(name: "AvoADB", dependencies: ["AvoIO"]),
+
+        // Keymapping profiles and the engine that turns keys/mouse/gamepad into touches.
+        .target(name: "AvoKeymap", dependencies: ["AvoProtocol"]),
+
+        // App Shim bundles, macOS-style icons and Desktop/Dock shortcuts.
+        .target(name: "AvoShimKit", dependencies: ["AvoKit"]),
+
+        // Runtime Daemon logic: VM lifecycle, app registry, install pipeline.
+        .target(
+            name: "AvoDaemonCore",
+            dependencies: ["AvoKit", "AvoIO", "AvoProtocol", "AvoPackages", "AvoADB", "AvoShimKit"]
+        ),
+
+        // Fakes shared by the test targets: adbd, Bridge Agent, engine.
+        .target(
+            name: "AvoTestSupport",
+            dependencies: ["AvoADB", "AvoIO", "AvoProtocol", "AvoDaemonCore"],
+            path: "Tests/AvoTestSupport"
+        ),
+
+        .testTarget(name: "AvoKitTests", dependencies: ["AvoKit"], resources: [.copy("Fixtures")]),
+        .testTarget(name: "AvoProtocolTests", dependencies: ["AvoProtocol"]),
+        .testTarget(name: "AvoPackagesTests", dependencies: ["AvoPackages"], resources: [.copy("Fixtures")]),
+        .testTarget(name: "AvoIOTests", dependencies: ["AvoIO"]),
+        .testTarget(name: "AvoADBTests", dependencies: ["AvoADB", "AvoTestSupport"], resources: [.copy("Fixtures")]),
+        .testTarget(name: "AvoKeymapTests", dependencies: ["AvoKeymap"]),
+        .testTarget(name: "AvoShimKitTests", dependencies: ["AvoShimKit", "AvoTestSupport"]),
+        .testTarget(name: "AvoDaemonCoreTests", dependencies: ["AvoDaemonCore", "AvoTestSupport"]),
+    ],
+    swiftLanguageModes: [.v6]
+)

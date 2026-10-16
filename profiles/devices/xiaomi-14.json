@@ -1,0 +1,19 @@
+{
+  "schema": 1,
+  "id": "xiaomi-14",
+  "name": "Xiaomi 14",
+  "properties": {
+    "ro.product.brand": "Xiaomi",
+    "ro.product.manufacturer": "Xiaomi",
+    "ro.product.model": "23127PN0CG",
+    "ro.product.device": "houji",
+    "ro.product.name": "houji_global",
+    "ro.build.fingerprint": "Xiaomi/houji_global/houji:14/UKQ1.230804.001/V816.0.6.0.UNCMIXM:user/release-keys"
+  },
+  "display": {
+    "width": 1200,
+    "height": 2670,
+    "dpi": 440
+  },
+  "notes": "Community-maintained template. Values follow the device's stock build.prop format; verify them against a current firmware dump before relying on them in a pull request."
+}

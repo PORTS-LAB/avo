@@ -1,0 +1,40 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  host:
+    name: macOS host
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v5
+      - name: Core tests
+        run: cd host/AvoKit && swift test
+      - name: Build Avo.app
+        run: |
+          brew install xcodegen
+          make build DERIVED=$RUNNER_TEMP/DerivedData
+
+  agent:
+    name: Bridge Agent
+    runs-on: ubuntu-24.04
+    env:
+      PROTOC_VERSION: "34.1"
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+      - name: Install protoc
+        run: |
+          curl -fsSL -o protoc.zip "https://github.com/protocolbuffers/protobuf/releases/download/v${PROTOC_VERSION}/protoc-${PROTOC_VERSION}-linux-x86_64.zip"
+          sudo unzip -o protoc.zip -d /usr/local bin/protoc 'include/*'
+      - name: Android SDK packages
+        run: |
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-36" "build-tools;36.0.0" "ndk;28.2.13676358" > /dev/null
+      - name: Build
+        run: guest/bridge-agent/build.sh

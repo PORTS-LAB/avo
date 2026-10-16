@@ -1,0 +1,19 @@
+# The Bridge Agent: platform-signed privileged app with vsock servers.
+type avo_bridge, domain, coredomain;
+app_domain(avo_bridge)
+system_api_service(avo_bridge)
+system_server_service(avo_bridge)
+
+# Control (6000) and Input (6001) servers on virtio-vsock.
+allow avo_bridge self:vsock_socket { create bind listen accept read write getattr setopt shutdown };
+
+# gfxstream: post VirtualDisplay buffers to host displays.
+allow avo_bridge gpu_device:chr_file rw_file_perms;
+allow avo_bridge gpu_device:dir r_dir_perms;
+
+# Files shared from the Mac land in /sdcard/Download.
+allow avo_bridge media_rw_data_file:dir r_dir_perms;
+allow avo_bridge media_rw_data_file:file r_file_perms;
+
+# Device profile and root state reported in Hello.
+get_prop(avo_bridge, avo_boot_prop)
