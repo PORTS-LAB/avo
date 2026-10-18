@@ -1,0 +1,58 @@
+{
+  "schema": 1,
+  "id": "samsung-galaxy-a55",
+  "name": "Samsung Galaxy A55 5G",
+  "properties": {
+    "ro.product.brand": "samsung",
+    "ro.product.manufacturer": "samsung",
+    "ro.product.model": "SM-A556B",
+    "ro.product.device": "a55x",
+    "ro.product.name": "a55xnsxx",
+    "ro.build.fingerprint": "samsung/a55xnsxx/a55x:14/UP1A.231005.007/A556BXXU4AXJ2:user/release-keys"
+  },
+  "display": {
+    "width": 1080,
+    "height": 2340,
+    "dpi": 390
+  },
+  "hardware": {
+    "soc": {
+      "manufacturer": "Samsung",
+      "model": "s5e8845",
+      "platform": "s5e8845",
+      "board": "s5e8845",
+      "properties": {
+        "ro.hardware.chipname": "s5e8845"
+      }
+    },
+    "cpu": {
+      "clusters": [
+        {
+          "cores": 4,
+          "implementer": 65,
+          "part": 3333,
+          "maxFreqKHz": 2000000,
+          "minFreqKHz": 400000
+        },
+        {
+          "cores": 4,
+          "implementer": 65,
+          "part": 3393,
+          "maxFreqKHz": 2750000,
+          "minFreqKHz": 672000
+        }
+      ]
+    },
+    "gpu": {
+      "glVendor": "Samsung",
+      "glRenderer": "Samsung Xclipse 530",
+      "glVersion": "(Samsung Xclipse 530) 1.0.0",
+      "vkName": "Samsung Xclipse 530",
+      "vkVendorID": 5197,
+      "vkDriverVersion": 1,
+      "vkDriverName": "Samsung Driver",
+      "vkDriverInfo": "0.0.1"
+    }
+  },
+  "notes": "Community-maintained template. Values follow the device's stock build.prop and GPU driver strings; verify them against a current firmware dump before relying on them in a pull request. The hardware block is used only when \"Emulate this phone's hardware\" is on."
+}

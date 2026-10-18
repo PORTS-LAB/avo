@@ -1,0 +1,61 @@
+{
+  "schema": 1,
+  "id": "redmi-13-5g",
+  "name": "Redmi 13 5G",
+  "properties": {
+    "ro.product.brand": "Redmi",
+    "ro.product.manufacturer": "Xiaomi",
+    "ro.product.model": "24069RA21G",
+    "ro.product.device": "manet",
+    "ro.product.name": "manet_global",
+    "ro.build.fingerprint": "Redmi/manet_global/manet:14/UKQ1.240116.001/V816.0.4.0.UNRMIXM:user/release-keys"
+  },
+  "display": {
+    "width": 1080,
+    "height": 2400,
+    "dpi": 395
+  },
+  "hardware": {
+    "soc": {
+      "manufacturer": "Mediatek",
+      "model": "MT6835",
+      "platform": "mt6835",
+      "board": "mt6835",
+      "properties": {
+        "ro.vendor.mediatek.platform": "MT6835",
+        "ro.mediatek.platform": "MT6835",
+        "ro.hardware.chipname": "MT6835"
+      }
+    },
+    "cpu": {
+      "clusters": [
+        {
+          "cores": 6,
+          "implementer": 65,
+          "part": 3333,
+          "maxFreqKHz": 2000000,
+          "minFreqKHz": 500000
+        },
+        {
+          "cores": 2,
+          "implementer": 65,
+          "part": 3339,
+          "maxFreqKHz": 2200000,
+          "minFreqKHz": 600000
+        }
+      ]
+    },
+    "gpu": {
+      "glVendor": "ARM",
+      "glRenderer": "Mali-G57 MC2",
+      "glVersion": "v1.r40p0-00eac0.f6a7b8c9d0",
+      "vkName": "Mali-G57 MC2",
+      "vkVendorID": 5045,
+      "vkDriverVersion": 74235904,
+      "vkDriverID": 9,
+      "vkDriverName": "ARM proprietary driver",
+      "vkDriverInfo": "v1.r40p0"
+    }
+  },
+  "notes": "Community-maintained template. Values follow the device's stock build.prop and GPU driver strings; verify them against a current firmware dump before relying on them in a pull request. The hardware block is used only when \"Emulate this phone's hardware\" is on."
+}

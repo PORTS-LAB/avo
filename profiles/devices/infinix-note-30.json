@@ -1,0 +1,61 @@
+{
+  "schema": 1,
+  "id": "infinix-note-30",
+  "name": "Infinix Note 30",
+  "properties": {
+    "ro.product.brand": "Infinix",
+    "ro.product.manufacturer": "INFINIX MOBILITY LIMITED",
+    "ro.product.model": "Infinix X6833B",
+    "ro.product.device": "Infinix-X6833B",
+    "ro.product.name": "X6833B-GL",
+    "ro.build.fingerprint": "Infinix/X6833B-GL/Infinix-X6833B:13/TP1A.220624.014/230601V1234:user/release-keys"
+  },
+  "display": {
+    "width": 1080,
+    "height": 2460,
+    "dpi": 396
+  },
+  "hardware": {
+    "soc": {
+      "manufacturer": "Mediatek",
+      "model": "MT6789",
+      "platform": "mt6789",
+      "board": "mt6789",
+      "properties": {
+        "ro.vendor.mediatek.platform": "MT6789",
+        "ro.mediatek.platform": "MT6789",
+        "ro.hardware.chipname": "MT6789"
+      }
+    },
+    "cpu": {
+      "clusters": [
+        {
+          "cores": 6,
+          "implementer": 65,
+          "part": 3333,
+          "maxFreqKHz": 2000000,
+          "minFreqKHz": 500000
+        },
+        {
+          "cores": 2,
+          "implementer": 65,
+          "part": 3339,
+          "maxFreqKHz": 2200000,
+          "minFreqKHz": 600000
+        }
+      ]
+    },
+    "gpu": {
+      "glVendor": "ARM",
+      "glRenderer": "Mali-G57 MC2",
+      "glVersion": "v1.r32p1-00eac0.a7b8c9d0e1",
+      "vkName": "Mali-G57 MC2",
+      "vkVendorID": 5045,
+      "vkDriverVersion": 74158080,
+      "vkDriverID": 9,
+      "vkDriverName": "ARM proprietary driver",
+      "vkDriverInfo": "v1.r32p1"
+    }
+  },
+  "notes": "Community-maintained template. Values follow the device's stock build.prop and GPU driver strings; verify them against a current firmware dump before relying on them in a pull request. The hardware block is used only when \"Emulate this phone's hardware\" is on."
+}

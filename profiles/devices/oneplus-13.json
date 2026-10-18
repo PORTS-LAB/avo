@@ -1,0 +1,43 @@
+{
+  "schema": 1,
+  "id": "oneplus-13",
+  "name": "OnePlus 13",
+  "properties": {
+    "ro.product.brand": "OnePlus",
+    "ro.product.manufacturer": "OnePlus",
+    "ro.product.model": "CPH2653",
+    "ro.product.device": "OP5959L1",
+    "ro.product.name": "CPH2653",
+    "ro.build.fingerprint": "OnePlus/CPH2653/OP5959L1:15/AP3A.240905.015.A2/U.1c2a6c4:user/release-keys"
+  },
+  "display": {
+    "width": 1440,
+    "height": 3168,
+    "dpi": 510
+  },
+  "hardware": {
+    "soc": {
+      "manufacturer": "QTI",
+      "model": "SM8750",
+      "platform": "sun",
+      "board": "sun",
+      "properties": {
+        "ro.vendor.qti.soc_model": "SM8750",
+        "ro.hardware.chipname": "SM8750",
+        "ro.vendor.qti.soc_name": "sun"
+      }
+    },
+    "gpu": {
+      "glVendor": "Qualcomm",
+      "glRenderer": "Adreno (TM) 830",
+      "glVersion": "V@0831.4 (GIT@a1b2c3d, Iabc1234def5, 1700000000) (Date:09/15/24)",
+      "vkName": "Adreno (TM) 830",
+      "vkVendorID": 20803,
+      "vkDriverVersion": 2147484880,
+      "vkDriverID": 8,
+      "vkDriverName": "Qualcomm Technologies Inc. Adreno Vulkan Driver",
+      "vkDriverInfo": "Driver Build: 0831.4"
+    }
+  },
+  "notes": "Community-maintained template. Values follow the device's stock build.prop and GPU driver strings; verify them against a current firmware dump before relying on them in a pull request. The hardware block is used only when \"Emulate this phone's hardware\" is on. The Snapdragon 8 Elite uses Qualcomm's custom Oryon cores, whose MIDR could not be sourced reliably, so this template omits the CPU block; the SoC and GPU identity still apply."
+}

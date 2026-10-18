@@ -1,0 +1,68 @@
+{
+  "schema": 1,
+  "id": "realme-gt-6t",
+  "name": "realme GT 6T",
+  "properties": {
+    "ro.product.brand": "realme",
+    "ro.product.manufacturer": "realme",
+    "ro.product.model": "RMX3853",
+    "ro.product.device": "RMX3853L1",
+    "ro.product.name": "RMX3853",
+    "ro.build.fingerprint": "realme/RMX3853/RMX3853L1:14/UKQ1.230924.001/S.R4T2a1gc:user/release-keys"
+  },
+  "display": {
+    "width": 1080,
+    "height": 2412,
+    "dpi": 394
+  },
+  "hardware": {
+    "soc": {
+      "manufacturer": "QTI",
+      "model": "SM7675",
+      "platform": "pineapple",
+      "board": "pineapple",
+      "properties": {
+        "ro.vendor.qti.soc_model": "SM7675",
+        "ro.hardware.chipname": "SM7675",
+        "ro.vendor.qti.soc_name": "pineapple"
+      }
+    },
+    "cpu": {
+      "clusters": [
+        {
+          "cores": 3,
+          "implementer": 65,
+          "part": 3456,
+          "maxFreqKHz": 1900000,
+          "minFreqKHz": 300000
+        },
+        {
+          "cores": 4,
+          "implementer": 65,
+          "part": 3457,
+          "maxFreqKHz": 2600000,
+          "minFreqKHz": 500000
+        },
+        {
+          "cores": 1,
+          "implementer": 65,
+          "part": 3458,
+          "maxFreqKHz": 2800000,
+          "minFreqKHz": 600000
+        }
+      ]
+    },
+    "gpu": {
+      "glVendor": "Qualcomm",
+      "glRenderer": "Adreno (TM) 732",
+      "glVersion": "V@0744.0 (GIT@a1b2c3d, Iabc1234def5, 1700000000) (Date:03/10/24)",
+      "vkName": "Adreno (TM) 732",
+      "vkVendorID": 20803,
+      "vkDriverVersion": 2147484672,
+      "vkDriverID": 8,
+      "vkDriverName": "Qualcomm Technologies Inc. Adreno Vulkan Driver",
+      "vkDriverInfo": "Driver Build: 0744.0"
+    }
+  },
+  "notes": "Community-maintained template. Values follow the device's stock build.prop and GPU driver strings; verify them against a current firmware dump before relying on them in a pull request. The hardware block is used only when \"Emulate this phone's hardware\" is on."
+}

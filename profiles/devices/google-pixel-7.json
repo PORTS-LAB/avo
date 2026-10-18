@@ -1,0 +1,66 @@
+{
+  "schema": 1,
+  "id": "google-pixel-7",
+  "name": "Google Pixel 7",
+  "properties": {
+    "ro.product.brand": "google",
+    "ro.product.manufacturer": "Google",
+    "ro.product.model": "Pixel 7",
+    "ro.product.device": "panther",
+    "ro.product.name": "panther",
+    "ro.build.fingerprint": "google/panther/panther:15/AP4A.250205.002/12821496:user/release-keys"
+  },
+  "display": {
+    "width": 1080,
+    "height": 2400,
+    "dpi": 416
+  },
+  "hardware": {
+    "soc": {
+      "manufacturer": "Google",
+      "model": "Tensor G2",
+      "platform": "gs201",
+      "board": "gs201",
+      "properties": {
+        "ro.hardware.chipname": "gs201"
+      }
+    },
+    "cpu": {
+      "clusters": [
+        {
+          "cores": 4,
+          "implementer": 65,
+          "part": 3333,
+          "maxFreqKHz": 1803000,
+          "minFreqKHz": 300000
+        },
+        {
+          "cores": 2,
+          "implementer": 65,
+          "part": 3393,
+          "maxFreqKHz": 2348000,
+          "minFreqKHz": 400000
+        },
+        {
+          "cores": 2,
+          "implementer": 65,
+          "part": 3396,
+          "maxFreqKHz": 2850000,
+          "minFreqKHz": 500000
+        }
+      ]
+    },
+    "gpu": {
+      "glVendor": "ARM",
+      "glRenderer": "Mali-G710 MC10",
+      "glVersion": "v1.r40p0-01eac0.f2a3b4c5d6",
+      "vkName": "Mali-G710 MC10",
+      "vkVendorID": 5045,
+      "vkDriverVersion": 74235904,
+      "vkDriverID": 9,
+      "vkDriverName": "ARM proprietary driver",
+      "vkDriverInfo": "v1.r40p0"
+    }
+  },
+  "notes": "Community-maintained template. Values follow the device's stock build.prop and GPU driver strings; verify them against a current firmware dump before relying on them in a pull request. The hardware block is used only when \"Emulate this phone's hardware\" is on."
+}

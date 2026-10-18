@@ -1,7 +1,16 @@
 # Device profiles
 
-Templates for the "Profil device" dropdown in the Control Panel (spec §8).
-Each file is `<id>.json`; the file name must match `id`.
+Templates for the "Identify as" menu in the Control Panel (Settings ›
+System › Device profile; spec §8). Each file is `<id>.json`; the file name
+must match `id`.
+
+`avo-virtual-device.json` is the default and Avo's honest identity: a device
+made by Avo, model AVO-Droid. The other templates impersonate phones, so apps
+read that phone's `Build.*` fields instead. Impersonation does not pass
+hardware attestation, and the Control Panel says so. Whichever template is
+chosen, Avo still identifies itself to apps that check for it (the
+`ro.boot.avo.*` properties and the `dev.avo.feature.MAC` system feature; see
+[docs/for-game-developers.md](../../docs/for-game-developers.md)).
 
 ```json
 {
@@ -15,19 +24,91 @@ Each file is `<id>.json`; the file name must match `id`.
     "ro.product.device": "...",
     "ro.build.fingerprint": "brand/product/device:release/id/incremental:type/tags"
   },
-  "display": { "width": 1080, "height": 2400, "dpi": 420 }
+  "display": { "width": 1080, "height": 2400, "dpi": 420 },
+  "hardware": {
+    "soc": {
+      "manufacturer": "QTI", "model": "SM8650",
+      "platform": "pineapple", "board": "pineapple",
+      "properties": { "ro.vendor.qti.soc_model": "SM8650" }
+    },
+    "cpu": { "clusters": [
+      { "cores": 1, "implementer": 65, "part": 3458, "maxFreqKHz": 3302400 },
+      { "cores": 5, "implementer": 65, "part": 3457, "maxFreqKHz": 3148800 },
+      { "cores": 2, "implementer": 65, "part": 3456, "maxFreqKHz": 2265600 }
+    ] },
+    "gpu": {
+      "glVendor": "Qualcomm", "glRenderer": "Adreno (TM) 750",
+      "vkName": "Adreno (TM) 750", "vkVendorID": 20803, "vkDriverID": 8,
+      "vkDriverName": "Qualcomm Technologies Inc. Adreno Vulkan Driver"
+    }
+  }
 }
 ```
 
+## `hardware` (optional): "Emulate this phone's hardware"
+
+The `hardware` block is what the profile reports when the developer ticks
+**Emulate this phone's hardware** (Control Panel › System). It is for testing
+a build's per-device code paths — a chipset or brand check — without the
+device. Like the identity, it does not pass hardware attestation, and Avo
+still identifies itself. Without the checkbox (and for Avo's honest identity,
+which has none), the profile changes only the device's name.
+
+It reaches apps three ways, covering how apps actually read the hardware:
+
+- **SoC** — read-only properties applied at boot: `ro.soc.manufacturer` /
+  `ro.soc.model` (`Build.SOC_MANUFACTURER` / `SOC_MODEL`), `ro.board.platform`
+  (the codename SoC-detect libraries key on), `ro.product.board`
+  (`Build.BOARD`), and the vendor keys in `soc.properties` for the long tail
+  (`ro.vendor.qti.*` for Snapdragon, `ro.vendor.mediatek.*` /
+  `ro.mediatek.*` for Dimensity). `soc.properties` accepts only `ro.vendor.*`,
+  `ro.board.*`, `ro.mediatek.*`, `ro.chipname` and `ro.hardware.chipname`, and
+  never an API level, ABI or security key.
+- **GPU** — Avo's GLES and Vulkan layers (`GuestGPUProfile`) answer an app's
+  own `glGetString` and `vkGetPhysicalDeviceProperties(2)` with these values.
+  `implementer`/`part` are decimal here (`65` = `0x41` ARM); `vkVendorID`,
+  `vkDeviceID`, `vkDriverVersion` are numbers too (`20803` = `0x5143`
+  Qualcomm). `vkDriverID` is a `VkDriverId` (`8` Qualcomm, `9` ARM).
+- **CPU** — each cluster's core model (an ARM MIDR: `implementer` and `part`)
+  and count, and the per-cluster `maxFreqKHz` / `minFreqKHz`. The engine
+  presents these so `/proc/cpuinfo` and `/sys/devices/system/cpu` agree, and
+  the NDK's cpufeatures reads the target CPU.
+
+What stays this Mac's, by design (changing it would break apps or drivers, and
+it is honest): `ro.hardware` and the HALs, the ABI list and API level, and the
+GPU's real abilities (extensions, limits, Vulkan version). An app that gates a
+path on a Qualcomm-only `.so` or HAL therefore still takes the fallback path —
+which is itself the useful signal for a developer.
+
 Rules enforced by `DeviceProfile.validate()` (AvoKit) and CI:
 
-- The five properties above are required (except for the default
-  `avo-virtual-device`, which overrides nothing).
-- Only identity properties (`ro.product.*`, `ro.build.fingerprint`,
-  `ro.build.id`, …) may be set. Security state such as `ro.debuggable`,
-  `ro.secure` or verified-boot properties is rejected.
+- An impersonation template must set the five properties above.
+- The default sets `ro.product.brand`, `manufacturer`, `model`, `name` and
+  `device`, and no fingerprint: Android derives `ro.build.fingerprint` from
+  brand, name and device plus the image's own release, build ID,
+  incremental, type and tags
+  (`Avo/avo_droid/avo_droid:17/CP2A.260605.016/16373615:userdebug/test-keys`
+  on the current image).
+- Only identity properties may be set: `ro.product.<brand|manufacturer|model|name|device>`,
+  the same per partition (`ro.product.vendor.model`), `ro.build.fingerprint`,
+  `ro.build.description`, `ro.build.product`, `ro.build.display.id`,
+  `ro.build.id`, `ro.build.version.incremental`, `ro.build.tags`,
+  `ro.build.type`, `ro.soc.manufacturer` and `ro.soc.model`. Security state
+  (`ro.debuggable`, `ro.secure`, verified boot), hardware (`ro.hardware*`,
+  which picks drivers and init scripts), ABI lists, API levels and Avo's own
+  `ro.boot.avo.*` markers are rejected.
+- Brand, name and device go into the fingerprint, so they have no spaces,
+  `/` or `:`.
 - Brand names are used only so apps see a familiar device; they are not Avo
-  branding. A profile does not pass hardware attestation, and the UI says so.
+  branding.
+- `hardware` is optional and validated too: `soc.manufacturer`/`model` are
+  required when `soc` is present, `soc.properties` is limited to the prefixes
+  above, and CPU core counts and frequencies must be sane.
 
-To add a device, copy an existing file, fill in values from the device's stock
-`build.prop`, and open a pull request.
+The templates span the common chipset families, so a build can be tested
+against each GPU and SoC vendor: Qualcomm Snapdragon (Adreno), MediaTek
+Dimensity and Helio (Arm Mali / PowerVR), Samsung Exynos (Xclipse / Mali),
+Google Tensor (Arm Mali) and Unisoc. To add a device, copy an existing file,
+fill in values from the device's stock `build.prop` and GPU driver strings
+(`dumpsys SurfaceFlinger`, `cmd gpu vkjson` on the real phone), and open a
+pull request.

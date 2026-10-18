@@ -1,0 +1,65 @@
+{
+  "schema": 1,
+  "id": "oppo-reno8-5g",
+  "name": "OPPO Reno8 5G",
+  "properties": {
+    "ro.product.brand": "OPPO",
+    "ro.product.manufacturer": "OPPO",
+    "ro.product.model": "CPH2359",
+    "ro.product.device": "OP4F2BL1",
+    "ro.product.name": "CPH2359",
+    "ro.build.fingerprint": "OPPO/CPH2359/OP4F2BL1:13/TP1A.220905.001/1670000000:user/release-keys"
+  },
+  "display": {
+    "width": 1080,
+    "height": 2400,
+    "dpi": 409
+  },
+  "hardware": {
+    "soc": {
+      "manufacturer": "QTI",
+      "model": "SM7450",
+      "properties": {
+        "ro.vendor.qti.soc_model": "SM7450",
+        "ro.hardware.chipname": "SM7450"
+      }
+    },
+    "cpu": {
+      "clusters": [
+        {
+          "cores": 4,
+          "implementer": 65,
+          "part": 3398,
+          "maxFreqKHz": 1800000,
+          "minFreqKHz": 300000
+        },
+        {
+          "cores": 3,
+          "implementer": 65,
+          "part": 3399,
+          "maxFreqKHz": 2360000,
+          "minFreqKHz": 600000
+        },
+        {
+          "cores": 1,
+          "implementer": 65,
+          "part": 3399,
+          "maxFreqKHz": 2400000,
+          "minFreqKHz": 600000
+        }
+      ]
+    },
+    "gpu": {
+      "glVendor": "Qualcomm",
+      "glRenderer": "Adreno (TM) 644",
+      "glVersion": "V@0415.0 (GIT@a1b2c3d, Iabc1234def5, 1700000000) (Date:06/01/22)",
+      "vkName": "Adreno (TM) 644",
+      "vkVendorID": 20803,
+      "vkDriverVersion": 2147483780,
+      "vkDriverID": 8,
+      "vkDriverName": "Qualcomm Technologies Inc. Adreno Vulkan Driver",
+      "vkDriverInfo": "Driver Build: 0415.0"
+    }
+  },
+  "notes": "Community-maintained template. Values follow the device's stock build.prop and GPU driver strings; verify them against a current firmware dump before relying on them in a pull request. The hardware block is used only when \"Emulate this phone's hardware\" is on."
+}

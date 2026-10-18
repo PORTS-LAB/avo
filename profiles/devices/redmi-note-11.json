@@ -1,0 +1,61 @@
+{
+  "schema": 1,
+  "id": "redmi-note-11",
+  "name": "Redmi Note 11",
+  "properties": {
+    "ro.product.brand": "Redmi",
+    "ro.product.manufacturer": "Xiaomi",
+    "ro.product.model": "2201117TG",
+    "ro.product.device": "spes",
+    "ro.product.name": "spes_global",
+    "ro.build.fingerprint": "Redmi/spes_global/spes:13/TKQ1.221114.001/V14.0.4.0.TGCMIXM:user/release-keys"
+  },
+  "display": {
+    "width": 1080,
+    "height": 2400,
+    "dpi": 409
+  },
+  "hardware": {
+    "soc": {
+      "manufacturer": "QTI",
+      "model": "SM6225",
+      "platform": "holi",
+      "board": "holi",
+      "properties": {
+        "ro.vendor.qti.soc_model": "SM6225",
+        "ro.hardware.chipname": "SM6225",
+        "ro.vendor.qti.soc_name": "holi"
+      }
+    },
+    "cpu": {
+      "clusters": [
+        {
+          "cores": 4,
+          "implementer": 65,
+          "part": 3331,
+          "maxFreqKHz": 1900000,
+          "minFreqKHz": 300000
+        },
+        {
+          "cores": 4,
+          "implementer": 65,
+          "part": 3337,
+          "maxFreqKHz": 2400000,
+          "minFreqKHz": 614400
+        }
+      ]
+    },
+    "gpu": {
+      "glVendor": "Qualcomm",
+      "glRenderer": "Adreno (TM) 610",
+      "glVersion": "V@0415.0 (GIT@a1b2c3d, Iabc1234def5, 1700000000) (Date:11/01/21)",
+      "vkName": "Adreno (TM) 610",
+      "vkVendorID": 20803,
+      "vkDriverVersion": 2147483716,
+      "vkDriverID": 8,
+      "vkDriverName": "Qualcomm Technologies Inc. Adreno Vulkan Driver",
+      "vkDriverInfo": "Driver Build: 0415.0"
+    }
+  },
+  "notes": "Community-maintained template. Values follow the device's stock build.prop and GPU driver strings; verify them against a current firmware dump before relying on them in a pull request. The hardware block is used only when \"Emulate this phone's hardware\" is on."
+}

@@ -1,0 +1,68 @@
+{
+  "schema": 1,
+  "id": "oneplus-8",
+  "name": "OnePlus 8",
+  "properties": {
+    "ro.product.brand": "OnePlus",
+    "ro.product.manufacturer": "OnePlus",
+    "ro.product.model": "IN2013",
+    "ro.product.device": "instantnoodle",
+    "ro.product.name": "instantnoodle",
+    "ro.build.fingerprint": "OnePlus/instantnoodle/instantnoodle:13/RKQ1.211119.001/1660000000:user/release-keys"
+  },
+  "display": {
+    "width": 1080,
+    "height": 2400,
+    "dpi": 402
+  },
+  "hardware": {
+    "soc": {
+      "manufacturer": "QTI",
+      "model": "SM8250",
+      "platform": "kona",
+      "board": "kona",
+      "properties": {
+        "ro.vendor.qti.soc_model": "SM8250",
+        "ro.hardware.chipname": "SM8250",
+        "ro.vendor.qti.soc_name": "kona"
+      }
+    },
+    "cpu": {
+      "clusters": [
+        {
+          "cores": 4,
+          "implementer": 65,
+          "part": 3333,
+          "maxFreqKHz": 1804800,
+          "minFreqKHz": 300000
+        },
+        {
+          "cores": 3,
+          "implementer": 65,
+          "part": 3341,
+          "maxFreqKHz": 2419200,
+          "minFreqKHz": 710400
+        },
+        {
+          "cores": 1,
+          "implementer": 65,
+          "part": 3341,
+          "maxFreqKHz": 2841600,
+          "minFreqKHz": 825600
+        }
+      ]
+    },
+    "gpu": {
+      "glVendor": "Qualcomm",
+      "glRenderer": "Adreno (TM) 650",
+      "glVersion": "V@0512.0 (GIT@a1b2c3d, Iabc1234def5, 1700000000) (Date:12/01/19)",
+      "vkName": "Adreno (TM) 650",
+      "vkVendorID": 20803,
+      "vkDriverVersion": 2147483840,
+      "vkDriverID": 8,
+      "vkDriverName": "Qualcomm Technologies Inc. Adreno Vulkan Driver",
+      "vkDriverInfo": "Driver Build: 0512.0"
+    }
+  },
+  "notes": "Community-maintained template. Values follow the device's stock build.prop and GPU driver strings; verify them against a current firmware dump before relying on them in a pull request. The hardware block is used only when \"Emulate this phone's hardware\" is on."
+}

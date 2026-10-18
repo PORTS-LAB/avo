@@ -1,0 +1,61 @@
+{
+  "schema": 1,
+  "id": "nothing-phone-2a",
+  "name": "Nothing Phone (2a)",
+  "properties": {
+    "ro.product.brand": "Nothing",
+    "ro.product.manufacturer": "Nothing",
+    "ro.product.model": "A142",
+    "ro.product.device": "Pacman",
+    "ro.product.name": "Pacman",
+    "ro.build.fingerprint": "Nothing/Pacman/Pacman:14/UKQ1.230917.001/202404010000:user/release-keys"
+  },
+  "display": {
+    "width": 1084,
+    "height": 2412,
+    "dpi": 394
+  },
+  "hardware": {
+    "soc": {
+      "manufacturer": "Mediatek",
+      "model": "MT6886",
+      "platform": "mt6886",
+      "board": "mt6886",
+      "properties": {
+        "ro.vendor.mediatek.platform": "MT6886",
+        "ro.mediatek.platform": "MT6886",
+        "ro.hardware.chipname": "MT6886"
+      }
+    },
+    "cpu": {
+      "clusters": [
+        {
+          "cores": 6,
+          "implementer": 65,
+          "part": 3398,
+          "maxFreqKHz": 2000000,
+          "minFreqKHz": 500000
+        },
+        {
+          "cores": 2,
+          "implementer": 65,
+          "part": 3405,
+          "maxFreqKHz": 2800000,
+          "minFreqKHz": 700000
+        }
+      ]
+    },
+    "gpu": {
+      "glVendor": "ARM",
+      "glRenderer": "Mali-G610 MC4",
+      "glVersion": "v1.r44p1-00eac0.d4e5f6a7b8",
+      "vkName": "Mali-G610 MC4",
+      "vkVendorID": 5045,
+      "vkDriverVersion": 74285056,
+      "vkDriverID": 9,
+      "vkDriverName": "ARM proprietary driver",
+      "vkDriverInfo": "v1.r44p1"
+    }
+  },
+  "notes": "Community-maintained template. Values follow the device's stock build.prop and GPU driver strings; verify them against a current firmware dump before relying on them in a pull request. The hardware block is used only when \"Emulate this phone's hardware\" is on."
+}

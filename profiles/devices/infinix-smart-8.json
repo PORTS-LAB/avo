@@ -1,0 +1,59 @@
+{
+  "schema": 1,
+  "id": "infinix-smart-8",
+  "name": "Infinix Smart 8",
+  "properties": {
+    "ro.product.brand": "Infinix",
+    "ro.product.manufacturer": "INFINIX MOBILITY LIMITED",
+    "ro.product.model": "Infinix X6525",
+    "ro.product.device": "Infinix-X6525",
+    "ro.product.name": "X6525-GL",
+    "ro.build.fingerprint": "Infinix/X6525-GL/Infinix-X6525:13/TP1A.220624.014/231101V789:user/release-keys"
+  },
+  "display": {
+    "width": 720,
+    "height": 1612,
+    "dpi": 267
+  },
+  "hardware": {
+    "soc": {
+      "manufacturer": "Unisoc",
+      "model": "ums9230",
+      "platform": "ums9230",
+      "board": "ums9230",
+      "properties": {
+        "ro.hardware.chipname": "ums9230"
+      }
+    },
+    "cpu": {
+      "clusters": [
+        {
+          "cores": 6,
+          "implementer": 65,
+          "part": 3333,
+          "maxFreqKHz": 1600000,
+          "minFreqKHz": 614400
+        },
+        {
+          "cores": 2,
+          "implementer": 65,
+          "part": 3338,
+          "maxFreqKHz": 1600000,
+          "minFreqKHz": 614400
+        }
+      ]
+    },
+    "gpu": {
+      "glVendor": "ARM",
+      "glRenderer": "Mali-G57",
+      "glVersion": "v1.r36p0-00eac0.a3b4c5d6e7",
+      "vkName": "Mali-G57",
+      "vkVendorID": 5045,
+      "vkDriverVersion": 74186752,
+      "vkDriverID": 9,
+      "vkDriverName": "ARM proprietary driver",
+      "vkDriverInfo": "v1.r36p0"
+    }
+  },
+  "notes": "Community-maintained template. Values follow the device's stock build.prop and GPU driver strings; verify them against a current firmware dump before relying on them in a pull request. The hardware block is used only when \"Emulate this phone's hardware\" is on."
+}

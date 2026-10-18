@@ -1,0 +1,68 @@
+{
+  "schema": 1,
+  "id": "poco-x6-pro",
+  "name": "POCO X6 Pro",
+  "properties": {
+    "ro.product.brand": "POCO",
+    "ro.product.manufacturer": "Xiaomi",
+    "ro.product.model": "2311DRK48G",
+    "ro.product.device": "duchamp",
+    "ro.product.name": "duchamp_global",
+    "ro.build.fingerprint": "POCO/duchamp_global/duchamp:14/UKQ1.231207.015/V816.0.3.0.UNQMIXM:user/release-keys"
+  },
+  "display": {
+    "width": 1220,
+    "height": 2712,
+    "dpi": 446
+  },
+  "hardware": {
+    "soc": {
+      "manufacturer": "Mediatek",
+      "model": "MT6897",
+      "platform": "mt6897",
+      "board": "mt6897",
+      "properties": {
+        "ro.vendor.mediatek.platform": "MT6897",
+        "ro.mediatek.platform": "MT6897",
+        "ro.hardware.chipname": "MT6897"
+      }
+    },
+    "cpu": {
+      "clusters": [
+        {
+          "cores": 4,
+          "implementer": 65,
+          "part": 3398,
+          "maxFreqKHz": 2200000,
+          "minFreqKHz": 500000
+        },
+        {
+          "cores": 3,
+          "implementer": 65,
+          "part": 3405,
+          "maxFreqKHz": 3200000,
+          "minFreqKHz": 700000
+        },
+        {
+          "cores": 1,
+          "implementer": 65,
+          "part": 3405,
+          "maxFreqKHz": 3350000,
+          "minFreqKHz": 700000
+        }
+      ]
+    },
+    "gpu": {
+      "glVendor": "ARM",
+      "glRenderer": "Mali-G615 MC6",
+      "glVersion": "v1.r44p1-00eac0.b2c3d4e5f6",
+      "vkName": "Mali-G615 MC6",
+      "vkVendorID": 5045,
+      "vkDriverVersion": 74285056,
+      "vkDriverID": 9,
+      "vkDriverName": "ARM proprietary driver",
+      "vkDriverInfo": "v1.r44p1"
+    }
+  },
+  "notes": "Community-maintained template. Values follow the device's stock build.prop and GPU driver strings; verify them against a current firmware dump before relying on them in a pull request. The hardware block is used only when \"Emulate this phone's hardware\" is on."
+}

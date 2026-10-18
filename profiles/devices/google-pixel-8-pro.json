@@ -1,0 +1,66 @@
+{
+  "schema": 1,
+  "id": "google-pixel-8-pro",
+  "name": "Google Pixel 8 Pro",
+  "properties": {
+    "ro.product.brand": "google",
+    "ro.product.manufacturer": "Google",
+    "ro.product.model": "Pixel 8 Pro",
+    "ro.product.device": "husky",
+    "ro.product.name": "husky",
+    "ro.build.fingerprint": "google/husky/husky:15/AP4A.250205.002/12821496:user/release-keys"
+  },
+  "display": {
+    "width": 1344,
+    "height": 2992,
+    "dpi": 489
+  },
+  "hardware": {
+    "soc": {
+      "manufacturer": "Google",
+      "model": "Tensor G3",
+      "platform": "zuma",
+      "board": "zuma",
+      "properties": {
+        "ro.hardware.chipname": "zuma"
+      }
+    },
+    "cpu": {
+      "clusters": [
+        {
+          "cores": 4,
+          "implementer": 65,
+          "part": 3398,
+          "maxFreqKHz": 1704000,
+          "minFreqKHz": 300000
+        },
+        {
+          "cores": 4,
+          "implementer": 65,
+          "part": 3405,
+          "maxFreqKHz": 2367000,
+          "minFreqKHz": 400000
+        },
+        {
+          "cores": 1,
+          "implementer": 65,
+          "part": 3406,
+          "maxFreqKHz": 2914000,
+          "minFreqKHz": 500000
+        }
+      ]
+    },
+    "gpu": {
+      "glVendor": "ARM",
+      "glRenderer": "Mali-G715-Immortalis MC7",
+      "glVersion": "v1.r47p0-01eac0.f1b4c9e7a2d3",
+      "vkName": "Mali-G715-Immortalis MC7",
+      "vkVendorID": 5045,
+      "vkDriverVersion": 74285056,
+      "vkDriverID": 9,
+      "vkDriverName": "ARM proprietary driver",
+      "vkDriverInfo": "v1.r44p1"
+    }
+  },
+  "notes": "Community-maintained template. Values follow the device's stock build.prop and GPU driver strings; verify them against a current firmware dump before relying on them in a pull request. The hardware block is used only when \"Emulate this phone's hardware\" is on."
+}

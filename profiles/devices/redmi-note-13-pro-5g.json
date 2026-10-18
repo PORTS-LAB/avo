@@ -1,0 +1,61 @@
+{
+  "schema": 1,
+  "id": "redmi-note-13-pro-5g",
+  "name": "Redmi Note 13 Pro 5G",
+  "properties": {
+    "ro.product.brand": "Redmi",
+    "ro.product.manufacturer": "Xiaomi",
+    "ro.product.model": "2312DRA50G",
+    "ro.product.device": "garnet",
+    "ro.product.name": "garnet_global",
+    "ro.build.fingerprint": "Redmi/garnet_global/garnet:14/UKQ1.230917.001/V816.0.8.0.UNKMIXM:user/release-keys"
+  },
+  "display": {
+    "width": 1220,
+    "height": 2712,
+    "dpi": 446
+  },
+  "hardware": {
+    "soc": {
+      "manufacturer": "QTI",
+      "model": "SM7435",
+      "platform": "netrani",
+      "board": "parrot",
+      "properties": {
+        "ro.vendor.qti.soc_model": "SM7435",
+        "ro.hardware.chipname": "SM7435",
+        "ro.vendor.qti.soc_name": "parrot"
+      }
+    },
+    "cpu": {
+      "clusters": [
+        {
+          "cores": 4,
+          "implementer": 65,
+          "part": 3333,
+          "maxFreqKHz": 1950000,
+          "minFreqKHz": 500000
+        },
+        {
+          "cores": 4,
+          "implementer": 65,
+          "part": 3393,
+          "maxFreqKHz": 2400000,
+          "minFreqKHz": 600000
+        }
+      ]
+    },
+    "gpu": {
+      "glVendor": "Qualcomm",
+      "glRenderer": "Adreno (TM) 710",
+      "glVersion": "V@0415.0 (GIT@a1b2c3d, Iabc1234def5, 1700000000) (Date:05/12/23)",
+      "vkName": "Adreno (TM) 710",
+      "vkVendorID": 20803,
+      "vkDriverVersion": 2147483908,
+      "vkDriverID": 8,
+      "vkDriverName": "Qualcomm Technologies Inc. Adreno Vulkan Driver",
+      "vkDriverInfo": "Driver Build: 0415.0"
+    }
+  },
+  "notes": "Community-maintained template. Values follow the device's stock build.prop and GPU driver strings; verify them against a current firmware dump before relying on them in a pull request. The hardware block is used only when \"Emulate this phone's hardware\" is on."
+}

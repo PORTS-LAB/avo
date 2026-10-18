@@ -1,0 +1,68 @@
+{
+  "schema": 1,
+  "id": "xiaomi-14t-pro",
+  "name": "Xiaomi 14T Pro",
+  "properties": {
+    "ro.product.brand": "Xiaomi",
+    "ro.product.manufacturer": "Xiaomi",
+    "ro.product.model": "2407FPN8EG",
+    "ro.product.device": "rothko",
+    "ro.product.name": "rothko_global",
+    "ro.build.fingerprint": "Xiaomi/rothko_global/rothko:14/UP1A.231005.007/V816.0.8.0.UNREUXM:user/release-keys"
+  },
+  "display": {
+    "width": 1220,
+    "height": 2712,
+    "dpi": 446
+  },
+  "hardware": {
+    "soc": {
+      "manufacturer": "Mediatek",
+      "model": "MT6989",
+      "platform": "mt6989",
+      "board": "mt6989",
+      "properties": {
+        "ro.vendor.mediatek.platform": "MT6989",
+        "ro.mediatek.platform": "MT6989",
+        "ro.hardware.chipname": "MT6989"
+      }
+    },
+    "cpu": {
+      "clusters": [
+        {
+          "cores": 4,
+          "implementer": 65,
+          "part": 3457,
+          "maxFreqKHz": 2000000,
+          "minFreqKHz": 600000
+        },
+        {
+          "cores": 3,
+          "implementer": 65,
+          "part": 3458,
+          "maxFreqKHz": 2850000,
+          "minFreqKHz": 650000
+        },
+        {
+          "cores": 1,
+          "implementer": 65,
+          "part": 3458,
+          "maxFreqKHz": 3250000,
+          "minFreqKHz": 650000
+        }
+      ]
+    },
+    "gpu": {
+      "glVendor": "ARM",
+      "glRenderer": "Mali-G720-Immortalis MC12",
+      "glVersion": "v1.r47p0-01eac0.f1b4c9e7a2d3",
+      "vkName": "Mali-G720-Immortalis MC12",
+      "vkVendorID": 5045,
+      "vkDriverVersion": 74293248,
+      "vkDriverID": 9,
+      "vkDriverName": "ARM proprietary driver",
+      "vkDriverInfo": "v1.r47p0"
+    }
+  },
+  "notes": "Community-maintained template. Values follow the device's stock build.prop and GPU driver strings; verify them against a current firmware dump before relying on them in a pull request. The hardware block is used only when \"Emulate this phone's hardware\" is on."
+}

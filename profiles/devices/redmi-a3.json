@@ -1,0 +1,54 @@
+{
+  "schema": 1,
+  "id": "redmi-a3",
+  "name": "Redmi A3",
+  "properties": {
+    "ro.product.brand": "Redmi",
+    "ro.product.manufacturer": "Xiaomi",
+    "ro.product.model": "23129RN51G",
+    "ro.product.device": "water",
+    "ro.product.name": "water_global",
+    "ro.build.fingerprint": "Redmi/water_global/water:14/UP1A.231005.007/V816.0.2.0.UCBMIXM:user/release-keys"
+  },
+  "display": {
+    "width": 720,
+    "height": 1600,
+    "dpi": 269
+  },
+  "hardware": {
+    "soc": {
+      "manufacturer": "Mediatek",
+      "model": "MT6765",
+      "platform": "mt6765",
+      "board": "mt6765",
+      "properties": {
+        "ro.vendor.mediatek.platform": "MT6765",
+        "ro.mediatek.platform": "MT6765",
+        "ro.hardware.chipname": "MT6765"
+      }
+    },
+    "cpu": {
+      "clusters": [
+        {
+          "cores": 8,
+          "implementer": 65,
+          "part": 3331,
+          "maxFreqKHz": 2200000,
+          "minFreqKHz": 1001000
+        }
+      ]
+    },
+    "gpu": {
+      "glVendor": "Imagination Technologies",
+      "glRenderer": "PowerVR Rogue GE8320",
+      "glVersion": "1.17@6210866",
+      "vkName": "PowerVR Rogue GE8320",
+      "vkVendorID": 4112,
+      "vkDriverVersion": 23086336,
+      "vkDriverID": 6,
+      "vkDriverName": "Imagination proprietary driver",
+      "vkDriverInfo": "1.17"
+    }
+  },
+  "notes": "Community-maintained template. Values follow the device's stock build.prop and GPU driver strings; verify them against a current firmware dump before relying on them in a pull request. The hardware block is used only when \"Emulate this phone's hardware\" is on."
+}

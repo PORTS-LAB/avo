@@ -1,0 +1,61 @@
+{
+  "schema": 1,
+  "id": "redmi-note-11-pro-5g",
+  "name": "Redmi Note 11 Pro 5G",
+  "properties": {
+    "ro.product.brand": "Redmi",
+    "ro.product.manufacturer": "Xiaomi",
+    "ro.product.model": "2201116SG",
+    "ro.product.device": "viva",
+    "ro.product.name": "viva_global",
+    "ro.build.fingerprint": "Redmi/viva_global/viva:13/TKQ1.220807.001/V14.0.3.0.TKMMIXM:user/release-keys"
+  },
+  "display": {
+    "width": 1080,
+    "height": 2400,
+    "dpi": 395
+  },
+  "hardware": {
+    "soc": {
+      "manufacturer": "QTI",
+      "model": "SM6375",
+      "platform": "holi",
+      "board": "holi",
+      "properties": {
+        "ro.vendor.qti.soc_model": "SM6375",
+        "ro.hardware.chipname": "SM6375",
+        "ro.vendor.qti.soc_name": "holi"
+      }
+    },
+    "cpu": {
+      "clusters": [
+        {
+          "cores": 6,
+          "implementer": 65,
+          "part": 3333,
+          "maxFreqKHz": 1700000,
+          "minFreqKHz": 300000
+        },
+        {
+          "cores": 2,
+          "implementer": 65,
+          "part": 3393,
+          "maxFreqKHz": 2200000,
+          "minFreqKHz": 600000
+        }
+      ]
+    },
+    "gpu": {
+      "glVendor": "Qualcomm",
+      "glRenderer": "Adreno (TM) 619",
+      "glVersion": "V@0415.0 (GIT@a1b2c3d, Iabc1234def5, 1700000000) (Date:09/01/21)",
+      "vkName": "Adreno (TM) 619",
+      "vkVendorID": 20803,
+      "vkDriverVersion": 2147483716,
+      "vkDriverID": 8,
+      "vkDriverName": "Qualcomm Technologies Inc. Adreno Vulkan Driver",
+      "vkDriverInfo": "Driver Build: 0415.0"
+    }
+  },
+  "notes": "Community-maintained template. Values follow the device's stock build.prop and GPU driver strings; verify them against a current firmware dump before relying on them in a pull request. The hardware block is used only when \"Emulate this phone's hardware\" is on."
+}

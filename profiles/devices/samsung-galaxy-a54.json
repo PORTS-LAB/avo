@@ -1,0 +1,59 @@
+{
+  "schema": 1,
+  "id": "samsung-galaxy-a54",
+  "name": "Samsung Galaxy A54 5G",
+  "properties": {
+    "ro.product.brand": "samsung",
+    "ro.product.manufacturer": "samsung",
+    "ro.product.model": "SM-A546B",
+    "ro.product.device": "a54x",
+    "ro.product.name": "a54xnsxx",
+    "ro.build.fingerprint": "samsung/a54xnsxx/a54x:14/UP1A.231005.007/A546BXXU6CXF4:user/release-keys"
+  },
+  "display": {
+    "width": 1080,
+    "height": 2340,
+    "dpi": 403
+  },
+  "hardware": {
+    "soc": {
+      "manufacturer": "Samsung",
+      "model": "s5e8835",
+      "platform": "s5e8835",
+      "board": "s5e8835",
+      "properties": {
+        "ro.hardware.chipname": "s5e8835"
+      }
+    },
+    "cpu": {
+      "clusters": [
+        {
+          "cores": 4,
+          "implementer": 65,
+          "part": 3333,
+          "maxFreqKHz": 2000000,
+          "minFreqKHz": 400000
+        },
+        {
+          "cores": 4,
+          "implementer": 65,
+          "part": 3393,
+          "maxFreqKHz": 2400000,
+          "minFreqKHz": 672000
+        }
+      ]
+    },
+    "gpu": {
+      "glVendor": "ARM",
+      "glRenderer": "Mali-G68 MP5",
+      "glVersion": "v1.r40p0-01eac0.c9d0e1f2a3",
+      "vkName": "Mali-G68 MP5",
+      "vkVendorID": 5045,
+      "vkDriverVersion": 74235904,
+      "vkDriverID": 9,
+      "vkDriverName": "ARM proprietary driver",
+      "vkDriverInfo": "v1.r40p0"
+    }
+  },
+  "notes": "Community-maintained template. Values follow the device's stock build.prop and GPU driver strings; verify them against a current firmware dump before relying on them in a pull request. The hardware block is used only when \"Emulate this phone's hardware\" is on."
+}

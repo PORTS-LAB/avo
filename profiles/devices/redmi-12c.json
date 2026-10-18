@@ -1,0 +1,61 @@
+{
+  "schema": 1,
+  "id": "redmi-12c",
+  "name": "Redmi 12C",
+  "properties": {
+    "ro.product.brand": "Redmi",
+    "ro.product.manufacturer": "Xiaomi",
+    "ro.product.model": "22120RN86G",
+    "ro.product.device": "earth",
+    "ro.product.name": "earth_global",
+    "ro.build.fingerprint": "Redmi/earth_global/earth:12/SP1A.210812.016/V14.0.3.0.SCPMIXM:user/release-keys"
+  },
+  "display": {
+    "width": 720,
+    "height": 1650,
+    "dpi": 269
+  },
+  "hardware": {
+    "soc": {
+      "manufacturer": "Mediatek",
+      "model": "MT6769Z",
+      "platform": "mt6769",
+      "board": "mt6769",
+      "properties": {
+        "ro.vendor.mediatek.platform": "MT6769",
+        "ro.mediatek.platform": "MT6769",
+        "ro.hardware.chipname": "MT6769Z"
+      }
+    },
+    "cpu": {
+      "clusters": [
+        {
+          "cores": 6,
+          "implementer": 65,
+          "part": 3333,
+          "maxFreqKHz": 1800000,
+          "minFreqKHz": 500000
+        },
+        {
+          "cores": 2,
+          "implementer": 65,
+          "part": 3338,
+          "maxFreqKHz": 2000000,
+          "minFreqKHz": 774000
+        }
+      ]
+    },
+    "gpu": {
+      "glVendor": "ARM",
+      "glRenderer": "Mali-G52 MC2",
+      "glVersion": "v1.r32p1-00eac0.b8c9d0e1f2",
+      "vkName": "Mali-G52 MC2",
+      "vkVendorID": 5045,
+      "vkDriverVersion": 74158080,
+      "vkDriverID": 9,
+      "vkDriverName": "ARM proprietary driver",
+      "vkDriverInfo": "v1.r32p1"
+    }
+  },
+  "notes": "Community-maintained template. Values follow the device's stock build.prop and GPU driver strings; verify them against a current firmware dump before relying on them in a pull request. The hardware block is used only when \"Emulate this phone's hardware\" is on."
+}

@@ -1,0 +1,61 @@
+{
+  "schema": 1,
+  "id": "realme-11-pro-plus-5g",
+  "name": "realme 11 Pro+ 5G",
+  "properties": {
+    "ro.product.brand": "realme",
+    "ro.product.manufacturer": "realme",
+    "ro.product.model": "RMX3741",
+    "ro.product.device": "RMX3741L1",
+    "ro.product.name": "RMX3741",
+    "ro.build.fingerprint": "realme/RMX3741/RMX3741L1:13/TP1A.220624.014/R.202306151200:user/release-keys"
+  },
+  "display": {
+    "width": 1080,
+    "height": 2412,
+    "dpi": 394
+  },
+  "hardware": {
+    "soc": {
+      "manufacturer": "Mediatek",
+      "model": "MT6877",
+      "platform": "mt6877",
+      "board": "mt6877",
+      "properties": {
+        "ro.vendor.mediatek.platform": "MT6877",
+        "ro.mediatek.platform": "MT6877",
+        "ro.hardware.chipname": "MT6877"
+      }
+    },
+    "cpu": {
+      "clusters": [
+        {
+          "cores": 6,
+          "implementer": 65,
+          "part": 3333,
+          "maxFreqKHz": 2000000,
+          "minFreqKHz": 500000
+        },
+        {
+          "cores": 2,
+          "implementer": 65,
+          "part": 3393,
+          "maxFreqKHz": 2600000,
+          "minFreqKHz": 600000
+        }
+      ]
+    },
+    "gpu": {
+      "glVendor": "ARM",
+      "glRenderer": "Mali-G68 MC4",
+      "glVersion": "v1.r38p0-00eac0.e5f6a7b8c9",
+      "vkName": "Mali-G68 MC4",
+      "vkVendorID": 5045,
+      "vkDriverVersion": 74211328,
+      "vkDriverID": 9,
+      "vkDriverName": "ARM proprietary driver",
+      "vkDriverInfo": "v1.r38p0"
+    }
+  },
+  "notes": "Community-maintained template. Values follow the device's stock build.prop and GPU driver strings; verify them against a current firmware dump before relying on them in a pull request. The hardware block is used only when \"Emulate this phone's hardware\" is on."
+}

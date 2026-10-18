@@ -184,7 +184,7 @@
     }
   ],
   "fps": {
-    "cursor_toggle": "key:Option",
+    "cursor_toggle": "key:F8",
     "aim_control": "camera"
   }
 }

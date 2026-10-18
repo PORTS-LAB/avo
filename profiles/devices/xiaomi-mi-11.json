@@ -1,0 +1,68 @@
+{
+  "schema": 1,
+  "id": "xiaomi-mi-11",
+  "name": "Xiaomi Mi 11",
+  "properties": {
+    "ro.product.brand": "Xiaomi",
+    "ro.product.manufacturer": "Xiaomi",
+    "ro.product.model": "M2011K2G",
+    "ro.product.device": "venus",
+    "ro.product.name": "venus_global",
+    "ro.build.fingerprint": "Xiaomi/venus_global/venus:13/TKQ1.220829.002/V14.0.4.0.TKBMIXM:user/release-keys"
+  },
+  "display": {
+    "width": 1440,
+    "height": 3200,
+    "dpi": 515
+  },
+  "hardware": {
+    "soc": {
+      "manufacturer": "QTI",
+      "model": "SM8350",
+      "platform": "lahaina",
+      "board": "lahaina",
+      "properties": {
+        "ro.vendor.qti.soc_model": "SM8350",
+        "ro.hardware.chipname": "SM8350",
+        "ro.vendor.qti.soc_name": "lahaina"
+      }
+    },
+    "cpu": {
+      "clusters": [
+        {
+          "cores": 4,
+          "implementer": 65,
+          "part": 3333,
+          "maxFreqKHz": 1800000,
+          "minFreqKHz": 300000
+        },
+        {
+          "cores": 3,
+          "implementer": 65,
+          "part": 3393,
+          "maxFreqKHz": 2419200,
+          "minFreqKHz": 710400
+        },
+        {
+          "cores": 1,
+          "implementer": 65,
+          "part": 3396,
+          "maxFreqKHz": 2841600,
+          "minFreqKHz": 806400
+        }
+      ]
+    },
+    "gpu": {
+      "glVendor": "Qualcomm",
+      "glRenderer": "Adreno (TM) 660",
+      "glVersion": "V@0512.0 (GIT@a1b2c3d, Iabc1234def5, 1700000000) (Date:11/01/20)",
+      "vkName": "Adreno (TM) 660",
+      "vkVendorID": 20803,
+      "vkDriverVersion": 2147483904,
+      "vkDriverID": 8,
+      "vkDriverName": "Qualcomm Technologies Inc. Adreno Vulkan Driver",
+      "vkDriverInfo": "Driver Build: 0512.0"
+    }
+  },
+  "notes": "Community-maintained template. Values follow the device's stock build.prop and GPU driver strings; verify them against a current firmware dump before relying on them in a pull request. The hardware block is used only when \"Emulate this phone's hardware\" is on."
+}

@@ -1,0 +1,52 @@
+{
+  "schema": 1,
+  "id": "samsung-galaxy-a14",
+  "name": "Samsung Galaxy A14",
+  "properties": {
+    "ro.product.brand": "samsung",
+    "ro.product.manufacturer": "samsung",
+    "ro.product.model": "SM-A145F",
+    "ro.product.device": "a14",
+    "ro.product.name": "a14nsxx",
+    "ro.build.fingerprint": "samsung/a14nsxx/a14:14/UP1A.231005.007/A145FXXU6CXJ1:user/release-keys"
+  },
+  "display": {
+    "width": 1080,
+    "height": 2408,
+    "dpi": 400
+  },
+  "hardware": {
+    "soc": {
+      "manufacturer": "Samsung",
+      "model": "s5e3830",
+      "platform": "s5e3830",
+      "board": "s5e3830",
+      "properties": {
+        "ro.hardware.chipname": "s5e3830"
+      }
+    },
+    "cpu": {
+      "clusters": [
+        {
+          "cores": 8,
+          "implementer": 65,
+          "part": 3333,
+          "maxFreqKHz": 2000000,
+          "minFreqKHz": 400000
+        }
+      ]
+    },
+    "gpu": {
+      "glVendor": "ARM",
+      "glRenderer": "Mali-G52",
+      "glVersion": "v1.r40p0-01eac0.e1f2a3b4c5",
+      "vkName": "Mali-G52",
+      "vkVendorID": 5045,
+      "vkDriverVersion": 74235904,
+      "vkDriverID": 9,
+      "vkDriverName": "ARM proprietary driver",
+      "vkDriverInfo": "v1.r40p0"
+    }
+  },
+  "notes": "Community-maintained template. Values follow the device's stock build.prop and GPU driver strings; verify them against a current firmware dump before relying on them in a pull request. The hardware block is used only when \"Emulate this phone's hardware\" is on."
+}

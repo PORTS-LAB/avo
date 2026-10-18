@@ -1,0 +1,72 @@
+{
+  "schema": 1,
+  "id": "samsung-galaxy-s24",
+  "name": "Samsung Galaxy S24 (Exynos)",
+  "properties": {
+    "ro.product.brand": "samsung",
+    "ro.product.manufacturer": "samsung",
+    "ro.product.model": "SM-S921B",
+    "ro.product.device": "e1s",
+    "ro.product.name": "e1sxxx",
+    "ro.build.fingerprint": "samsung/e1sxxx/e1s:14/UP1A.231005.007/S921BXXU1AXB5:user/release-keys"
+  },
+  "display": {
+    "width": 1080,
+    "height": 2340,
+    "dpi": 425
+  },
+  "hardware": {
+    "soc": {
+      "manufacturer": "Samsung",
+      "model": "s5e9945",
+      "platform": "s5e9945",
+      "board": "s5e9945",
+      "properties": {
+        "ro.hardware.chipname": "s5e9945"
+      }
+    },
+    "cpu": {
+      "clusters": [
+        {
+          "cores": 4,
+          "implementer": 65,
+          "part": 3456,
+          "maxFreqKHz": 1950000,
+          "minFreqKHz": 400000
+        },
+        {
+          "cores": 3,
+          "implementer": 65,
+          "part": 3457,
+          "maxFreqKHz": 2600000,
+          "minFreqKHz": 576000
+        },
+        {
+          "cores": 2,
+          "implementer": 65,
+          "part": 3457,
+          "maxFreqKHz": 2900000,
+          "minFreqKHz": 576000
+        },
+        {
+          "cores": 1,
+          "implementer": 65,
+          "part": 3458,
+          "maxFreqKHz": 3207000,
+          "minFreqKHz": 672000
+        }
+      ]
+    },
+    "gpu": {
+      "glVendor": "Samsung",
+      "glRenderer": "Samsung Xclipse 940",
+      "glVersion": "(Samsung Xclipse 940) 1.0.0",
+      "vkName": "Samsung Xclipse 940",
+      "vkVendorID": 5197,
+      "vkDriverVersion": 1,
+      "vkDriverName": "Samsung Driver",
+      "vkDriverInfo": "0.0.1"
+    }
+  },
+  "notes": "Community-maintained template. Values follow the device's stock build.prop and GPU driver strings; verify them against a current firmware dump before relying on them in a pull request. The hardware block is used only when \"Emulate this phone's hardware\" is on."
+}

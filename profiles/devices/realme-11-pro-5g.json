@@ -1,0 +1,61 @@
+{
+  "schema": 1,
+  "id": "realme-11-pro-5g",
+  "name": "realme 11 Pro 5G",
+  "properties": {
+    "ro.product.brand": "realme",
+    "ro.product.manufacturer": "realme",
+    "ro.product.model": "RMX3771",
+    "ro.product.device": "RMX3771L1",
+    "ro.product.name": "RMX3771",
+    "ro.build.fingerprint": "realme/RMX3771/RMX3771L1:13/TP1A.220624.014/R.202307191900:user/release-keys"
+  },
+  "display": {
+    "width": 1080,
+    "height": 2412,
+    "dpi": 394
+  },
+  "hardware": {
+    "soc": {
+      "manufacturer": "QTI",
+      "model": "SM6450",
+      "platform": "netrani",
+      "board": "parrot",
+      "properties": {
+        "ro.vendor.qti.soc_model": "SM6450",
+        "ro.hardware.chipname": "SM6450",
+        "ro.vendor.qti.soc_name": "parrot"
+      }
+    },
+    "cpu": {
+      "clusters": [
+        {
+          "cores": 4,
+          "implementer": 65,
+          "part": 3333,
+          "maxFreqKHz": 1800000,
+          "minFreqKHz": 500000
+        },
+        {
+          "cores": 4,
+          "implementer": 65,
+          "part": 3393,
+          "maxFreqKHz": 2200000,
+          "minFreqKHz": 600000
+        }
+      ]
+    },
+    "gpu": {
+      "glVendor": "Qualcomm",
+      "glRenderer": "Adreno (TM) 710",
+      "glVersion": "V@0415.0 (GIT@a1b2c3d, Iabc1234def5, 1700000000) (Date:02/01/23)",
+      "vkName": "Adreno (TM) 710",
+      "vkVendorID": 20803,
+      "vkDriverVersion": 2147483908,
+      "vkDriverID": 8,
+      "vkDriverName": "Qualcomm Technologies Inc. Adreno Vulkan Driver",
+      "vkDriverInfo": "Driver Build: 0415.0"
+    }
+  },
+  "notes": "Community-maintained template. Values follow the device's stock build.prop and GPU driver strings; verify them against a current firmware dump before relying on them in a pull request. The hardware block is used only when \"Emulate this phone's hardware\" is on."
+}

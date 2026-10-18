@@ -1,0 +1,61 @@
+{
+  "schema": 1,
+  "id": "realme-gt-neo-3",
+  "name": "realme GT Neo 3",
+  "properties": {
+    "ro.product.brand": "realme",
+    "ro.product.manufacturer": "realme",
+    "ro.product.model": "RMX3561",
+    "ro.product.device": "RMX3561L1",
+    "ro.product.name": "RMX3561",
+    "ro.build.fingerprint": "realme/RMX3561/RMX3561L1:12/SKQ1.211209.001/S.1657000000:user/release-keys"
+  },
+  "display": {
+    "width": 1080,
+    "height": 2412,
+    "dpi": 394
+  },
+  "hardware": {
+    "soc": {
+      "manufacturer": "Mediatek",
+      "model": "MT6895",
+      "platform": "mt6895",
+      "board": "mt6895",
+      "properties": {
+        "ro.vendor.mediatek.platform": "MT6895",
+        "ro.mediatek.platform": "MT6895",
+        "ro.hardware.chipname": "MT6895"
+      }
+    },
+    "cpu": {
+      "clusters": [
+        {
+          "cores": 4,
+          "implementer": 65,
+          "part": 3333,
+          "maxFreqKHz": 2000000,
+          "minFreqKHz": 500000
+        },
+        {
+          "cores": 4,
+          "implementer": 65,
+          "part": 3393,
+          "maxFreqKHz": 2850000,
+          "minFreqKHz": 600000
+        }
+      ]
+    },
+    "gpu": {
+      "glVendor": "ARM",
+      "glRenderer": "Mali-G610 MC6",
+      "glVersion": "v1.r38p0-00eac0.c3d4e5f6a7",
+      "vkName": "Mali-G610 MC6",
+      "vkVendorID": 5045,
+      "vkDriverVersion": 74211328,
+      "vkDriverID": 9,
+      "vkDriverName": "ARM proprietary driver",
+      "vkDriverInfo": "v1.r38p0"
+    }
+  },
+  "notes": "Community-maintained template. Values follow the device's stock build.prop and GPU driver strings; verify them against a current firmware dump before relying on them in a pull request. The hardware block is used only when \"Emulate this phone's hardware\" is on."
+}

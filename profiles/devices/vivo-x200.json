@@ -1,0 +1,68 @@
+{
+  "schema": 1,
+  "id": "vivo-x200",
+  "name": "vivo X200",
+  "properties": {
+    "ro.product.brand": "vivo",
+    "ro.product.manufacturer": "vivo",
+    "ro.product.model": "V2409",
+    "ro.product.device": "PD2419",
+    "ro.product.name": "PD2419",
+    "ro.build.fingerprint": "vivo/PD2419/PD2419:15/AP3A.240905.015.A2/1728000000:user/release-keys"
+  },
+  "display": {
+    "width": 1260,
+    "height": 2800,
+    "dpi": 460
+  },
+  "hardware": {
+    "soc": {
+      "manufacturer": "Mediatek",
+      "model": "MT6991",
+      "platform": "mt6991",
+      "board": "mt6991",
+      "properties": {
+        "ro.vendor.mediatek.platform": "MT6991",
+        "ro.mediatek.platform": "MT6991",
+        "ro.hardware.chipname": "MT6991"
+      }
+    },
+    "cpu": {
+      "clusters": [
+        {
+          "cores": 4,
+          "implementer": 65,
+          "part": 3457,
+          "maxFreqKHz": 2400000,
+          "minFreqKHz": 500000
+        },
+        {
+          "cores": 3,
+          "implementer": 65,
+          "part": 3458,
+          "maxFreqKHz": 3300000,
+          "minFreqKHz": 800000
+        },
+        {
+          "cores": 1,
+          "implementer": 65,
+          "part": 3461,
+          "maxFreqKHz": 3630000,
+          "minFreqKHz": 950000
+        }
+      ]
+    },
+    "gpu": {
+      "glVendor": "ARM",
+      "glRenderer": "Mali-G925-Immortalis MC12",
+      "glVersion": "v1.r54p0-00eac0.a1b2c3d4e5",
+      "vkName": "Mali-G925-Immortalis MC12",
+      "vkVendorID": 5045,
+      "vkDriverVersion": 75563008,
+      "vkDriverID": 9,
+      "vkDriverName": "ARM proprietary driver",
+      "vkDriverInfo": "v1.r54p0"
+    }
+  },
+  "notes": "Community-maintained template. Values follow the device's stock build.prop and GPU driver strings; verify them against a current firmware dump before relying on them in a pull request. The hardware block is used only when \"Emulate this phone's hardware\" is on."
+}
