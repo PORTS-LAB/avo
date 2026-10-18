@@ -1,0 +1,153 @@
+//! Host side of Cuttlefish's sensors HAL (its `sensors_simulator`): the HAL
+//! asks for the sensor list on hvc18 and reads readings from hvc19. Without
+//! an answer the guest's sensor service never starts and system_server stalls.
+//!
+//! Messages are Cuttlefish transport frames: a u32 holding the command (31
+//! bits) and an is-response bit, a u32 payload size, then the payload.
+
+use crate::virtio::console::ConsoleInput;
+use std::io::Write;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Arc, Mutex};
+use std::time::Duration;
+
+const UPDATE_HAL: u32 = 2;
+
+const ACCELERATION: u32 = 0;
+const GYROSCOPE: u32 = 1;
+const MAGNETIC: u32 = 2;
+const TEMPERATURE: u32 = 4;
+const PROXIMITY: u32 = 5;
+const LIGHT: u32 = 6;
+const PRESSURE: u32 = 7;
+const HUMIDITY: u32 = 8;
+
+/// The sensors a phone profile reports (sensors_hal_proxy.cpp, default device type).
+const ENABLED: u32 = 1 << ACCELERATION
+    | 1 << GYROSCOPE
+    | 1 << MAGNETIC
+    | 1 << TEMPERATURE
+    | 1 << PROXIMITY
+    | 1 << LIGHT
+    | 1 << PRESSURE
+    | 1 << HUMIDITY;
+/// Streamed every second; the others are reported once.
+const CONTINUOUS: u32 = 1 << ACCELERATION | 1 << GYROSCOPE | 1 << MAGNETIC | 1 << LIGHT | 1 << PRESSURE;
+
+#[derive(Default)]
+pub struct Sensors {
+    control: Mutex<Option<ConsoleInput>>,
+    data: Mutex<Option<ConsoleInput>>,
+    activated: AtomicBool,
+}
+
+fn frame(payload: &str) -> Vec<u8> {
+    let mut bytes = (UPDATE_HAL | 1 << 31).to_le_bytes().to_vec();
+    bytes.extend_from_slice(&(payload.len() as u32).to_le_bytes());
+    bytes.extend_from_slice(payload.as_bytes());
+    bytes
+}
+
+/// A device upright in portrait, at rest, indoors.
+fn reading(id: u32) -> Option<String> {
+    Some(match id {
+        ACCELERATION => "acceleration:0:9.80665:0".into(),
+        GYROSCOPE => "gyroscope:0:0:0".into(),
+        MAGNETIC => "magnetic:0:5.9:-48.4".into(),
+        TEMPERATURE => "temperature:25".into(),
+        PROXIMITY => "proximity:1".into(),
+        LIGHT => "light:1000".into(),
+        PRESSURE => "pressure:1013.25".into(),
+        HUMIDITY => "humidity:40".into(),
+        _ => return None,
+    })
+}
+
+impl Sensors {
+    pub fn new() -> Arc<Sensors> {
+        let sensors = Arc::new(Sensors::default());
+        let weak = Arc::downgrade(&sensors);
+        std::thread::Builder::new()
+            .name("sensors".into())
+            .spawn(move || {
+                loop {
+                    std::thread::sleep(Duration::from_secs(1));
+                    // A guest reboot makes new sensors: these go with their machine.
+                    let Some(reporter) = weak.upgrade() else { return };
+                    // Not while Android is paused: its console would queue them all.
+                    if reporter.activated.load(Ordering::Relaxed) && !crate::pause::is_paused() {
+                        reporter.report(ENABLED & CONTINUOUS);
+                    }
+                }
+            })
+            .unwrap();
+        sensors
+    }
+
+    pub fn connect(&self, control: ConsoleInput, data: ConsoleInput) {
+        *self.control.lock().unwrap() = Some(control);
+        *self.data.lock().unwrap() = Some(data);
+    }
+
+    /// Guest output on the control port (hvc18).
+    pub fn control_sink(self: &Arc<Self>) -> Box<dyn Write + Send> {
+        Box::new(ControlSink { sensors: self.clone(), buffer: Vec::new() })
+    }
+
+    fn report(&self, mask: u32) {
+        let Some(data) = self.data.lock().unwrap().clone() else { return };
+        for id in 0..32 {
+            if mask & 1 << id != 0 {
+                if let Some(line) = reading(id) {
+                    data.send(&frame(&format!("{line}\n")));
+                }
+            }
+        }
+    }
+
+    fn request(&self, payload: &[u8]) {
+        if payload.starts_with(b"list-sensors") {
+            if let Some(control) = self.control.lock().unwrap().clone() {
+                control.send(&frame(&format!("{ENABLED}\n")));
+            }
+            self.activated.store(true, Ordering::Relaxed);
+            self.report(ENABLED);
+        }
+    }
+}
+
+struct ControlSink {
+    sensors: Arc<Sensors>,
+    buffer: Vec<u8>,
+}
+
+impl Write for ControlSink {
+    fn write(&mut self, data: &[u8]) -> std::io::Result<usize> {
+        self.buffer.extend_from_slice(data);
+        while self.buffer.len() >= 8 {
+            let size = u32::from_le_bytes(self.buffer[4..8].try_into().unwrap()) as usize;
+            if self.buffer.len() < 8 + size {
+                break;
+            }
+            let payload: Vec<u8> = self.buffer[8..8 + size].to_vec();
+            self.buffer.drain(..8 + size);
+            self.sensors.request(&payload);
+        }
+        Ok(data.len())
+    }
+
+    fn flush(&mut self) -> std::io::Result<()> {
+        Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn the_reporting_thread_does_not_keep_the_sensors() {
+        let sensors = Sensors::new();
+        assert_eq!(Arc::strong_count(&sensors), 1, "they and their consoles go with the machine");
+    }
+}

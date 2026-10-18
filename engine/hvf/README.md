@@ -1,33 +1,31 @@
-# hvf: Avo's Hypervisor.framework backend
+# engine/hvf: Avo's VM engine
 
-Standalone Rust crates for the engine work in [docs/engine.md](../../docs/engine.md),
-shaped to move into crosvm's `hypervisor` crate:
+A Cargo workspace with everything that runs Android on the Mac. The design,
+the devices and the daemon contract are described in
+[docs/engine.md](../../docs/engine.md).
 
-- `hvf-sys`: hand-written bindings to `Hypervisor.framework` (arm64: VM,
-  memory, vCPUs, in-kernel GICv3 from macOS 15).
-- `hvf`: safe wrapper — `Vm`, `GuestRegion` (16 KiB pages), thread-bound
-  `Vcpu`, exit and ESR decoding (MMIO, HVC/SMC, WFI, system registers).
-- `probe` (`avo-hvf-probe`): milestone checks.
+| Crate | What it is |
+| --- | --- |
+| `hvf-sys` | Hand-written bindings to `Hypervisor.framework` (arm64: VM, memory, vCPUs, the in-kernel GICv3 of macOS 15). |
+| `hvf` | Safe wrapper: `Vm`, `GuestRegion` (16 KiB pages), thread-bound `Vcpu`, exit and ESR decoding (MMIO, HVC/SMC, WFI, system registers). |
+| `vmm` (`avo-vmm`) | The engine Avo ships: boots an AOSP Cuttlefish arm64 image with virtio-pci block, console, rng, vsock, gpu (2D or gfxstream 3D), input, net, sound and fs devices, plus GNSS, sensors and a modem simulator. |
+| `probe` (`avo-hvf-probe`) | Bring-up checks: a tiny hand-assembled guest, and a bare kernel boot to first-stage `init`. |
 
 Binaries that create VMs need the `com.apple.security.hypervisor`
 entitlement; `.cargo/config.toml` routes `cargo run` and `cargo test` through
-`run-signed.sh`, which signs ad hoc before running.
+`run-signed.sh`, which signs ad hoc before running. Avo's Xcode build compiles
+avo-vmm and places it at `Avo.app/Contents/MacOS/avo-vmm`.
 
 ```sh
-cargo test                                         # includes a real guest run (milestone 1)
-cargo run --release -p avo-hvf-probe -- tiny       # milestone 1
-gunzip -c <kernel-ranchu> > Image                  # e.g. from the Android SDK system image
-AVO_INITRD=<ramdisk.img> cargo run --release -p avo-hvf-probe -- linux Image 20   # milestone 2
+cargo test                                   # unit tests and a real guest run
+AVO_VMM_MUTE=1 cargo test -p avo-vmm         # the same, without sound on the Mac's speakers
+cargo build --release -p avo-vmm
+target/release/avo-vmm cuttlefish <image dir> --instance <dir> --gpu gfxstream \
+  --gfxstream-dir ~/Library/Android/sdk/emulator
 ```
 
-## Results (macOS 27, Apple Silicon)
+`scripts/fetch-cuttlefish.sh` downloads a Cuttlefish image to try it by hand;
+in normal use the Setup Assistant does this. Every option is documented at
+the top of `vmm/src/main.rs`.
 
-- **Milestone 1** — a hand-assembled AArch64 guest runs; its MMIO store and
-  PSCI `SYSTEM_OFF` (HVC) are trapped and decoded.
-- **Milestone 2** — the Android 16 GKI kernel (`6.12.81-android16`, 16 KiB
-  pages, from the Android SDK's API 37 arm64 image) boots to its console in
-  under 300 ms on one vCPU: PSCI 1.0 over HVC, HVF's in-kernel GICv3
-  (redistributor found, 988 SPIs), the 24 MHz virtual arch timer, the LZ4
-  initramfs unpacked, and Android's first-stage `init` starts and loads its
-  virtio modules. It then stops (exit 127) because the probe has no virtio
-  devices yet — the next step is crosvm's virtio-mmio devices on this backend.
+The crates are BSD-3-Clause (see each `Cargo.toml`).

@@ -104,6 +104,13 @@ impl Vm {
         Ok(bits)
     }
 
+    /// The guest physical address bits `new(None)` gives.
+    pub fn default_ipa_bits() -> Result<u32> {
+        let mut bits = 0;
+        check("hv_vm_config_get_default_ipa_size", unsafe { sys::hv_vm_config_get_default_ipa_size(&mut bits) })?;
+        Ok(bits)
+    }
+
     /// Maps host memory into the guest. `region` must outlive the mapping.
     pub fn map(&self, region: &GuestRegion, protection: Protection) -> Result<()> {
         check("hv_vm_map", unsafe {
@@ -166,8 +173,33 @@ impl Vm {
 
     /// Raises or lowers a shared peripheral interrupt (device interrupt line).
     pub fn set_spi(&self, intid: u32, level: bool) -> Result<()> {
-        check("hv_gic_set_spi", unsafe { sys::hv_gic_set_spi(intid, level) })
+        set_spi(intid, level)
     }
+}
+
+/// Raises or lowers a shared peripheral interrupt of the process's VM. Safe
+/// to call from any thread once the GIC exists.
+pub fn set_spi(intid: u32, level: bool) -> Result<()> {
+    check("hv_gic_set_spi", unsafe { sys::hv_gic_set_spi(intid, level) })
+}
+
+/// Maps `len` bytes of host memory at `host` into the process's VM at
+/// `guest_address`, from any thread while the vCPUs run: device memory the
+/// guest reaches directly, such as GPU buffers. A free function because the
+/// process has one VM, so device threads need no `Vm` (and no lifetime tie
+/// to its `Drop`). Host address, guest address and length must be multiples
+/// of the host page size (16 KiB).
+///
+/// # Safety
+/// The memory must stay allocated, with at least `protection`, until `unmap`
+/// removes the range (or the VM is destroyed): the guest reads and writes it.
+pub unsafe fn map_host(host: *mut u8, guest_address: u64, len: usize, protection: Protection) -> Result<()> {
+    check("hv_vm_map", unsafe { sys::hv_vm_map(host.cast(), guest_address, len, protection.flags()) })
+}
+
+/// Removes a guest range of the process's VM mapped with `map_host`.
+pub fn unmap(guest_address: u64, len: usize) -> Result<()> {
+    check("hv_vm_unmap", unsafe { sys::hv_vm_unmap(guest_address, len) })
 }
 
 impl Drop for Vm {
@@ -194,6 +226,12 @@ impl VcpuHandle {
     pub fn kick(self) -> Result<()> {
         let mut id = self.0;
         check("hv_vcpus_exit", unsafe { sys::hv_vcpus_exit(&mut id, 1) })
+    }
+
+    /// Makes every listed vCPU return from `run` (or skip its next run).
+    pub fn kick_all(handles: &[VcpuHandle]) -> Result<()> {
+        let mut ids: Vec<sys::hv_vcpu_t> = handles.iter().map(|h| h.0).collect();
+        check("hv_vcpus_exit", unsafe { sys::hv_vcpus_exit(ids.as_mut_ptr(), ids.len() as u32) })
     }
 }
 
@@ -272,6 +310,19 @@ impl Vcpu {
         check("hv_vcpu_set_sys_reg", unsafe { sys::hv_vcpu_set_sys_reg(self.handle, reg, value) })
     }
 
+    /// CNTVCT_EL0 = mach_absolute_time() - offset.
+    pub fn vtimer_offset(&self) -> Result<u64> {
+        let mut offset = 0;
+        check("hv_vcpu_get_vtimer_offset", unsafe { sys::hv_vcpu_get_vtimer_offset(self.handle, &mut offset) })?;
+        Ok(offset)
+    }
+
+    /// Sets the offset (on the vCPU's own thread): a larger one sets the
+    /// guest's counter back, as while it was paused.
+    pub fn set_vtimer_offset(&self, offset: u64) -> Result<()> {
+        check("hv_vcpu_set_vtimer_offset", unsafe { sys::hv_vcpu_set_vtimer_offset(self.handle, offset) })
+    }
+
     pub fn set_vtimer_mask(&self, masked: bool) -> Result<()> {
         check("hv_vcpu_set_vtimer_mask", unsafe { sys::hv_vcpu_set_vtimer_mask(self.handle, masked) })
     }
@@ -296,4 +347,4 @@ impl Drop for Vcpu {
     }
 }
 
-pub use sys::{HV_SYS_REG_CNTV_CTL_EL0, HV_SYS_REG_MPIDR_EL1, HV_SYS_REG_SCTLR_EL1, HV_SYS_REG_SP_EL1};
+pub use sys::{HV_SYS_REG_CNTV_CTL_EL0, HV_SYS_REG_CNTV_CVAL_EL0, HV_SYS_REG_MPIDR_EL1, HV_SYS_REG_SCTLR_EL1, HV_SYS_REG_SP_EL1};

@@ -1,0 +1,15 @@
+[package]
+name = "avo-vmm"
+description = "Avo's VM engine: boots Android (Cuttlefish images) on Hypervisor.framework"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+hvf = { path = "../hvf" }
+# User-mode networking (net.rs): guest TCP ends in smoltcp and goes on over
+# host sockets; mio waits on both.
+smoltcp = { version = "0.14", default-features = false, features = ["std", "medium-ip", "proto-ipv4", "socket-tcp", "socket-tcp-pause-synack"] }
+mio = { version = "1", features = ["os-poll", "net"] }
+libc = "0.2"
