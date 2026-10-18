@@ -113,6 +113,8 @@ public final class ControlConnection {
     void close() {
         if (closed) return;
         closed = true;
+        // Each connection has its own pool, whose idle threads would otherwise outlive it.
+        handler.shutdown();
         try {
             socket.close();
         } catch (IOException ignored) {

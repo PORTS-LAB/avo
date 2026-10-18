@@ -1,10 +1,10 @@
 package dev.avo.bridge.control;
 
 import android.os.ParcelFileDescriptor;
-import android.util.Log;
 
 import dev.avo.bridge.Bridge;
 import dev.avo.bridge.Protocol;
+import dev.avo.bridge.io.ListenBackoff;
 import dev.avo.bridge.io.Vsock;
 import dev.avo.bridge.proto.Envelope;
 
@@ -28,10 +28,12 @@ public final class ControlServer {
     }
 
     private void acceptLoop() {
+        ListenBackoff backoff = new ListenBackoff(Bridge.TAG, "control server");
         while (true) {
             try (ParcelFileDescriptor listener = Vsock.listen(Protocol.PORT_CONTROL)) {
                 while (true) {
                     ParcelFileDescriptor socket = Vsock.accept(listener);
+                    backoff.accepted();
                     ControlConnection connection = new ControlConnection(bridge, socket);
                     ControlConnection previous = current;
                     current = connection;
@@ -39,12 +41,7 @@ public final class ControlServer {
                     connection.start();
                 }
             } catch (Exception e) {
-                Log.e(Bridge.TAG, "control server error; retrying", e);
-                try {
-                    Thread.sleep(1000);
-                } catch (InterruptedException ignored) {
-                    return;
-                }
+                if (!backoff.failed(e)) return;
             }
         }
     }

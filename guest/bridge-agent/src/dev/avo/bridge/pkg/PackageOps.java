@@ -24,6 +24,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
@@ -78,9 +79,10 @@ public final class PackageOps {
     }
 
     public void uninstall(String packageName) throws Exception {
-        CompletableFuture<Intent> result = expectResult();
-        context.getPackageManager().getPackageInstaller().uninstall(packageName, sender(result));
-        check(result.get(2, TimeUnit.MINUTES));
+        try (Result result = new Result()) {
+            context.getPackageManager().getPackageInstaller().uninstall(packageName, result.sender);
+            check(result.get(2));
+        }
     }
 
     /** Installs APKs already on the guest (split sets in one session). */
@@ -88,6 +90,7 @@ public final class PackageOps {
         PackageInstaller installer = pm.getPackageInstaller();
         PackageInstaller.SessionParams params = new PackageInstaller.SessionParams(PackageInstaller.SessionParams.MODE_FULL_INSTALL);
         int id = installer.createSession(params);
+        boolean committed = false;
         try (PackageInstaller.Session session = installer.openSession(id)) {
             List<String> files = new ArrayList<>();
             files.add(path);
@@ -100,29 +103,56 @@ public final class PackageOps {
                     session.fsync(out);
                 }
             }
-            CompletableFuture<Intent> result = expectResult();
-            session.commit(sender(result));
-            check(result.get(5, TimeUnit.MINUTES));
+            try (Result result = new Result()) {
+                session.commit(result.sender);
+                committed = true;
+                check(result.get(5));
+            }
+        } finally {
+            // Closing a session keeps it, and the APKs copied into it so far stay
+            // on /data until Android expires it days later.
+            if (!committed) {
+                try {
+                    installer.abandonSession(id);
+                } catch (RuntimeException ignored) {
+                }
+            }
         }
     }
 
-    private CompletableFuture<Intent> expectResult() {
-        CompletableFuture<Intent> future = new CompletableFuture<>();
-        BroadcastReceiver receiver = new BroadcastReceiver() {
+    /**
+     * One operation's result. Its own action makes its own PendingIntent, so two
+     * operations at once (the workers are two) cannot take each other's result;
+     * closing it drops the receiver, also when the result never came.
+     */
+    private final class Result implements AutoCloseable {
+        private final CompletableFuture<Intent> future = new CompletableFuture<>();
+        private final BroadcastReceiver receiver = new BroadcastReceiver() {
             @Override
             public void onReceive(Context c, Intent intent) {
-                context.unregisterReceiver(this);
                 future.complete(intent);
             }
         };
-        context.registerReceiver(receiver, new IntentFilter(ACTION_RESULT), null, handler, Context.RECEIVER_NOT_EXPORTED);
-        return future;
-    }
+        private final PendingIntent pending;
+        final IntentSender sender;
 
-    private IntentSender sender(CompletableFuture<Intent> unused) {
-        Intent intent = new Intent(ACTION_RESULT).setPackage(context.getPackageName());
-        return PendingIntent.getBroadcast(context, 0, intent,
-                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_MUTABLE).getIntentSender();
+        Result() {
+            String action = ACTION_RESULT + "." + UUID.randomUUID();
+            pending = PendingIntent.getBroadcast(context, 0, new Intent(action).setPackage(context.getPackageName()),
+                    PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_MUTABLE);
+            sender = pending.getIntentSender();
+            context.registerReceiver(receiver, new IntentFilter(action), null, handler, Context.RECEIVER_NOT_EXPORTED);
+        }
+
+        Intent get(long minutes) throws Exception {
+            return future.get(minutes, TimeUnit.MINUTES);
+        }
+
+        @Override
+        public void close() {
+            context.unregisterReceiver(receiver);
+            pending.cancel();
+        }
     }
 
     private static void check(Intent result) {

@@ -5,6 +5,8 @@ import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.ComponentName;
 import android.content.Context;
+import android.graphics.Bitmap;
+import android.graphics.drawable.Drawable;
 import android.graphics.drawable.Icon;
 import android.os.Bundle;
 import android.service.notification.NotificationListenerService;
@@ -15,8 +17,14 @@ import com.google.protobuf.ByteString;
 
 import dev.avo.bridge.Bridge;
 import dev.avo.bridge.Hidden;
+import dev.avo.bridge.pkg.AppInfoFactory;
 import dev.avo.bridge.proto.Envelope;
 import dev.avo.bridge.proto.NotificationRemoved;
+
+import java.nio.ByteBuffer;
+import java.util.Arrays;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 /**
  * Mirrors Android notifications to macOS Notification Center (spec: "Fitur
@@ -24,7 +32,33 @@ import dev.avo.bridge.proto.NotificationRemoved;
  * the notification's content intent on that display.
  */
 public final class NotificationBridge extends NotificationListenerService {
+    private static final int ICON_SIZE = 128;
+    private static final int ICONS_KEPT = 16;
     private static volatile NotificationBridge active;
+
+    /** A notification's last large icon: its pixels and their PNG. */
+    private static final class KeptIcon {
+        final byte[] pixels;
+        final ByteString png;
+
+        KeptIcon(byte[] pixels, ByteString png) {
+            this.pixels = pixels;
+            this.png = png;
+        }
+    }
+
+    /**
+     * The last large icon per notification key, so the updates of one
+     * notification (a download's progress) encode the same picture once.
+     * Main thread only (the listener's callbacks); at most ICONS_KEPT, and
+     * each goes with its notification.
+     */
+    private final Map<String, KeptIcon> icons = new LinkedHashMap<>(ICONS_KEPT, 0.75f, true) {
+        @Override
+        protected boolean removeEldestEntry(Map.Entry<String, KeptIcon> eldest) {
+            return size() > ICONS_KEPT;
+        }
+    };
 
     /** The agent grants itself listener access (it is a privileged app). */
     public static void ensureEnabled(Context context) {
@@ -41,6 +75,7 @@ public final class NotificationBridge extends NotificationListenerService {
     @Override
     public void onListenerDisconnected() {
         active = null;
+        icons.clear();
     }
 
     @Override
@@ -66,7 +101,7 @@ public final class NotificationBridge extends NotificationListenerService {
         Icon large = notification.getLargeIcon();
         if (large != null) {
             try {
-                message.setLargeIconPng(png(large));
+                message.setLargeIconPng(png(large, sbn.getKey()));
             } catch (RuntimeException e) {
                 Log.d(Bridge.TAG, "large icon unavailable", e);
             }
@@ -77,16 +112,30 @@ public final class NotificationBridge extends NotificationListenerService {
 
     @Override
     public void onNotificationRemoved(StatusBarNotification sbn) {
+        icons.remove(sbn.getKey());
         Bridge bridge = Bridge.get();
         if (bridge != null) {
             bridge.send(Envelope.newBuilder().setNotificationRemoved(NotificationRemoved.newBuilder().setKey(sbn.getKey())));
         }
     }
 
-    private ByteString png(Icon icon) {
-        android.graphics.drawable.Drawable drawable = icon.loadDrawable(this);
+    private ByteString png(Icon icon, String key) {
+        Drawable drawable = icon.loadDrawable(this);
         if (drawable == null) return ByteString.EMPTY;
-        return dev.avo.bridge.pkg.AppInfoFactory.pngOf(drawable, 128);
+        Bitmap bitmap = AppInfoFactory.render(drawable, ICON_SIZE);
+        try {
+            ByteBuffer pixels = ByteBuffer.allocate(bitmap.getByteCount());
+            bitmap.copyPixelsToBuffer(pixels);
+            // The same pixels as this notification's last icon: the same PNG.
+            KeptIcon kept = icons.get(key);
+            if (kept == null || !Arrays.equals(kept.pixels, pixels.array())) {
+                kept = new KeptIcon(pixels.array(), AppInfoFactory.pngOf(bitmap));
+                icons.put(key, kept);
+            }
+            return kept.png;
+        } finally {
+            bitmap.recycle();
+        }
     }
 
     /** The content intent of an active notification (for Launch with a notification key). */

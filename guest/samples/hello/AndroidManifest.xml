@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- A small launchable app for trying Avo end to end: install, windows,
+     touch and keyboard input, resizing, location, notifications, speaker and
+     microphone, and key mapping (the Arena game). -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="dev.avo.hello"
+    android:versionCode="6"
+    android:versionName="1.5">
+    <uses-sdk android:minSdkVersion="34" android:targetSdkVersion="36" />
+    <!-- To show the GPS fix Avo passes on from the Mac. -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- "Tes mikrofon": records three seconds and plays them back. -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <application android:label="Avo Hello" android:icon="@mipmap/ic_launcher">
+        <!-- Resizing an Avo window changes the display size: keep running instead of restarting. -->
+        <activity android:name=".MainActivity" android:exported="true" android:resizeableActivity="true"
+            android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|density|keyboard|keyboardHidden|navigation">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+        <activity android:name=".GameActivity" android:exported="false" android:resizeableActivity="true"
+            android:label="Arena"
+            android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|density|keyboard|keyboardHidden|navigation" />
+        <receiver android:name=".Notifier" android:exported="true" />
+        <receiver android:name=".LocationProbe" android:exported="true" />
+        <receiver android:name=".SoundProbe" android:exported="true" />
+    </application>
+</manifest>

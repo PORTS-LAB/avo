@@ -7,6 +7,7 @@ import android.util.Log;
 import dev.avo.bridge.Bridge;
 import dev.avo.bridge.Protocol;
 import dev.avo.bridge.display.DisplayController;
+import dev.avo.bridge.io.ListenBackoff;
 import dev.avo.bridge.io.Vsock;
 
 import java.io.DataInputStream;
@@ -37,10 +38,12 @@ public final class InputServer {
 
     private void acceptLoop() {
         Process.setThreadPriority(Process.THREAD_PRIORITY_URGENT_DISPLAY);
+        ListenBackoff backoff = new ListenBackoff(Bridge.TAG, "input server");
         while (true) {
             try (ParcelFileDescriptor listener = Vsock.listen(Protocol.PORT_INPUT)) {
                 while (true) {
                     try (ParcelFileDescriptor socket = Vsock.accept(listener)) {
+                        backoff.accepted();
                         Vsock.setLowLatency(socket);
                         serve(socket);
                     } catch (IOException e) {
@@ -49,12 +52,7 @@ public final class InputServer {
                     injector.cancelAll();
                 }
             } catch (IOException e) {
-                Log.e(Bridge.TAG, "input server error; retrying", e);
-                try {
-                    Thread.sleep(1000);
-                } catch (InterruptedException ignored) {
-                    return;
-                }
+                if (!backoff.failed(e)) return;
             }
         }
     }
@@ -73,6 +71,7 @@ public final class InputServer {
 
         byte[] bytes = new byte[Protocol.INPUT_MAX_RECORD];
         ByteBuffer record = ByteBuffer.wrap(bytes).order(ByteOrder.LITTLE_ENDIAN);
+        boolean warned = false;
         while (true) {
             in.readFully(bytes, 0, 8);
             int length = InputRecords.length(record);
@@ -84,7 +83,14 @@ public final class InputServer {
                 out.flush();
                 continue;
             }
-            injector.inject(type, record, length);
+            try {
+                injector.inject(type, record, length);
+            } catch (RuntimeException e) {
+                // A record the framework refuses (no pointers, a text count past the
+                // record) is skipped: uncaught on this thread, it would kill the agent.
+                if (!warned) Log.w(Bridge.TAG, "input record skipped", e);
+                warned = true;
+            }
         }
     }
 }

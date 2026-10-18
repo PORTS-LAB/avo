@@ -108,36 +108,45 @@ public final class DisplayController {
         entry.height = request.getHeight();
         entry.dpi = request.getDpi();
         int fps = request.getRefreshRate() > 0 ? request.getRefreshRate() : defaultFps;
-        entry.surface = frames.open(entry.hostId, entry.width, entry.height, fps, this::firstFrame);
+        try {
+            entry.surface = frames.open(entry.hostId, entry.width, entry.height, fps, this::firstFrame);
 
-        VirtualDisplayConfig config = new VirtualDisplayConfig.Builder("avo-" + entry.hostId, entry.width, entry.height, entry.dpi)
-                .setFlags(FLAGS)
-                .setSurface(entry.surface)
-                .setRequestedRefreshRate(fps)
-                .build();
-        entry.display = displayManager.createVirtualDisplay(config, bridge.handler, null);
-        if (entry.display == null) {
-            frames.close(entry.hostId);
-            throw new IllegalStateException("could not create a display");
-        }
-        entry.androidId = entry.display.getDisplay().getDisplayId();
-        synchronized (this) {
-            byHost.put(entry.hostId, entry);
-            hostByAndroid.put(entry.androidId, entry.hostId);
-        }
-
-        ActivityOptions options = ActivityOptions.makeBasic().setLaunchDisplayId(entry.androidId);
-        if (!request.getNotificationKey().isEmpty()) {
-            PendingIntent content = NotificationBridge.contentIntent(request.getNotificationKey());
-            if (content != null) {
-                content.send(context, 0, null, null, null, null, options.toBundle());
-                afterLaunch(entry);
-                return;
+            VirtualDisplayConfig config = new VirtualDisplayConfig.Builder("avo-" + entry.hostId, entry.width, entry.height, entry.dpi)
+                    .setFlags(FLAGS)
+                    .setSurface(entry.surface)
+                    .setRequestedRefreshRate(fps)
+                    .build();
+            entry.display = displayManager.createVirtualDisplay(config, bridge.handler, null);
+            if (entry.display == null) throw new IllegalStateException("could not create a display");
+            entry.androidId = entry.display.getDisplay().getDisplayId();
+            synchronized (this) {
+                byHost.put(entry.hostId, entry);
+                hostByAndroid.put(entry.androidId, entry.hostId);
             }
+
+            ActivityOptions options = ActivityOptions.makeBasic().setLaunchDisplayId(entry.androidId);
+            if (!request.getNotificationKey().isEmpty()) {
+                PendingIntent content = NotificationBridge.contentIntent(request.getNotificationKey());
+                if (content != null) {
+                    content.send(context, 0, null, null, null, null, options.toBundle());
+                    afterLaunch(entry);
+                    return;
+                }
+            }
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_MULTIPLE_TASK);
+            context.startActivity(intent, options.toBundle());
+            afterLaunch(entry);
+        } catch (Exception e) {
+            // The host forgets a display whose launch failed and never sends Close
+            // for it: its VirtualDisplay, buffers and host display go now.
+            synchronized (this) {
+                byHost.remove(entry.hostId);
+                if (entry.display != null) hostByAndroid.delete(entry.androidId);
+            }
+            if (entry.display != null) entry.display.release();
+            frames.close(entry.hostId);
+            throw e;
         }
-        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_MULTIPLE_TASK);
-        context.startActivity(intent, options.toBundle());
-        afterLaunch(entry);
     }
 
     private void afterLaunch(Entry entry) {

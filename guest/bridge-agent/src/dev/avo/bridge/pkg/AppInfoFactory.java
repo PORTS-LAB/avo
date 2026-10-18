@@ -119,18 +119,25 @@ public final class AppInfoFactory {
         builder.setIconPng(png(icon, LEGACY_SIZE));
     }
 
-    public static ByteString pngOf(Drawable drawable, int size) {
-        return png(drawable, size);
-    }
-
-    static ByteString png(Drawable drawable, int size) {
+    /** `drawable` on a `size`-square bitmap, which the caller recycles. */
+    public static Bitmap render(Drawable drawable, int size) {
         Bitmap bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888);
         Canvas canvas = new Canvas(bitmap);
         drawable.setBounds(0, 0, size, size);
         drawable.draw(canvas);
+        return bitmap;
+    }
+
+    public static ByteString pngOf(Bitmap bitmap) {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         bitmap.compress(Bitmap.CompressFormat.PNG, 100, out);
-        bitmap.recycle();
         return ByteString.copyFrom(out.toByteArray());
+    }
+
+    static ByteString png(Drawable drawable, int size) {
+        Bitmap bitmap = render(drawable, size);
+        ByteString png = pngOf(bitmap);
+        bitmap.recycle();
+        return png;
     }
 }

@@ -27,6 +27,11 @@ final class RequestHandler {
         this.connection = connection;
     }
 
+    /** The connection is gone: the workers end once the requests they have are done. */
+    void shutdown() {
+        workers.shutdown();
+    }
+
     void handle(Envelope request) {
         switch (request.getPayloadCase()) {
             case PING -> connection.reply(request, Envelope.newBuilder()
@@ -40,9 +45,14 @@ final class RequestHandler {
                     request.getSetRefreshRate().getDisplayId(), request.getSetRefreshRate().getFps()));
             case SHARE_FILES -> onFramework(request, () -> bridge.displays.share(request.getShareFiles()));
             case LIST_APPS -> workers.execute(() -> {
-                List<AppInfo> apps = bridge.apps.listLaunchable(request.getListApps().getIncludeIcons(),
-                        request.getListApps().getIncludeSystem());
-                connection.reply(request, Envelope.newBuilder().setAppList(AppList.newBuilder().addAllApps(apps)));
+                // Uncaught, an exception on a worker (one app's broken icon) kills the agent.
+                try {
+                    List<AppInfo> apps = bridge.apps.listLaunchable(request.getListApps().getIncludeIcons(),
+                            request.getListApps().getIncludeSystem());
+                    connection.reply(request, Envelope.newBuilder().setAppList(AppList.newBuilder().addAllApps(apps)));
+                } catch (Exception e) {
+                    fail(request, Reply.Status.STATUS_FAILED, e);
+                }
             });
             case GET_PERMISSIONS -> workers.execute(() -> {
                 String pkg = request.getGetPermissions().getPackage();

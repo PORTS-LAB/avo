@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name" translatable="false">Avo Links</string>
+    <!-- What Android's "Open with" list calls it when another app handles the link too. -->
+    <string name="open_on_mac">Open on Mac</string>
+</resources>
