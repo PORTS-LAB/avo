@@ -1,17 +1,28 @@
 # macOS
 .DS_Store
 
+# Editors
+.vscode/
+.idea/
+*.swp
+
+# Local build output: DerivedData, release staging, disk images, the update
+# feed mirror (scripts/release-update.sh) and logs.
+build/
+*.dmg
+*.xcresult
+
 # Xcode / SwiftPM
 xcuserdata/
 *.xcuserstate
 DerivedData/
 .build/
 .swiftpm/
-host/AvoKit/.build/
 host/Config/Local.xcconfig
 
 # Android
-guest/bridge-agent/build/
+guest/*/build/
+guest/samples/*/build/
 *.keystore
 local.properties
 
@@ -20,3 +31,8 @@ target/
 
 # Python
 __pycache__/
+*.pyc
+
+# Local secrets
+.env
+.env.*

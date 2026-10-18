@@ -2,13 +2,15 @@
 
 DERIVED ?= build/DerivedData
 
-.PHONY: help test project build agent proto icons clean
+.PHONY: help test project build strings agent helpers proto icons clean
 
 help:
 	@echo "make test     run the host core tests (swift test)"
 	@echo "make project  generate host/Avo.xcodeproj (XcodeGen)"
 	@echo "make build    build Avo.app (Debug) into $(DERIVED)"
+	@echo "make strings  update the String Catalogs from the last build"
 	@echo "make agent    build the Bridge Agent APK (Android SDK + NDK)"
+	@echo "make helpers  rebuild the guest helpers embedded in the daemon (clipboard, links, macstate, fingerprint, gpuprofile, gfxsync)"
 	@echo "make proto    regenerate protocol bindings"
 	@echo "make icons    regenerate brand assets"
 
@@ -21,8 +23,19 @@ project:
 build: project
 	xcodebuild -project host/Avo.xcodeproj -scheme Avo -configuration Debug -derivedDataPath $(DERIVED) build
 
+strings:
+	scripts/sync-strings.sh $(DERIVED)
+
 agent:
 	guest/bridge-agent/build.sh
+
+helpers:
+	guest/clipboard/build.sh
+	guest/links/build.sh
+	guest/macstate/build.sh
+	guest/fingerprint/build.sh
+	guest/gpuprofile/build.sh
+	guest/gfxsync/build.sh
 
 proto:
 	scripts/gen-proto.sh
@@ -31,4 +44,4 @@ icons:
 	python3 -I branding/tools/generate.py
 
 clean:
-	rm -rf $(DERIVED) host/AvoKit/.build guest/bridge-agent/build
+	rm -rf $(DERIVED) host/AvoKit/.build guest/bridge-agent/build guest/clipboard/build guest/links/build guest/macstate/build

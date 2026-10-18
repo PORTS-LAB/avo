@@ -1,0 +1,66 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  @font-face { font-family: "Hubot Sans"; src: url("../../host/Avo/Fonts/hubot-sans.woff2") format("woff2"); font-weight: 200 900; font-stretch: 75% 125%; }
+  @font-face { font-family: "Mona Sans"; src: url("../../host/Avo/Fonts/mona-sans.woff2") format("woff2"); font-weight: 200 900; font-stretch: 75% 125%; }
+  html, body { margin: 0; width: 640px; height: 480px; overflow: hidden; background: #050904; }
+  .stage {
+    position: relative; width: 640px; height: 480px; overflow: hidden;
+    background:
+      radial-gradient(120% 90% at 78% 8%, #13200f 0%, #0a1108 46%, #050904 100%);
+  }
+  /* Haze: soft clouds of AvoFlesh light, like the website. */
+  .haze { position: absolute; border-radius: 50%; filter: blur(42px); }
+  .h1 { width: 560px; height: 330px; left: 230px; top: -160px; background: radial-gradient(closest-side, rgba(216,232,167,0.55), rgba(216,232,167,0) 74%); }
+  .h2 { width: 460px; height: 260px; left: -160px; top: 110px; background: radial-gradient(closest-side, rgba(188,220,143,0.22), rgba(188,220,143,0) 75%); }
+  .h3 { width: 700px; height: 150px; left: -30px; top: 150px; background: radial-gradient(closest-side, rgba(216,232,167,0.16), rgba(216,232,167,0) 78%); }
+  .h4 { width: 220px; height: 170px; left: 470px; top: 10px; background: radial-gradient(closest-side, rgba(251,248,241,0.55), rgba(251,248,241,0) 70%); filter: blur(24px); }
+  .ember { position: absolute; width: 260px; height: 180px; left: -60px; top: 300px; border-radius: 50%; filter: blur(50px);
+           background: radial-gradient(closest-side, rgba(234,169,112,0.10), rgba(234,169,112,0) 70%); }
+  /* Light shafts falling through the haze from the top right. */
+  .shafts { position: absolute; inset: -80px; filter: blur(12px); opacity: 1;
+            background: repeating-linear-gradient(115deg, rgba(216,232,167,0) 0 30px, rgba(216,232,167,0.13) 30px 50px, rgba(216,232,167,0) 50px 92px);
+            -webkit-mask-image: radial-gradient(95% 85% at 88% 0%, #000 0%, transparent 72%); mask-image: radial-gradient(95% 85% at 88% 0%, #000 0%, transparent 72%); }
+  /* Fine grain so the gradients don't band. */
+  .grain { position: absolute; inset: 0; opacity: 0.06; mix-blend-mode: overlay;
+           background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='160' height='160' filter='url(%23n)'/></svg>"); }
+  .brand { position: absolute; left: 28px; top: 24px; display: flex; align-items: center; gap: 9px; }
+  .brand img { width: 26px; height: 26px; }
+  .brand span { font-family: "Hubot Sans"; font-weight: 650; font-stretch: 108%; font-size: 19px; color: #f3f1e8; letter-spacing: -0.2px; }
+  /* Soft floor under the two icons so Finder's labels read well. */
+  .floor { position: absolute; inset: 0; background:
+           radial-gradient(90px 80px at 160px 200px, rgba(216,232,167,0.16), rgba(216,232,167,0) 100%),
+           radial-gradient(90px 80px at 480px 200px, rgba(216,232,167,0.12), rgba(216,232,167,0) 100%); }
+  /* The drag arrow between the app (x=160) and Applications (x=480), at icon height (y=200). */
+  .arrow { position: absolute; left: 288px; top: 191px; width: 64px; height: 18px; }
+  .hint { position: absolute; left: 0; right: 0; top: 318px; text-align: center; font-family: "Mona Sans"; }
+  .hint b { display: block; font-weight: 600; font-size: 14px; color: #f3f1e8; letter-spacing: 0.1px; }
+  .hint i { display: block; font-style: normal; font-weight: 450; font-size: 12px; color: #9aa58e; margin-top: 4px; }
+
+  .tag { position: absolute; top: 263px; height: 22px; border-radius: 11px;
+         background: linear-gradient(180deg, rgba(232,240,200,0.94), rgba(216,232,167,0.90));
+         box-shadow: 0 0 0 1px rgba(255,255,255,0.18) inset, 0 6px 18px rgba(0,0,0,0.35), 0 0 24px rgba(216,232,167,0.18); }
+  .tag.app { left: 132px; width: 56px; }
+  .tag.apps { left: 425px; width: 110px; }
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="haze h1"></div><div class="haze h2"></div><div class="haze h3"></div><div class="haze h4"></div>
+  <div class="ember"></div>
+  <div class="shafts"></div>
+  <div class="floor"></div>
+  <div class="grain"></div>
+  <div class="brand"><img src="../../branding/svg/avo-mark.svg" alt=""><span>Avo</span></div>
+  <svg class="arrow" viewBox="0 0 64 18" xmlns="http://www.w3.org/2000/svg">
+    <defs><linearGradient id="g" gradientUnits="userSpaceOnUse" x1="3" y1="9" x2="58" y2="9"><stop offset="0" stop-color="#d8e8a7" stop-opacity="0.25"/><stop offset="1" stop-color="#d8e8a7" stop-opacity="0.95"/></linearGradient></defs>
+    <path d="M3 9 H58" stroke="url(#g)" stroke-width="2" stroke-linecap="round" fill="none"/>
+    <path d="M52 3 L60 9 L52 15" stroke="#d8e8a7" stroke-opacity="0.95" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  </svg>
+  <div class="tag app"></div><div class="tag apps"></div>
+  <div class="hint"><b>Drag Avo into Applications</b><i>Seret Avo ke folder Applications</i></div>
+</div>
+</body>
+</html>
