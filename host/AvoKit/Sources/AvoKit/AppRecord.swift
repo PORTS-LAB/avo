@@ -68,7 +68,10 @@ public enum VMState: String, Codable, Sendable {
     case stopped
     case starting
     case running
+    /// Android is being paused (its vCPUs stop; `VMStatus.pause` says why).
     case suspending
+    /// Android is paused: it holds its place, uses no CPU, and goes on when
+    /// anything uses it.
     case suspended
     case stopping
     case failed
@@ -81,16 +84,46 @@ public struct VMStatus: Codable, Equatable, Sendable {
     public var protocolVersion: UInt32?
     public var bootedAt: Date?
     public var openDisplays: Int
+    /// GPU or software rendering, and why (nil from a daemon before GPU
+    /// support, or the crosvm engine).
+    public var renderer: RendererStatus?
+    /// Android started with a screen lock and waits for its credential: apps
+    /// open once it is unlocked (`unlockAndroid`). Nil otherwise, and from
+    /// engines that cannot tell.
+    public var screenLock: AndroidScreenLock?
+    /// While Android is paused or being paused (nil otherwise, and from an
+    /// older daemon).
+    public var pause: VMPause?
 
     public init(state: VMState, detail: String? = nil, androidVersion: String? = nil,
-                protocolVersion: UInt32? = nil, bootedAt: Date? = nil, openDisplays: Int = 0) {
+                protocolVersion: UInt32? = nil, bootedAt: Date? = nil, openDisplays: Int = 0, renderer: RendererStatus? = nil,
+                screenLock: AndroidScreenLock? = nil, pause: VMPause? = nil) {
         self.state = state
         self.detail = detail
         self.androidVersion = androidVersion
         self.protocolVersion = protocolVersion
         self.bootedAt = bootedAt
         self.openDisplays = openDisplays
+        self.renderer = renderer
+        self.screenLock = screenLock
+        self.pause = pause
     }
 
     public static let stopped = VMStatus(state: .stopped)
+
+    /// Paused, or being paused: Android goes on by itself when used.
+    public var isPaused: Bool { state == .suspended || state == .suspending }
+}
+
+/// Why and since when Android is paused.
+public struct VMPause: Codable, Equatable, Sendable {
+    public var since: Date
+    /// Avo paused it on its own (Settings › Performance › Pause When Idle),
+    /// not the user from the menu bar.
+    public var automatic: Bool
+
+    public init(since: Date, automatic: Bool) {
+        self.since = since
+        self.automatic = automatic
+    }
 }

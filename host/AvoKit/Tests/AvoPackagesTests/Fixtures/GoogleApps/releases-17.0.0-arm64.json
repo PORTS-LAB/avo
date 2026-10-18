@@ -1,0 +1,130 @@
+[
+  {
+    "tag_name": "MindTheGapps-17.0.0-arm64-20261006_111038",
+    "name": null,
+    "draft": false,
+    "prerelease": false,
+    "created_at": "2023-09-18T16:22:20Z",
+    "published_at": "2026-10-06T11:13:02Z",
+    "html_url": "https://github.com/MindTheGapps/17.0.0-arm64/releases/tag/MindTheGapps-17.0.0-arm64-20261006_111038",
+    "assets": [
+      {
+        "name": "MindTheGapps-17.0.0-arm64-20261006_111038.zip",
+        "content_type": "application/zip",
+        "size": 544284432,
+        "digest": "sha256:6b38929ec345d96b6d64ad82f391869b7a60b3260efb0661b543b109b3ce646d",
+        "browser_download_url": "https://github.com/MindTheGapps/17.0.0-arm64/releases/download/MindTheGapps-17.0.0-arm64-20261006_111038/MindTheGapps-17.0.0-arm64-20261006_111038.zip"
+      },
+      {
+        "name": "MindTheGapps-17.0.0-arm64-20261006_111038.zip.sha256sum",
+        "content_type": "application/octet-stream",
+        "size": 112,
+        "digest": "sha256:b2612cecfdf278dce90ef0f0db8b0ac7a2bb0b08455743bf2b32bba7be827874",
+        "browser_download_url": "https://github.com/MindTheGapps/17.0.0-arm64/releases/download/MindTheGapps-17.0.0-arm64-20261006_111038/MindTheGapps-17.0.0-arm64-20261006_111038.zip.sha256sum"
+      },
+      {
+        "name": "release.x509.pem",
+        "content_type": "application/x-x509-ca-cert",
+        "size": 1464,
+        "digest": "sha256:efd45e07d29a13db60f6db46a6d8b7c42f65ed657b274a3e946c850766bc1399",
+        "browser_download_url": "https://github.com/MindTheGapps/17.0.0-arm64/releases/download/MindTheGapps-17.0.0-arm64-20261006_111038/release.x509.pem"
+      }
+    ]
+  },
+  {
+    "tag_name": "MindTheGapps-17.0.0-arm64-20260915_222140",
+    "name": null,
+    "draft": false,
+    "prerelease": false,
+    "created_at": "2023-09-18T16:22:20Z",
+    "published_at": "2026-09-15T22:24:17Z",
+    "html_url": "https://github.com/MindTheGapps/17.0.0-arm64/releases/tag/MindTheGapps-17.0.0-arm64-20260915_222140",
+    "assets": [
+      {
+        "name": "MindTheGapps-17.0.0-arm64-20260915_222140.zip",
+        "content_type": "application/zip",
+        "size": 547409933,
+        "digest": "sha256:14b6deb59a2af41eb65d1782079a3688cda0f67d5f000b9a08a2f035ccce187a",
+        "browser_download_url": "https://github.com/MindTheGapps/17.0.0-arm64/releases/download/MindTheGapps-17.0.0-arm64-20260915_222140/MindTheGapps-17.0.0-arm64-20260915_222140.zip"
+      },
+      {
+        "name": "MindTheGapps-17.0.0-arm64-20260915_222140.zip.sha256sum",
+        "content_type": "application/octet-stream",
+        "size": 112,
+        "digest": "sha256:ee1b23bedc55328dea3d07de645cc239fe194778e9ea7d1f938a8ea045521857",
+        "browser_download_url": "https://github.com/MindTheGapps/17.0.0-arm64/releases/download/MindTheGapps-17.0.0-arm64-20260915_222140/MindTheGapps-17.0.0-arm64-20260915_222140.zip.sha256sum"
+      },
+      {
+        "name": "release.x509.pem",
+        "content_type": "application/x-x509-ca-cert",
+        "size": 1464,
+        "digest": "sha256:efd45e07d29a13db60f6db46a6d8b7c42f65ed657b274a3e946c850766bc1399",
+        "browser_download_url": "https://github.com/MindTheGapps/17.0.0-arm64/releases/download/MindTheGapps-17.0.0-arm64-20260915_222140/release.x509.pem"
+      }
+    ]
+  },
+  {
+    "tag_name": "MindTheGapps-17.0.0-arm64-20260828_065753",
+    "name": null,
+    "draft": false,
+    "prerelease": false,
+    "created_at": "2023-09-18T16:22:20Z",
+    "published_at": "2026-08-28T07:00:18Z",
+    "html_url": "https://github.com/MindTheGapps/17.0.0-arm64/releases/tag/MindTheGapps-17.0.0-arm64-20260828_065753",
+    "assets": [
+      {
+        "name": "MindTheGapps-17.0.0-arm64-20260828_065753.zip",
+        "content_type": "application/zip",
+        "size": 547409889,
+        "digest": "sha256:82aa202a0675a0c641b2adef02c67e2769e73734f68a3ac4d773893d8f627be9",
+        "browser_download_url": "https://github.com/MindTheGapps/17.0.0-arm64/releases/download/MindTheGapps-17.0.0-arm64-20260828_065753/MindTheGapps-17.0.0-arm64-20260828_065753.zip"
+      },
+      {
+        "name": "MindTheGapps-17.0.0-arm64-20260828_065753.zip.sha256sum",
+        "content_type": "application/octet-stream",
+        "size": 112,
+        "digest": "sha256:0d06d1f76d6fd8863a5e11998d639acc232efd7a0b8901dfbf1139978516586b",
+        "browser_download_url": "https://github.com/MindTheGapps/17.0.0-arm64/releases/download/MindTheGapps-17.0.0-arm64-20260828_065753/MindTheGapps-17.0.0-arm64-20260828_065753.zip.sha256sum"
+      },
+      {
+        "name": "release.x509.pem",
+        "content_type": "application/x-x509-ca-cert",
+        "size": 1464,
+        "digest": "sha256:efd45e07d29a13db60f6db46a6d8b7c42f65ed657b274a3e946c850766bc1399",
+        "browser_download_url": "https://github.com/MindTheGapps/17.0.0-arm64/releases/download/MindTheGapps-17.0.0-arm64-20260828_065753/release.x509.pem"
+      }
+    ]
+  },
+  {
+    "tag_name": "MindTheGapps-17.0.0-arm64-20260630_115006",
+    "name": null,
+    "draft": false,
+    "prerelease": false,
+    "created_at": "2023-09-18T16:22:20Z",
+    "published_at": "2026-06-30T11:52:26Z",
+    "html_url": "https://github.com/MindTheGapps/17.0.0-arm64/releases/tag/MindTheGapps-17.0.0-arm64-20260630_115006",
+    "assets": [
+      {
+        "name": "MindTheGapps-17.0.0-arm64-20260630_115006.zip",
+        "content_type": "application/zip",
+        "size": 535867139,
+        "digest": "sha256:c12792c17fba02e470b00bdfc8f1fd7677f526131c1f7333c5bd23e91042671c",
+        "browser_download_url": "https://github.com/MindTheGapps/17.0.0-arm64/releases/download/MindTheGapps-17.0.0-arm64-20260630_115006/MindTheGapps-17.0.0-arm64-20260630_115006.zip"
+      },
+      {
+        "name": "MindTheGapps-17.0.0-arm64-20260630_115006.zip.sha256sum",
+        "content_type": "application/octet-stream",
+        "size": 112,
+        "digest": "sha256:753ffad72b2ecbf9f59edf8ad8cf412ccfbdc4e2fd4d505666588b779ac98609",
+        "browser_download_url": "https://github.com/MindTheGapps/17.0.0-arm64/releases/download/MindTheGapps-17.0.0-arm64-20260630_115006/MindTheGapps-17.0.0-arm64-20260630_115006.zip.sha256sum"
+      },
+      {
+        "name": "release.x509.pem",
+        "content_type": "application/x-x509-ca-cert",
+        "size": 1464,
+        "digest": "sha256:efd45e07d29a13db60f6db46a6d8b7c42f65ed657b274a3e946c850766bc1399",
+        "browser_download_url": "https://github.com/MindTheGapps/17.0.0-arm64/releases/download/MindTheGapps-17.0.0-arm64-20260630_115006/release.x509.pem"
+      }
+    ]
+  }
+]

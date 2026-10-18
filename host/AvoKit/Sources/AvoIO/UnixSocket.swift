@@ -125,6 +125,12 @@ public enum UnixSocket {
 ///     ... raw stream ...
 public enum VsockBridge {
     public static func connect(socketPath: String, port: UInt32, timeout: Duration = .seconds(5)) throws -> FileDescriptorStream {
+        let fd = try connectSocket(socketPath: socketPath, port: port, timeout: timeout)
+        return FileDescriptorStream(fileDescriptor: fd, label: "dev.avo.vsock.\(port)")
+    }
+
+    /// The connected socket itself (blocking); the caller closes it.
+    public static func connectSocket(socketPath: String, port: UInt32, timeout: Duration = .seconds(5)) throws -> Int32 {
         let fd = try UnixSocket.connect(path: socketPath)
         do {
             let deadline = ContinuousClock.now + timeout
@@ -135,6 +141,6 @@ public enum VsockBridge {
             close(fd)
             throw error
         }
-        return FileDescriptorStream(fileDescriptor: fd, label: "dev.avo.vsock.\(port)")
+        return fd
     }
 }

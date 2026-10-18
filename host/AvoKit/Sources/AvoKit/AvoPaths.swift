@@ -10,8 +10,9 @@ import Foundation
 ///   keymaps/<package>.json keymapping profiles
 ///   adbkey                 RSA key the daemon uses for the ADB channel
 ///   images/<version>/      Android image (kernel, system/vendor, overlays)
-///   vm/userdata.img        user data disk (grow only)
+///   vm/userdata.img        user data disk (size fixed once Android created its storage)
 ///   vm/snapshots/          quick-boot snapshots
+///   data-location.json     Android's data is in another folder (StorageLocation.swift)
 /// ~/Applications/Android Apps/<Label>.app   App Shims
 /// ~/Library/Logs/Avo/                          logs
 /// $TMPDIR/dev.avo/                             runtime sockets (mode 0700)
@@ -39,7 +40,9 @@ public struct AvoPaths: Sendable, Equatable {
     public var adbKey: URL { applicationSupport.appending(path: "adbkey") }
     public var images: URL { applicationSupport.appending(path: "images", directoryHint: .isDirectory) }
     public var vm: URL { applicationSupport.appending(path: "vm", directoryHint: .isDirectory) }
-    public var dataDisk: URL { vm.appending(path: "userdata.img") }
+    /// Android's data disk, in `data` (Avo's own storage, `vm`, unless the
+    /// user chose another folder in Settings › Storage).
+    public var dataDisk: URL { data.appending(path: "userdata.img") }
     public var snapshots: URL { vm.appending(path: "snapshots", directoryHint: .isDirectory) }
     public var desktop: URL { home.appending(path: "Desktop", directoryHint: .isDirectory) }
 

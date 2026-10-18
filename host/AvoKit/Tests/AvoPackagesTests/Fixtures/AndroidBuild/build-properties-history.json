@@ -1,0 +1,311 @@
+{
+ "13263448": {
+  "ro.build.version.incremental": "13263448",
+  "ro.build.version.release": "15",
+  "ro.build.version.release_or_codename": "15",
+  "ro.build.version.sdk": "35",
+  "ro.build.version.security_patch": "2025-03-05"
+ },
+ "13411694": {
+  "ro.build.version.incremental": "13411694",
+  "ro.build.version.release": "15",
+  "ro.build.version.release_or_codename": "15",
+  "ro.build.version.sdk": "35",
+  "ro.build.version.security_patch": "2025-03-05"
+ },
+ "13455648": {
+  "ro.build.version.incremental": "13455648",
+  "ro.build.version.release": "15",
+  "ro.build.version.release_or_codename": "15",
+  "ro.build.version.sdk": "35",
+  "ro.build.version.security_patch": "2025-03-05"
+ },
+ "13455649": {
+  "ro.build.version.incremental": "13455649",
+  "ro.build.version.release": "15",
+  "ro.build.version.release_or_codename": "15",
+  "ro.build.version.sdk": "35",
+  "ro.build.version.security_patch": "2025-03-05"
+ },
+ "13455650": {
+  "ro.build.version.incremental": "13455650",
+  "ro.build.version.release": "15",
+  "ro.build.version.release_or_codename": "15",
+  "ro.build.version.sdk": "35",
+  "ro.build.version.security_patch": "2025-03-05"
+ },
+ "13455653": {
+  "ro.build.version.incremental": "13455653",
+  "ro.build.version.release": "15",
+  "ro.build.version.release_or_codename": "15",
+  "ro.build.version.sdk": "35",
+  "ro.build.version.security_patch": "2025-03-05"
+ },
+ "13455654": {
+  "ro.build.version.incremental": "13455654",
+  "ro.build.version.release": "15",
+  "ro.build.version.release_or_codename": "15",
+  "ro.build.version.sdk": "35",
+  "ro.build.version.security_patch": "2025-03-05"
+ },
+ "13455655": {
+  "ro.build.version.incremental": "13455655",
+  "ro.build.version.release": "15",
+  "ro.build.version.release_or_codename": "15",
+  "ro.build.version.sdk": "35",
+  "ro.build.version.security_patch": "2025-03-05"
+ },
+ "13455656": {
+  "ro.build.version.incremental": "13455656",
+  "ro.build.version.release": "15",
+  "ro.build.version.release_or_codename": "15",
+  "ro.build.version.sdk": "35",
+  "ro.build.version.security_patch": "2025-03-05"
+ },
+ "13455658": {
+  "ro.build.version.incremental": "13455658",
+  "ro.build.version.release": "15",
+  "ro.build.version.release_or_codename": "15",
+  "ro.build.version.sdk": "35",
+  "ro.build.version.security_patch": "2025-03-05"
+ },
+ "13455659": {
+  "ro.build.version.incremental": "13455659",
+  "ro.build.version.release": "15",
+  "ro.build.version.release_or_codename": "15",
+  "ro.build.version.sdk": "35",
+  "ro.build.version.security_patch": "2025-03-05"
+ },
+ "13455660": {
+  "ro.build.version.incremental": "13455660",
+  "ro.build.version.release": "15",
+  "ro.build.version.release_or_codename": "15",
+  "ro.build.version.sdk": "35",
+  "ro.build.version.security_patch": "2025-03-05"
+ },
+ "13455661": {
+  "ro.build.version.incremental": "13455661",
+  "ro.build.version.release": "15",
+  "ro.build.version.release_or_codename": "15",
+  "ro.build.version.sdk": "35",
+  "ro.build.version.security_patch": "2025-05-05"
+ },
+ "13455663": {
+  "ro.build.version.incremental": "13455663",
+  "ro.build.version.release": "15",
+  "ro.build.version.release_or_codename": "15",
+  "ro.build.version.sdk": "35",
+  "ro.build.version.security_patch": "2025-05-05"
+ },
+ "13455664": {
+  "ro.build.version.incremental": "13455664",
+  "ro.build.version.release": "15",
+  "ro.build.version.release_or_codename": "15",
+  "ro.build.version.sdk": "35",
+  "ro.build.version.security_patch": "2025-05-05"
+ },
+ "13455668": {
+  "ro.build.version.incremental": "13455668",
+  "ro.build.version.release": "15",
+  "ro.build.version.release_or_codename": "15",
+  "ro.build.version.sdk": "35",
+  "ro.build.version.security_patch": "2025-05-05"
+ },
+ "13455670": {
+  "ro.build.version.incremental": "13455670",
+  "ro.build.version.release": "15",
+  "ro.build.version.release_or_codename": "15",
+  "ro.build.version.sdk": "35",
+  "ro.build.version.security_patch": "2025-05-05"
+ },
+ "13455672": {
+  "ro.build.version.incremental": "13455672",
+  "ro.build.version.release": "15",
+  "ro.build.version.release_or_codename": "15",
+  "ro.build.version.sdk": "35",
+  "ro.build.version.security_patch": "2025-05-05"
+ },
+ "13455674": {
+  "ro.build.version.incremental": "13455674",
+  "ro.build.version.release": "15",
+  "ro.build.version.release_or_codename": "15",
+  "ro.build.version.sdk": "35",
+  "ro.build.version.security_patch": "2025-05-05"
+ },
+ "13455675": {
+  "ro.build.version.incremental": "13455675",
+  "ro.build.version.release": "15",
+  "ro.build.version.release_or_codename": "15",
+  "ro.build.version.sdk": "35",
+  "ro.build.version.security_patch": "2025-05-05"
+ },
+ "13455676": {
+  "ro.build.version.incremental": "13455676",
+  "ro.build.version.release": "15",
+  "ro.build.version.release_or_codename": "15",
+  "ro.build.version.sdk": "35",
+  "ro.build.version.security_patch": "2025-05-05"
+ },
+ "13455677": {
+  "ro.build.version.incremental": "13455677",
+  "ro.build.version.release": "15",
+  "ro.build.version.release_or_codename": "15",
+  "ro.build.version.sdk": "35",
+  "ro.build.version.security_patch": "2025-05-05"
+ },
+ "13455678": {
+  "ro.build.version.incremental": "13455678",
+  "ro.build.version.release": "15",
+  "ro.build.version.release_or_codename": "15",
+  "ro.build.version.sdk": "35",
+  "ro.build.version.security_patch": "2025-05-05"
+ },
+ "13625421": {
+  "ro.build.version.incremental": "13625421",
+  "ro.build.version.release": "16",
+  "ro.build.version.release_or_codename": "16",
+  "ro.build.version.sdk": "36",
+  "ro.build.version.sdk_full": "36.0",
+  "ro.build.version.security_patch": "2025-06-05"
+ },
+ "13912524": {
+  "ro.build.version.incremental": "13912524",
+  "ro.build.version.release": "16",
+  "ro.build.version.release_or_codename": "16",
+  "ro.build.version.sdk": "36",
+  "ro.build.version.sdk_full": "36.0",
+  "ro.build.version.security_patch": "2025-06-05"
+ },
+ "14085914": {
+  "ro.build.version.incremental": "14085914",
+  "ro.build.version.release": "16",
+  "ro.build.version.release_or_codename": "16",
+  "ro.build.version.sdk": "36",
+  "ro.build.version.sdk_full": "36.0",
+  "ro.build.version.security_patch": "2025-06-05"
+ },
+ "14253210": {
+  "ro.build.version.incremental": "14253210",
+  "ro.build.version.release": "16",
+  "ro.build.version.release_or_codename": "16",
+  "ro.build.version.sdk": "36",
+  "ro.build.version.sdk_full": "36.0",
+  "ro.build.version.security_patch": "2025-06-05"
+ },
+ "14421689": {
+  "ro.build.version.incremental": "14421689",
+  "ro.build.version.release": "16",
+  "ro.build.version.release_or_codename": "16",
+  "ro.build.version.sdk": "36",
+  "ro.build.version.sdk_full": "36.0",
+  "ro.build.version.security_patch": "2025-09-05"
+ },
+ "14524720": {
+  "ro.build.id": "BP4A.251205.006",
+  "ro.build.version.incremental": "14524720",
+  "ro.build.version.release": "16",
+  "ro.build.version.release_or_codename": "16",
+  "ro.build.version.sdk": "36",
+  "ro.build.version.sdk_full": "36.1",
+  "ro.build.version.security_patch": "2025-12-05"
+ },
+ "14654133": {
+  "ro.build.id": "BP4A.251205.006",
+  "ro.build.version.incremental": "14654133",
+  "ro.build.version.release": "16",
+  "ro.build.version.release_or_codename": "16",
+  "ro.build.version.sdk": "36",
+  "ro.build.version.sdk_full": "36.1",
+  "ro.build.version.security_patch": "2025-12-05"
+ },
+ "14781626": {
+  "ro.build.id": "BP4A.251205.006",
+  "ro.build.version.incremental": "14781626",
+  "ro.build.version.release": "16",
+  "ro.build.version.release_or_codename": "16",
+  "ro.build.version.sdk": "36",
+  "ro.build.version.sdk_full": "36.1",
+  "ro.build.version.security_patch": "2025-12-05"
+ },
+ "14818820": {
+  "ro.build.id": "BP4A.251205.006",
+  "ro.build.version.incremental": "14818820",
+  "ro.build.version.release": "16",
+  "ro.build.version.release_or_codename": "16",
+  "ro.build.version.sdk": "36",
+  "ro.build.version.sdk_full": "36.1",
+  "ro.build.version.security_patch": "2025-12-05"
+ },
+ "14981173": {
+  "ro.build.id": "BP4A.251205.006",
+  "ro.build.version.incremental": "14981173",
+  "ro.build.version.release": "16",
+  "ro.build.version.release_or_codename": "16",
+  "ro.build.version.sdk": "36",
+  "ro.build.version.sdk_full": "36.1",
+  "ro.build.version.security_patch": "2025-12-05"
+ },
+ "15150359": {
+  "ro.build.id": "BP4A.251205.006",
+  "ro.build.version.incremental": "15150359",
+  "ro.build.version.release": "16",
+  "ro.build.version.release_or_codename": "16",
+  "ro.build.version.sdk": "36",
+  "ro.build.version.sdk_full": "36.1",
+  "ro.build.version.security_patch": "2025-12-05"
+ },
+ "15357239": {
+  "ro.build.id": "BP4A.251205.006",
+  "ro.build.version.incremental": "15357239",
+  "ro.build.version.release": "16",
+  "ro.build.version.release_or_codename": "16",
+  "ro.build.version.sdk": "36",
+  "ro.build.version.sdk_full": "36.1",
+  "ro.build.version.security_patch": "2025-12-05"
+ },
+ "15581820": {
+  "ro.build.id": "BP4A.251205.006",
+  "ro.build.version.incremental": "15581820",
+  "ro.build.version.release": "16",
+  "ro.build.version.release_or_codename": "16",
+  "ro.build.version.sdk": "36",
+  "ro.build.version.sdk_full": "36.1",
+  "ro.build.version.security_patch": "2025-12-05"
+ },
+ "15660610": {
+  "ro.build.id": "CP2A.260605.016",
+  "ro.build.version.incremental": "15660610",
+  "ro.build.version.release": "17",
+  "ro.build.version.release_or_codename": "17",
+  "ro.build.version.sdk": "37",
+  "ro.build.version.sdk_full": "37.0",
+  "ro.build.version.security_patch": "2026-06-05"
+ },
+ "15885347": {
+  "ro.build.id": "CP2A.260605.016",
+  "ro.build.version.incremental": "15885347",
+  "ro.build.version.release": "17",
+  "ro.build.version.release_or_codename": "17",
+  "ro.build.version.sdk": "37",
+  "ro.build.version.sdk_full": "37.0",
+  "ro.build.version.security_patch": "2026-06-05"
+ },
+ "16102939": {
+  "ro.build.id": "CP2A.260605.016",
+  "ro.build.version.incremental": "16102939",
+  "ro.build.version.release": "17",
+  "ro.build.version.release_or_codename": "17",
+  "ro.build.version.sdk": "37",
+  "ro.build.version.sdk_full": "37.0",
+  "ro.build.version.security_patch": "2026-06-05"
+ },
+ "16373615": {
+  "ro.build.id": "CP2A.260605.016",
+  "ro.build.version.incremental": "16373615",
+  "ro.build.version.release": "17",
+  "ro.build.version.release_or_codename": "17",
+  "ro.build.version.sdk": "37",
+  "ro.build.version.sdk_full": "37.0",
+  "ro.build.version.security_patch": "2026-06-05"
+ }
+}

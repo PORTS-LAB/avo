@@ -160,7 +160,9 @@ public final class ZipArchive: Sendable {
             // Apple's COMPRESSION_ZLIB is raw DEFLATE (RFC 1951), exactly what ZIP stores.
             var pending: [Data] = []
             let filter = try OutputFilter(.decompress, using: .zlib, bufferCapacity: chunkSize) { chunk in
-                if let chunk { pending.append(chunk) }
+                // Copy now: the chunk can share the filter's buffer, which the
+                // next chunk of the same write overwrites.
+                if let chunk { pending.append(chunk.withUnsafeBytes { Data($0) }) }
             }
             var offset: UInt64 = 0
             while offset < entry.compressedSize {

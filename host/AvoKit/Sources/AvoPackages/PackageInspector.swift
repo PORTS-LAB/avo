@@ -1,3 +1,4 @@
+import AvoKit
 import Foundation
 
 public enum PackageFormat: String, Sendable, Codable {
@@ -57,9 +58,10 @@ public enum CompatibilityIssue: Sendable, Equatable, Codable {
     public var message: String {
         switch self {
         case .noArm64Code(let abis):
-            "This app only contains \(abis.joined(separator: ", ")) code. Avo runs 64-bit ARM Android, so the app cannot start."
+            String(localized: "This app only contains \(abis.joined(separator: ", ")) code. Avo runs 64-bit ARM Android, so the app cannot start.",
+                   bundle: .avoKit)
         case .requiresNewerAndroid(let minSdk, let available):
-            "This app needs Android API \(minSdk); the Android image provides API \(available)."
+            String(localized: "This app needs Android API \(minSdk); the Android image provides API \(available).", bundle: .avoKit)
         }
     }
 }

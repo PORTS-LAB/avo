@@ -37,6 +37,16 @@ import Testing
             == ["pointerUp:350,500|650,500", "up:350,500"])
     }
 
+    /// The start distance is a share of the display's short side, so a
+    /// lower internal resolution zooms just as far.
+    @Test func pinchDistanceFollowsTheDisplaySize() {
+        var t = PointerTranslator(displayID: 1, width: 500, height: 1000)
+        #expect(names(t.pinch(phase: .began, centerX: 250, centerY: 500, magnification: 0))
+            == ["down:200,500", "pointerDown:200,500|300,500"])
+        // Pinched all the way in, the fingers stop 2% of the short side apart.
+        #expect(names(t.pinch(phase: .changed, centerX: 250, centerY: 500, magnification: -1)) == ["move:245,500|255,500"])
+    }
+
     @Test func newGestureCancelsTheOldOne() {
         var t = PointerTranslator(displayID: 1, width: 1000, height: 1000)
         _ = t.scroll(phase: .began, x: 10, y: 10, dx: 0, dy: 0)

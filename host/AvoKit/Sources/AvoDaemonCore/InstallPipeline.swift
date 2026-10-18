@@ -72,13 +72,15 @@ public struct InstallPipeline: Sendable {
     /// Turns PackageManager failure codes into sentences.
     static func friendly(_ message: String) -> String {
         let known: [(String, String)] = [
-            ("INSTALL_FAILED_NO_MATCHING_ABIS", "the app has no 64-bit ARM code"),
-            ("INSTALL_FAILED_INSUFFICIENT_STORAGE", "Android is out of storage; enlarge the data disk in Settings › Storage"),
-            ("INSTALL_FAILED_UPDATE_INCOMPATIBLE", "an installed version is signed with a different key; uninstall it first"),
-            ("INSTALL_FAILED_VERSION_DOWNGRADE", "a newer version is already installed"),
-            ("INSTALL_FAILED_OLDER_SDK", "the app needs a newer Android version"),
-            ("INSTALL_PARSE_FAILED_NO_CERTIFICATES", "the package is not signed"),
-            ("INSTALL_FAILED_MISSING_SPLIT", "a required split APK is missing from the bundle"),
+            ("INSTALL_FAILED_NO_MATCHING_ABIS", String(localized: "the app has no 64-bit ARM code", bundle: .avoKit)),
+            ("INSTALL_FAILED_INSUFFICIENT_STORAGE",
+             String(localized: "Android is out of storage; enlarge the data disk in Settings › Storage", bundle: .avoKit)),
+            ("INSTALL_FAILED_UPDATE_INCOMPATIBLE",
+             String(localized: "an installed version is signed with a different key; uninstall it first", bundle: .avoKit)),
+            ("INSTALL_FAILED_VERSION_DOWNGRADE", String(localized: "a newer version is already installed", bundle: .avoKit)),
+            ("INSTALL_FAILED_OLDER_SDK", String(localized: "the app needs a newer Android version", bundle: .avoKit)),
+            ("INSTALL_PARSE_FAILED_NO_CERTIFICATES", String(localized: "the package is not signed", bundle: .avoKit)),
+            ("INSTALL_FAILED_MISSING_SPLIT", String(localized: "a required split APK is missing from the bundle", bundle: .avoKit)),
         ]
         for (code, sentence) in known where message.contains(code) { return "\(sentence) (\(code))" }
         return message

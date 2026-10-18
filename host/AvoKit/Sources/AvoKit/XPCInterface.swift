@@ -18,15 +18,50 @@ import IOSurface
     func startVM(reply: @escaping @Sendable (NSError?) -> Void)
     func stopVM(reply: @escaping @Sendable (NSError?) -> Void)
     func restartVM(reply: @escaping @Sendable (NSError?) -> Void)
+    /// Forgets a failed GPU boot and restarts Android (Graphics › Try GPU Again).
+    func retryGPU(reply: @escaping @Sendable (NSError?) -> Void)
+    /// The engine's GPU shader cache (Control Panel only). Reply: JSON `GPUCacheStatus`.
+    func gpuCacheStatus(reply: @escaping @Sendable (Data?, NSError?) -> Void)
+    /// Empties it (Graphics › Clear GPU cache; Control Panel only). Reply:
+    /// JSON `GPUCacheStatus` with `clearedBytes`.
+    func clearGPUCache(reply: @escaping @Sendable (Data?, NSError?) -> Void)
     func takeSnapshot(reply: @escaping @Sendable (NSError?) -> Void)
     /// Wipes the user data disk (Sistem → Reset Android).
     func resetAndroid(reply: @escaping @Sendable (NSError?) -> Void)
+
+    // MARK: Where Android's data is (Settings › Storage › Location)
+    /// Reply: JSON `StorageLocationStatus`.
+    func storageLocation(reply: @escaping @Sendable (Data?, NSError?) -> Void)
+    /// Looks at a folder the user chose (empty: Avo's own storage). Control
+    /// Panel only. Reply: JSON `StorageCandidate`.
+    func inspectStorageLocation(_ path: String, reply: @escaping @Sendable (Data?, NSError?) -> Void)
+    /// `request`: JSON `StorageChangeRequest`. Replies when Android's data is
+    /// in its new place (or why not); progress arrives as
+    /// `DaemonEvent.storageProgress`. Control Panel only.
+    func changeStorageLocation(_ request: Data, reply: @escaping @Sendable (NSError?) -> Void)
+    /// Stops a move while it still copies (the old place stays in use).
+    func cancelStorageChange(reply: @escaping @Sendable (NSError?) -> Void)
+    /// Erases the copy of Android's data kept in Avo's own storage while
+    /// another folder is used.
+    func removeInternalStorageCopy(reply: @escaping @Sendable (NSError?) -> Void)
+    /// Looks at a folder the user chose to share with Android (Settings ›
+    /// Storage › Shared Folder; the daemon reads it, so macOS asks in Avo's
+    /// name). Control Panel only. Reply: JSON `SharedFolderStatus`.
+    func inspectSharedFolder(_ path: String, reply: @escaping @Sendable (Data?, NSError?) -> Void)
 
     // MARK: Configuration
     /// Reply: JSON `ConfigurationSnapshot`.
     func configuration(reply: @escaping @Sendable (Data) -> Void)
     /// `config`: JSON `VMConfig`. Reply: JSON `ConfigUpdateResult`.
     func updateConfiguration(_ config: Data, reply: @escaping @Sendable (Data?, NSError?) -> Void)
+    /// Sets (nil removes) one app's graphics override; the only way overrides
+    /// change. Allowed for the Control Panel and that app's own shim.
+    /// `override`: JSON `AppGraphicsOverride` or nil. Reply: JSON `ConfigUpdateResult`.
+    func setAppGraphics(package: String, override: Data?, reply: @escaping @Sendable (Data?, NSError?) -> Void)
+    /// Sets Android's frame rate cap (`VMConfig.fpsLimit`, for every app)
+    /// and nothing else. Allowed for the Control Panel and App Shims (a
+    /// window's settings overlay). Reply: JSON `ConfigUpdateResult`.
+    func setFrameRateLimit(_ fps: Int, reply: @escaping @Sendable (Data?, NSError?) -> Void)
 
     // MARK: Apps
     /// Reply: JSON `[AppRecord]`.
@@ -45,13 +80,95 @@ import IOSurface
     func setPermission(package: String, permission: String, granted: Bool, reply: @escaping @Sendable (NSError?) -> Void)
     /// Regenerates App Shims and aliases (all apps when `package` is nil).
     func recreateShortcuts(package: String?, reply: @escaping @Sendable (NSError?) -> Void)
+    /// How much each app was used (Control Panel's Library). Reply: JSON
+    /// `[AppUsage]`; changes follow as `DaemonEvent.appUsage`.
+    func appUsage(reply: @escaping @Sendable (Data?, NSError?) -> Void)
+
+    // MARK: System Status (Control Panel)
+    /// What Android and its apps use now (CPU, memory, GPU). `watch`: the
+    /// daemon samples every 2 seconds and sends this client
+    /// `DaemonEvent.systemActivity` until it calls again with false or goes;
+    /// nothing is sampled otherwise. Reply: JSON `SystemActivity`.
+    func systemActivity(watch: Bool, reply: @escaping @Sendable (Data?, NSError?) -> Void)
+
+    // MARK: Google apps (Control Panel)
+    /// Reply: JSON `GoogleAppsStatus` (asks Android while it runs).
+    func googleAppsStatus(reply: @escaping @Sendable (Data?, NSError?) -> Void)
+    /// `request`: JSON `GoogleAppsInstallRequest`. Replies when the install
+    /// has finished or failed (minutes: Android restarts up to three times);
+    /// progress arrives as `DaemonEvent.googleAppsProgress`.
+    func installGoogleApps(_ request: Data, reply: @escaping @Sendable (NSError?) -> Void)
+    /// Stops an install while it is still preparing or downloading. `id`:
+    /// the request's UUID string (empty for whichever runs); one that has
+    /// not reached the daemon yet is refused when it does.
+    func cancelGoogleApps(_ id: String, reply: @escaping @Sendable (NSError?) -> Void)
+
+    // MARK: Notifications (Control Panel)
+    /// Opens the app a notification came from, as clicking it would.
+    func openNotification(key: String, reply: @escaping @Sendable (NSError?) -> Void)
+    /// Clear All: dismisses every notification in Avo's list, in
+    /// Notification Center and in Android.
+    func clearNotifications(reply: @escaping @Sendable (NSError?) -> Void)
+    /// Dismisses these notifications (`keys`: JSON `[String]`) in Avo's list,
+    /// Notification Center and Android, as a swipe on a phone does.
+    func dismissNotifications(_ keys: Data, reply: @escaping @Sendable (NSError?) -> Void)
+    /// Whether macOS shows Avo's notifications, asked now (System Settings has
+    /// no change notification). Reply: JSON `MacNotificationPermission`.
+    func notificationPermission(reply: @escaping @Sendable (Data?, NSError?) -> Void)
+    /// Request Permission: the daemon, which posts the notifications, asks
+    /// macOS, whose alert appears while it has no answer yet. Replies at once
+    /// when macOS answers by itself, else while its alert still waits
+    /// (`asking`); the answer follows as `DaemonEvent.macNotifications`.
+    /// Reply: JSON `MacNotificationPermission`.
+    func requestNotificationPermission(reply: @escaping @Sendable (Data?, NSError?) -> Void)
+
+    // MARK: Screen lock (Control Panel and App Shims)
+    /// Passes the screen lock's credential (`VMStatus.screenLock`: a pattern
+    /// as its dots "1235", a PIN or a password) to Android and replies once
+    /// Android is unlocked; `AvoError.screenLockRejected` when it is not the
+    /// right one. The credential is never logged or kept.
+    func unlockAndroid(credential: String, reply: @escaping @Sendable (NSError?) -> Void)
+
+    // MARK: Fingerprints (Control Panel; App Shims list, touch and cancel)
+    /// Reply: JSON `FingerprintStatus`, asked from Android while it runs
+    /// (`refresh`: now, else when not asked for a while).
+    func fingerprints(refresh: Bool, reply: @escaping @Sendable (Data?, NSError?) -> Void)
+    /// Registers a finger named `name` in Avo; Android's Settings adds it
+    /// when touched with it. Reply: JSON `Fingerprint`.
+    func addFingerprint(name: String, reply: @escaping @Sendable (Data?, NSError?) -> Void)
+    func renameFingerprint(_ id: Int, name: String, reply: @escaping @Sendable (NSError?) -> Void)
+    func removeFingerprint(_ id: Int, reply: @escaping @Sendable (NSError?) -> Void)
+    /// Touches Android's fingerprint sensor with finger `id` (0: a finger
+    /// Avo does not know); while Android's Settings adds a fingerprint, the
+    /// touch adds that finger. Reply: JSON `FingerprintTouchResult`.
+    func touchFingerprint(_ id: Int, reply: @escaping @Sendable (Data?, NSError?) -> Void)
+    /// Cancels an app's fingerprint request (its BiometricPrompt shows on
+    /// Android's own screen, which no window shows).
+    func cancelFingerprintRequest(reply: @escaping @Sendable (NSError?) -> Void)
+    /// Locks Android so its screen lock is entered (in Avo's lock), which
+    /// lets fingerprints work again after too many tries.
+    func lockAndroidForFingerprints(reply: @escaping @Sendable (NSError?) -> Void)
+
+    // MARK: Location (an app window's Location panel; App Shims and Control Panels)
+    /// What Android's GPS reports, with the route's points. `watch`: send
+    /// this client `DaemonEvent.location` at every change (once a second
+    /// while a route plays) until it calls again with false. Reply: JSON `LocationStatus`.
+    func location(watch: Bool, reply: @escaping @Sendable (Data?, NSError?) -> Void)
+    /// `request`: JSON `LocationRequest` (this Mac's location, a place, a
+    /// route and how it plays). Reply: JSON `LocationStatus`.
+    func changeLocation(_ request: Data, reply: @escaping @Sendable (Data?, NSError?) -> Void)
 
     // MARK: Displays (App Shims)
     /// `request`: JSON `OpenDisplayRequest`. Reply: JSON `OpenDisplayReply`.
     func openDisplay(_ request: Data, reply: @escaping @Sendable (Data?, NSError?) -> Void)
-    func resizeDisplay(_ displayID: UInt32, width: UInt32, height: UInt32, dpi: UInt32)
+    /// Replies once Android has the newest size and density and the app is
+    /// back on the display (a size change re-plugs it).
+    func resizeDisplay(_ displayID: UInt32, width: UInt32, height: UInt32, dpi: UInt32, reply: @escaping @Sendable (NSError?) -> Void)
     func closeDisplay(_ displayID: UInt32)
     func setDisplayVisible(_ displayID: UInt32, visible: Bool)
+    /// The display's window became the Mac's key window: its app takes
+    /// Android's input focus (games pause their sound without it).
+    func focusDisplay(_ displayID: UInt32)
     /// One Input channel record (docs/protocol.md). Fire and forget.
     func sendInput(_ record: Data)
     /// Copies files (opened by the caller) into /sdcard/Download and shares
@@ -175,13 +292,41 @@ public struct ConfigurationSnapshot: Codable, Sendable {
     public var profiles: [DeviceProfile]
     /// Settings saved but waiting for the next VM restart.
     public var pendingRestart: Bool
+    /// ADB support as it runs (nil while it is off).
+    public var adb: ADBStatus?
+    /// Android's storage (nil from an older daemon).
+    public var dataDisk: DataDiskStatus?
+    /// Where Android's data is (nil from an older daemon).
+    public var storageLocation: StorageLocationStatus?
+    /// The folder shared with Android (nil from an older daemon).
+    public var sharedFolder: SharedFolderStatus?
 
-    public init(config: VMConfig, host: HostInfo, profiles: [DeviceProfile], pendingRestart: Bool) {
+    public init(config: VMConfig, host: HostInfo, profiles: [DeviceProfile], pendingRestart: Bool, adb: ADBStatus? = nil,
+                dataDisk: DataDiskStatus? = nil, storageLocation: StorageLocationStatus? = nil, sharedFolder: SharedFolderStatus? = nil) {
         self.config = config
         self.host = host
         self.profiles = profiles
         self.pendingRestart = pendingRestart
+        self.adb = adb
+        self.dataDisk = dataDisk
+        self.storageLocation = storageLocation
+        self.sharedFolder = sharedFolder
     }
+}
+
+/// The loopback port of "ADB support".
+public struct ADBStatus: Codable, Equatable, Sendable {
+    public var port: Int
+    /// Why the port could not be opened; nil while listening.
+    public var problem: String?
+
+    public init(port: Int, problem: String? = nil) {
+        self.port = port
+        self.problem = problem
+    }
+
+    /// What to type: `adb connect 127.0.0.1:5555`.
+    public var connectCommand: String { "adb connect 127.0.0.1:\(port)" }
 }
 
 public struct ConfigUpdateResult: Codable, Sendable {
@@ -275,14 +420,78 @@ public enum DisplayOrientation: String, Codable, Sendable {
 }
 
 /// Events the daemon pushes to clients.
+/// What an app is doing, for the Control Panel's list (apps not listed are
+/// not running).
+public enum AppActivity: String, Codable, Sendable, Equatable {
+    /// A window shows it.
+    case open
+    /// All its windows are minimized or hidden.
+    case minimized
+    /// Running without a window: closed to the background, or started by
+    /// something else.
+    case background
+}
+
+/// A notification an Android app posted, as the Control Panel lists it.
+public struct AndroidNotification: Codable, Sendable, Equatable, Identifiable {
+    public var key: String
+    public var package: String
+    public var appName: String
+    public var title: String
+    public var body: String
+    public var postedAt: Date
+
+    public var id: String { key }
+
+    public init(key: String, package: String, appName: String, title: String, body: String, postedAt: Date) {
+        self.key = key
+        self.package = package
+        self.appName = appName
+        self.title = title
+        self.body = body
+        self.postedAt = postedAt
+    }
+}
+
 public enum DaemonEvent: Codable, Sendable, Equatable {
     case vmStatus(VMStatus)
+    /// The activity of every running app (sent to the Control Panel).
+    case appActivity([String: AppActivity])
     case appInstalled(AppRecord)
     case appRemoved(package: String)
     case installProgress(InstallProgress)
     case displayReady(displayID: UInt32)
     case displayClosed(displayID: UInt32)
+    /// The app was force stopped (Control Panel): its shim quits.
+    case appStopped(package: String)
     case displayTitle(displayID: UInt32, title: String)
     case orientationRequest(displayID: UInt32, orientation: DisplayOrientation)
     case configurationChanged(VMConfig)
+    /// Android's recent notifications, newest first (sent to the Control Panel).
+    case notifications([AndroidNotification])
+    /// Whether macOS shows Avo's notifications: when a Control Panel connects
+    /// and when the user answers macOS's alert (sent to the Control Panel).
+    case macNotifications(MacNotificationPermission)
+    /// Settings › System › Google apps (sent to every Control Panel).
+    case googleAppsProgress(GoogleAppsProgress)
+    /// Settings › Fingerprints and what asks for a finger (sent to Control
+    /// Panels and App Shims).
+    case fingerprints(FingerprintStatus)
+    /// Every app's usage, when a window opens, closes or goes on or off
+    /// screen, and once a minute while one is on screen (sent to Control Panels).
+    case appUsage([AppUsage])
+    /// Where Android's data is, when that or its volume changes (sent to Control Panels).
+    case storageLocation(StorageLocationStatus)
+    /// A change of where Android's data is, as it goes (sent to Control Panels).
+    case storageProgress(StorageChangeProgress)
+    /// Where the engine keeps what Android plays, for screen recordings
+    /// (CaptureAudio.swift): when it starts and when an App Shim connects
+    /// (sent to App Shims).
+    case audioTap(AudioTapLocation)
+    /// What Android's GPS reports, without the route's points (sent to the
+    /// clients whose Location panel watches, see `location(watch:)`).
+    case location(LocationStatus)
+    /// System Status, every 2 seconds (sent to the Control Panels that
+    /// watch, see `systemActivity(watch:)`).
+    case systemActivity(SystemActivity)
 }

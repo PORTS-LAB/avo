@@ -9,6 +9,7 @@ import PackageDescription
 
 let package = Package(
     name: "AvoKit",
+    defaultLocalization: "en",
     platforms: [.macOS(.v15)],
     products: [
         // The one product the Xcode targets link: a single dynamic framework,
@@ -31,7 +32,9 @@ let package = Package(
     ],
     targets: [
         // Shared models, configuration, paths, identifiers and XPC interfaces.
-        .target(name: "AvoKit"),
+        // Resources/Localizable.xcstrings holds the user-facing text of every
+        // module in this package (see Localization.swift).
+        .target(name: "AvoKit", resources: [.process("Resources")]),
 
         // Control channel (protobuf) and Input channel (binary records).
         .target(
@@ -41,7 +44,7 @@ let package = Package(
         ),
 
         // .apk / .xapk / .apkm / .apks inspection: ZIP, binary XML, resources.arsc.
-        .target(name: "AvoPackages"),
+        .target(name: "AvoPackages", dependencies: ["AvoKit"]),
 
         // Byte streams over file descriptors, Unix sockets and the engine's vsock bridge.
         .target(name: "AvoIO"),
@@ -50,7 +53,7 @@ let package = Package(
         .target(name: "AvoADB", dependencies: ["AvoIO"]),
 
         // Keymapping profiles and the engine that turns keys/mouse/gamepad into touches.
-        .target(name: "AvoKeymap", dependencies: ["AvoProtocol"]),
+        .target(name: "AvoKeymap", dependencies: ["AvoKit", "AvoProtocol"]),
 
         // App Shim bundles, macOS-style icons and Desktop/Dock shortcuts.
         .target(name: "AvoShimKit", dependencies: ["AvoKit"]),

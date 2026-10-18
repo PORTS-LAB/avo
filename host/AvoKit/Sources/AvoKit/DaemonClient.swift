@@ -22,13 +22,20 @@ public final class DaemonClient: @unchecked Sendable {
                 machService: String = AvoIdentifiers.daemonMachService) {
         (events, continuation) = AsyncStream.makeStream(of: DaemonEvent.self, bufferingPolicy: .bufferingNewest(256))
         receiver = Receiver(events: continuation, frames: frameReceiver)
-        connection = NSXPCConnection(machServiceName: machService, options: [])
+        let connection = NSXPCConnection(machServiceName: machService, options: [])
+        self.connection = connection
         connection.remoteObjectInterface = AvoXPC.daemonInterface()
         connection.exportedInterface = AvoXPC.clientInterface()
         connection.exportedObject = receiver
         let continuation = self.continuation
         connection.invalidationHandler = { continuation.finish() }
-        connection.interruptionHandler = { [logger] in logger.notice("daemon connection interrupted") }
+        // The daemon exited. XPC would quietly reconnect to its next instance,
+        // which has never heard this client's hello (every call would be
+        // refused): end the session instead, so the owner starts a new one.
+        connection.interruptionHandler = { [logger, weak connection] in
+            logger.notice("daemon connection interrupted")
+            connection?.invalidate()
+        }
         connection.resume()
         self.role = role
         self.version = version
@@ -63,8 +70,63 @@ public final class DaemonClient: @unchecked Sendable {
     public func startVM() async throws { try await voidCall { $0.startVM(reply: $1) } }
     public func stopVM() async throws { try await voidCall { $0.stopVM(reply: $1) } }
     public func restartVM() async throws { try await voidCall { $0.restartVM(reply: $1) } }
+    public func retryGPU() async throws { try await voidCall { $0.retryGPU(reply: $1) } }
+
+    /// The engine's GPU shader cache: where and how big (Control Panel only).
+    public func gpuCacheStatus() async throws -> GPUCacheStatus {
+        let data: Data = try await call { proxy, done in
+            proxy.gpuCacheStatus { data, error in done(Self.result(data, error)) }
+        }
+        return try AvoXPC.decode(GPUCacheStatus.self, from: data)
+    }
+
+    /// Graphics › Clear GPU cache (Control Panel only).
+    public func clearGPUCache() async throws -> GPUCacheStatus {
+        let data: Data = try await call { proxy, done in
+            proxy.clearGPUCache { data, error in done(Self.result(data, error)) }
+        }
+        return try AvoXPC.decode(GPUCacheStatus.self, from: data)
+    }
     public func takeSnapshot() async throws { try await voidCall { $0.takeSnapshot(reply: $1) } }
     public func resetAndroid() async throws { try await voidCall { $0.resetAndroid(reply: $1) } }
+
+    // MARK: Where Android's data is (Settings › Storage › Location)
+
+    public func storageLocation() async throws -> StorageLocationStatus {
+        let data: Data = try await call { proxy, done in
+            proxy.storageLocation { data, error in done(Self.result(data, error)) }
+        }
+        return try AvoXPC.decode(StorageLocationStatus.self, from: data)
+    }
+
+    /// What the daemon finds at `path` (nil: Avo's own storage) and which
+    /// choices it allows. The daemon reads the folder itself: on a removable
+    /// volume macOS may ask first whether Avo may.
+    public func inspectStorageLocation(_ path: String?) async throws -> StorageCandidate {
+        let data: Data = try await call { proxy, done in
+            proxy.inspectStorageLocation(path ?? "") { data, error in done(Self.result(data, error)) }
+        }
+        return try AvoXPC.decode(StorageCandidate.self, from: data)
+    }
+
+    /// Returns once Android's data is in its new place (a move copies and
+    /// checks every byte first); progress arrives as `.storageProgress`.
+    public func changeStorageLocation(_ request: StorageChangeRequest) async throws {
+        let payload = AvoXPC.encode(request)
+        try await voidCall { $0.changeStorageLocation(payload, reply: $1) }
+    }
+
+    public func cancelStorageChange() async throws { try await voidCall { $0.cancelStorageChange(reply: $1) } }
+    public func removeInternalStorageCopy() async throws { try await voidCall { $0.removeInternalStorageCopy(reply: $1) } }
+
+    /// What the daemon finds at a folder to share with Android (Settings ›
+    /// Storage › Shared Folder); macOS may ask first whether Avo may read it.
+    public func inspectSharedFolder(_ path: String) async throws -> SharedFolderStatus {
+        let data: Data = try await call { proxy, done in
+            proxy.inspectSharedFolder(path) { data, error in done(Self.result(data, error)) }
+        }
+        return try AvoXPC.decode(SharedFolderStatus.self, from: data)
+    }
 
     public func configuration() async throws -> ConfigurationSnapshot {
         let data: Data = try await call { proxy, done in proxy.configuration { done(.success($0)) } }
@@ -75,6 +137,27 @@ public final class DaemonClient: @unchecked Sendable {
         let payload = AvoXPC.encode(config)
         let data: Data = try await call { proxy, done in
             proxy.updateConfiguration(payload) { data, error in done(Self.result(data, error)) }
+        }
+        return try AvoXPC.decode(ConfigUpdateResult.self, from: data)
+    }
+
+    /// Sets one app's graphics override (nil or empty removes it). Only this
+    /// override is validated: its issues come back in the result, and an
+    /// error issue means nothing was saved.
+    public func setAppGraphics(_ override: AppGraphicsOverride?, for package: String) async throws -> ConfigUpdateResult {
+        let payload = override.map { AvoXPC.encode($0) }
+        let data: Data = try await call { proxy, done in
+            proxy.setAppGraphics(package: package, override: payload) { data, error in done(Self.result(data, error)) }
+        }
+        return try AvoXPC.decode(ConfigUpdateResult.self, from: data)
+    }
+
+    /// Sets Android's frame rate cap, for every app (30, or 60 to 120:
+    /// `VMConfig.isSupportedFPS`; another value comes back as an error issue
+    /// and nothing is saved).
+    public func setFrameRateLimit(_ fps: Int) async throws -> ConfigUpdateResult {
+        let data: Data = try await call { proxy, done in
+            proxy.setFrameRateLimit(fps) { data, error in done(Self.result(data, error)) }
         }
         return try AvoXPC.decode(ConfigUpdateResult.self, from: data)
     }
@@ -101,6 +184,83 @@ public final class DaemonClient: @unchecked Sendable {
     public func uninstall(_ package: String) async throws { try await voidCall { $0.uninstall(package: package, reply: $1) } }
     public func forceStop(_ package: String) async throws { try await voidCall { $0.forceStop(package: package, reply: $1) } }
     public func deleteAppData(_ package: String) async throws { try await voidCall { $0.deleteAppData(package: package, reply: $1) } }
+    public func openNotification(_ key: String) async throws { try await voidCall { $0.openNotification(key: key, reply: $1) } }
+    public func clearNotifications() async throws { try await voidCall { $0.clearNotifications(reply: $1) } }
+    public func dismissNotifications(_ keys: [String]) async throws {
+        let payload = AvoXPC.encode(keys)
+        try await voidCall { $0.dismissNotifications(payload, reply: $1) }
+    }
+
+    /// Whether macOS shows Avo's notifications, asked now.
+    public func notificationPermission() async throws -> MacNotificationPermission {
+        let data: Data = try await call { proxy, done in
+            proxy.notificationPermission { data, error in done(Self.result(data, error)) }
+        }
+        return try AvoXPC.decode(MacNotificationPermission.self, from: data)
+    }
+
+    /// Asks macOS to let Avo show notifications (its alert, while it has no
+    /// answer yet). Returns at once with macOS's own answer, or `asking`
+    /// while the alert waits; the user's answer arrives as an event.
+    public func requestNotificationPermission() async throws -> MacNotificationPermission {
+        let data: Data = try await call { proxy, done in
+            proxy.requestNotificationPermission { data, error in done(Self.result(data, error)) }
+        }
+        return try AvoXPC.decode(MacNotificationPermission.self, from: data)
+    }
+
+    /// Unlocks Android with its screen lock's credential (`VMStatus.screenLock`;
+    /// a pattern as its dots, "1235"). Returns once Android is unlocked; throws
+    /// `AvoError.screenLockRejected` for a wrong credential.
+    public func unlockAndroid(credential: String) async throws {
+        try await voidCall { $0.unlockAndroid(credential: credential, reply: $1) }
+    }
+
+    // MARK: Fingerprints (Settings › Fingerprints, a window's fingerprint menu)
+
+    /// Avo's fingers and what Android does with them; `refresh` asks Android
+    /// now instead of using what the daemon learned in the last few seconds.
+    public func fingerprints(refresh: Bool = false) async throws -> FingerprintStatus {
+        let data: Data = try await call { proxy, done in
+            proxy.fingerprints(refresh: refresh) { data, error in done(Self.result(data, error)) }
+        }
+        return try AvoXPC.decode(FingerprintStatus.self, from: data)
+    }
+
+    /// Registers a finger in Avo (Android's Settings adds it when touched
+    /// with it); throws `AvoError.fingerprint` when the name does not do.
+    public func addFingerprint(named name: String) async throws -> Fingerprint {
+        let data: Data = try await call { proxy, done in
+            proxy.addFingerprint(name: name) { data, error in done(Self.result(data, error)) }
+        }
+        return try AvoXPC.decode(Fingerprint.self, from: data)
+    }
+
+    public func renameFingerprint(_ id: Int, to name: String) async throws {
+        try await voidCall { $0.renameFingerprint(id, name: name, reply: $1) }
+    }
+
+    public func removeFingerprint(_ id: Int) async throws {
+        try await voidCall { $0.removeFingerprint(id, reply: $1) }
+    }
+
+    /// Touches the sensor with finger `id`; nil touches with a finger Avo
+    /// does not know, which Android does not recognize. While Android's
+    /// Settings adds a fingerprint, the touch adds finger `id`.
+    public func touchFingerprint(_ id: Int?) async throws -> FingerprintTouchResult {
+        let data: Data = try await call { proxy, done in
+            proxy.touchFingerprint(id ?? 0) { data, error in done(Self.result(data, error)) }
+        }
+        return try AvoXPC.decode(FingerprintTouchResult.self, from: data)
+    }
+
+    public func cancelFingerprintRequest() async throws {
+        try await voidCall { $0.cancelFingerprintRequest(reply: $1) }
+    }
+
+    public func lockAndroidForFingerprints() async throws {
+        try await voidCall { $0.lockAndroidForFingerprints(reply: $1) }
+    }
 
     public func permissions(for package: String) async throws -> [AppPermission] {
         let data: Data = try await call { proxy, done in
@@ -115,6 +275,68 @@ public final class DaemonClient: @unchecked Sendable {
 
     public func recreateShortcuts(for package: String? = nil) async throws {
         try await voidCall { $0.recreateShortcuts(package: package, reply: $1) }
+    }
+
+    /// How much each app was used (the Library's statistics).
+    public func appUsage() async throws -> [AppUsage] {
+        let data: Data = try await call { proxy, done in
+            proxy.appUsage { data, error in done(Self.result(data, error)) }
+        }
+        return try AvoXPC.decode([AppUsage].self, from: data)
+    }
+
+    // MARK: System Status
+
+    /// What Android and its apps use now; `watch`: also send
+    /// `.systemActivity` every 2 seconds until called with false.
+    public func systemActivity(watch: Bool) async throws -> SystemActivity {
+        let data: Data = try await call { proxy, done in
+            proxy.systemActivity(watch: watch) { data, error in done(Self.result(data, error)) }
+        }
+        return try AvoXPC.decode(SystemActivity.self, from: data)
+    }
+
+    // MARK: Google apps
+
+    public func googleAppsStatus() async throws -> GoogleAppsStatus {
+        let data: Data = try await call { proxy, done in
+            proxy.googleAppsStatus { data, error in done(Self.result(data, error)) }
+        }
+        return try AvoXPC.decode(GoogleAppsStatus.self, from: data)
+    }
+
+    /// Returns when Google apps are installed (or throws why not). A `.local`
+    /// source must already be in `AvoPaths.googleAppsCache`: the daemon does
+    /// not read the user's folders itself.
+    public func installGoogleApps(_ request: GoogleAppsInstallRequest) async throws {
+        let payload = AvoXPC.encode(request)
+        try await voidCall { $0.installGoogleApps(payload, reply: $1) }
+    }
+
+    /// Stops the install `id` (whichever runs, when nil) while it can still stop.
+    public func cancelGoogleApps(id: UUID? = nil) async throws {
+        let id = id?.uuidString ?? ""
+        try await voidCall { $0.cancelGoogleApps(id, reply: $1) }
+    }
+
+    // MARK: Location (an app window's Location panel)
+
+    /// What Android's GPS reports, with the route's points; `watch`: also
+    /// send `.location` events at every change until called with false.
+    public func location(watch: Bool) async throws -> LocationStatus {
+        let data: Data = try await call { proxy, done in
+            proxy.location(watch: watch) { data, error in done(Self.result(data, error)) }
+        }
+        return try AvoXPC.decode(LocationStatus.self, from: data)
+    }
+
+    @discardableResult
+    public func changeLocation(_ request: LocationRequest) async throws -> LocationStatus {
+        let payload = AvoXPC.encode(request)
+        let data: Data = try await call { proxy, done in
+            proxy.changeLocation(payload) { data, error in done(Self.result(data, error)) }
+        }
+        return try AvoXPC.decode(LocationStatus.self, from: data)
     }
 
     public func openDisplay(_ request: OpenDisplayRequest) async throws -> UInt32 {
@@ -132,11 +354,14 @@ public final class DaemonClient: @unchecked Sendable {
         try await voidCall { $0.shareFiles(displayID, files: files, names: names, reply: $1) }
     }
 
-    // Fire-and-forget calls used on the input and window paths.
-
-    public func resizeDisplay(_ displayID: UInt32, width: UInt32, height: UInt32, dpi: UInt32) {
-        proxy()?.resizeDisplay(displayID, width: width, height: height, dpi: dpi)
+    /// Resizes a display and returns once Android has the newest size and
+    /// the app is back on the display (a resize re-plugs it), so the window
+    /// knows when frames of the new size are coming.
+    public func resizeDisplayAndWait(_ displayID: UInt32, width: UInt32, height: UInt32, dpi: UInt32) async throws {
+        try await voidCall { $0.resizeDisplay(displayID, width: width, height: height, dpi: dpi, reply: $1) }
     }
+
+    // Fire-and-forget calls used on the input and window paths.
 
     public func closeDisplay(_ displayID: UInt32) {
         proxy()?.closeDisplay(displayID)
@@ -144,6 +369,10 @@ public final class DaemonClient: @unchecked Sendable {
 
     public func setDisplayVisible(_ displayID: UInt32, visible: Bool) {
         proxy()?.setDisplayVisible(displayID, visible: visible)
+    }
+
+    public func focusDisplay(_ displayID: UInt32) {
+        proxy()?.focusDisplay(displayID)
     }
 
     /// Sends one Input channel record (already encoded with `InputWire`).

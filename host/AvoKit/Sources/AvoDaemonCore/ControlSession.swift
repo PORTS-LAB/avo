@@ -233,8 +233,8 @@ public actor ControlSession {
     static func error(for reply: Avo_V1_Reply) -> AvoError {
         switch reply.status {
         case .notFound: .packageNotFound(reply.message)
-        case .unsupported: .internalError("Android does not support this: \(reply.message)")
-        default: .internalError(reply.message.isEmpty ? "Android reported an error" : reply.message)
+        case .unsupported: .internalError(String(localized: "Android does not support this: \(reply.message)", bundle: .avoKit))
+        default: .internalError(reply.message.isEmpty ? String(localized: "Android reported an error.", bundle: .avoKit) : reply.message)
         }
     }
 }

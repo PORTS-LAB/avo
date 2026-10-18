@@ -101,7 +101,7 @@ public enum GamepadButton: String, Codable, CaseIterable, Sendable {
     public var bit: UInt32 { 1 << UInt32(Self.allCases.firstIndex(of: self)!) }
 }
 
-public enum GamepadStick: String, Codable, Sendable {
+public enum GamepadStick: String, Codable, CaseIterable, Sendable {
     case left, right
 }
 
@@ -156,4 +156,9 @@ public enum Trigger: Hashable, Sendable, Codable, CustomStringConvertible {
 
     /// Scroll ticks are instantaneous, so they can only drive tap-like controls.
     public var isMomentary: Bool { self == .scrollUp || self == .scrollDown }
+
+    /// A game controller button, as opposed to the keyboard and mouse.
+    public var isGamepad: Bool {
+        if case .gamepad = self { true } else { false }
+    }
 }

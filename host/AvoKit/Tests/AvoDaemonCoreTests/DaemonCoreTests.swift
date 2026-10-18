@@ -46,7 +46,14 @@ final class RecordingNotifications: NotificationPresenter, @unchecked Sendable {
     func post(_ notification: Avo_V1_Notification, appName: String, icon: Data?) {
         lock.withLock { _posted.append((appName, notification.title)) }
     }
-    func remove(key: String) {}
+    private var _removed: [String] = []
+    private var onDismiss: (@Sendable (String) -> Void)?
+    /// Keys taken out of Notification Center.
+    var removed: [String] { lock.withLock { _removed } }
+    func remove(key: String) { lock.withLock { _removed.append(key) } }
+    func observeDismissals(_ onDismiss: @escaping @Sendable (String) -> Void) { lock.withLock { self.onDismiss = onDismiss } }
+    /// The user closes one in Notification Center.
+    func closeInNotificationCenter(_ key: String) { lock.withLock { onDismiss }?(key) }
 }
 
 func eventually(timeout: Duration = .seconds(5), _ condition: () async -> Bool) async -> Bool {
@@ -71,13 +78,17 @@ struct Harness {
 
     /// `desktopAliases` is off by default: Finder aliases register the shims
     /// with LaunchServices, which tests should not do needlessly.
-    init(apps: [Avo_V1_AppInfo], desktopAliases: Bool = false) throws {
+    /// `configure` changes the saved configuration the daemon starts with.
+    /// `wrap` puts another engine around the fake one (one that can pause).
+    init(apps: [Avo_V1_AppInfo], desktopAliases: Bool = false, configure: (inout VMConfig) -> Void = { _ in },
+         wrap: (FakeEngine) -> any VMEngine = { $0 }) throws {
         root = FileManager.default.temporaryDirectory.appending(path: "avo-daemon-\(UUID().uuidString.prefix(8))")
         paths = AvoPaths(home: root.appending(path: "home"), temporaryDirectory: root.appending(path: "tmp"))
         try FileManager.default.createDirectory(at: paths.desktop, withIntermediateDirectories: true)
         self.desktopAliases = desktopAliases
         var config = VMConfig()
         config.createDesktopAlias = desktopAliases
+        configure(&config)
         try config.save(to: paths.config)
 
         // Shim template: a copy of /usr/bin/true dressed as an app.
@@ -100,9 +111,10 @@ struct Harness {
             DeviceProfile(id: DeviceProfile.defaultID, name: "Avo Virtual Device", properties: [:]),
         ])
         let host = HostInfo(physicalMemoryBytes: 32 << 30, performanceCores: 8, efficiencyCores: 4, isAppleSilicon: true, macOSVersion: "27.0")
-        core = DaemonCore(.init(paths: paths, engine: engine, adbKey: adbKey, profiles: profiles, host: host,
+        core = DaemonCore(.init(paths: paths, engine: wrap(engine), adbKey: adbKey, profiles: profiles, host: host,
                                 shortcuts: ShortcutManager(builder: builder, paths: paths), notifications: notifications,
-                                softwareVersion: "avo-host test", bootTimeout: .seconds(5), loadImage: { image }))
+                                softwareVersion: "avo-host test", bootTimeout: .seconds(5),
+                                loadImage: { image }))
     }
 
     func cleanUp() {
@@ -240,12 +252,13 @@ struct Harness {
         try await harness.core.startVM(client: panel)
 
         var config = await harness.core.configurationSnapshot().config
-        config.fpsLimit = 120
+        config.fpsLimit = 30
         let fps = try await harness.core.updateConfiguration(config, client: panel)
         #expect(fps.effect == .immediate)
+        // Android gets the cap at every start (60 here, or already 30) and at the change.
         #expect(await eventually {
             let rates: [UInt32] = await harness.agent.requests { if case .setRefreshRate(let r) = $0 { r.fps } else { nil } }
-            return rates == [120]
+            return rates.count == 2 && rates.last == 30
         })
 
         config.memoryMiB = 6144
@@ -254,15 +267,144 @@ struct Harness {
         #expect(await harness.core.configurationSnapshot().pendingRestart)
         #expect(try VMConfig.load(from: harness.paths.config).memoryMiB == 6144)
 
-        var shrink = config
-        shrink.dataDiskGiB = 8
-        let rejected = try await harness.core.updateConfiguration(shrink, client: panel)
-        #expect(rejected.issues.contains { $0.field == "dataDiskGiB" && $0.severity == .error })
-        #expect(await harness.core.configurationSnapshot().config.dataDiskGiB == config.dataDiskGiB)
+        // The engine made a disk but Android never wrote to it: any size goes.
+        #expect(await harness.core.configurationSnapshot().dataDisk?.created == false)
+        var resized = config
+        resized.dataDiskGiB = 64
+        let accepted = try await harness.core.updateConfiguration(resized, client: panel)
+        #expect(!accepted.issues.contains { $0.field == "dataDiskGiB" })
+        config = resized
+        // Once Android created its storage, neither a smaller nor a bigger size.
+        try FileHandle(forWritingTo: harness.paths.dataDisk).write(contentsOf: Data([1]))
+        #expect(await harness.core.configurationSnapshot().dataDisk?.created == true)
+        for gb in [8, 128] {
+            var other = config
+            other.dataDiskGiB = gb
+            let rejected = try await harness.core.updateConfiguration(other, client: panel)
+            #expect(rejected.issues.contains { $0.field == "dataDiskGiB" && $0.severity == .error })
+            #expect(await harness.core.configurationSnapshot().config.dataDiskGiB == 64)
+        }
 
         // Shims may not change settings.
         let (shim, _) = await harness.connect(.shim(package: "x"))
         await #expect(throws: AvoError.unauthorizedCaller) { try await harness.core.updateConfiguration(config, client: shim) }
+    }
+
+    @Test func shimSetsOnlyItsOwnGraphics() async throws {
+        let harness = try Harness(apps: [])
+        defer { harness.cleanUp() }
+        await harness.core.start()
+        let (panel, _) = await harness.connect(.controlPanel)
+        let (shimX, eventsX) = await harness.connect(.shim(package: "com.x"))
+        let (shimY, _) = await harness.connect(.shim(package: "com.y"))
+        let stale = await harness.core.configurationSnapshot().config
+
+        var patch = GraphicsSettingsPatch()
+        patch.shortSide = 1080
+        let own = AppGraphicsOverride(profile: .games, changes: patch)
+        let saved = try await harness.core.setAppGraphics("com.x", own, client: shimX)
+        #expect(saved.effect == .immediate && saved.issues.isEmpty)
+        #expect(try VMConfig.load(from: harness.paths.config).graphicsOverrides["com.x"] == own)
+        // Shims hear configuration changes, so their windows follow them.
+        #expect(await eventsX.wait { if case .configurationChanged(let c) = $0 { c.graphicsOverrides["com.x"] == own } else { false } } != nil)
+
+        await #expect(throws: AvoError.unauthorizedCaller) { try await harness.core.setAppGraphics("com.x", nil, client: shimY) }
+
+        var invalid = GraphicsSettingsPatch()
+        invalid.shortSide = 721
+        let refused = try await harness.core.setAppGraphics("com.x", AppGraphicsOverride(changes: invalid), client: shimX)
+        #expect(refused.issues.map(\.field) == ["graphicsOverrides.com.x.shortSide"])
+        #expect(await harness.core.configurationSnapshot().config.graphicsOverrides["com.x"] == own)
+
+        // The Control Panel may set any app; an empty override removes it.
+        _ = try await harness.core.setAppGraphics("com.y", AppGraphicsOverride(profile: .apps), client: panel)
+        _ = try await harness.core.setAppGraphics("com.x", AppGraphicsOverride(), client: panel)
+        #expect(await harness.core.configurationSnapshot().config.graphicsOverrides.keys.sorted() == ["com.y"])
+
+        // A panel snapshot from before those changes does not undo them.
+        var edit = stale
+        edit.fpsLimit = 30
+        _ = try await harness.core.updateConfiguration(edit, client: panel)
+        let now = await harness.core.configurationSnapshot().config
+        #expect(now.fpsLimit == 30)
+        #expect(now.graphicsOverrides.keys.sorted() == ["com.y"])
+
+        // Only the shim that said hello as the package, never the engine or a stranger.
+        let (engine, _) = await harness.connect(.engine)
+        await #expect(throws: AvoError.unauthorizedCaller) { try await harness.core.setAppGraphics("com.y", own, client: engine) }
+        await #expect(throws: AvoError.unauthorizedCaller) { try await harness.core.setAppGraphics("com.y", own, client: UUID()) }
+        await #expect(throws: AvoError.unauthorizedCaller) { try await harness.core.setAppGraphics("com.y", nil, client: shimX) }
+        #expect(await harness.core.configurationSnapshot().config.graphicsOverrides["com.y"] == AppGraphicsOverride(profile: .apps))
+    }
+
+    /// A window's settings overlay changes Android's frame rate cap, for
+    /// every app, and nothing else; Android gets it at once.
+    @Test func shimSetsOnlyTheFrameRateCap() async throws {
+        let harness = try Harness(apps: [])
+        defer { harness.cleanUp() }
+        await harness.core.start()
+        let (panel, _) = await harness.connect(.controlPanel)
+        try await harness.core.startVM(client: panel)
+        let (shim, events) = await harness.connect(.shim(package: "com.x"))
+        let before = await harness.core.configurationSnapshot().config
+        #expect(before.fpsLimit != 30)
+
+        let result = try await harness.core.setFrameRateLimit(30, client: shim)
+        #expect(result.effect == .immediate && !result.issues.contains { $0.severity == .error })
+        var expected = before
+        expected.fpsLimit = 30
+        #expect(try VMConfig.load(from: harness.paths.config) == expected)
+        #expect(await events.wait { if case .configurationChanged(let c) = $0 { c.fpsLimit == 30 } else { false } } != nil)
+        #expect(await eventually {
+            let rates: [UInt32] = await harness.agent.requests { if case .setRefreshRate(let r) = $0 { r.fps } else { nil } }
+            return rates.last == 30
+        })
+
+        // A value Android does not run at is refused and saves nothing.
+        let refused = try await harness.core.setFrameRateLimit(144, client: shim)
+        #expect(refused.issues.map(\.field) == ["fpsLimit"])
+        #expect(try VMConfig.load(from: harness.paths.config).fpsLimit == 30)
+
+        // The engine and callers that never said hello may not; shims still
+        // may not change anything else.
+        let (engine, _) = await harness.connect(.engine)
+        await #expect(throws: AvoError.unauthorizedCaller) { try await harness.core.setFrameRateLimit(60, client: engine) }
+        await #expect(throws: AvoError.unauthorizedCaller) { try await harness.core.setFrameRateLimit(60, client: UUID()) }
+        var other = expected
+        other.memoryMiB += 1024
+        await #expect(throws: AvoError.unauthorizedCaller) { try await harness.core.updateConfiguration(other, client: shim) }
+        #expect(await harness.core.configurationSnapshot().config == expected)
+    }
+
+    /// A setting that became invalid elsewhere (here: more cores than this
+    /// Mac has, as after moving to a smaller Mac) never blocks one app's graphics.
+    @Test func unrelatedConfigErrorsDoNotBlockAppGraphics() async throws {
+        let harness = try Harness(apps: []) { $0.cpuCount = 64 }
+        defer { harness.cleanUp() }
+        await harness.core.start()
+        let (shim, _) = await harness.connect(.shim(package: "com.x"))
+        let override = AppGraphicsOverride(profile: .games)
+        let result = try await harness.core.setAppGraphics("com.x", override, client: shim)
+        #expect(result.issues.isEmpty)
+        let saved = try VMConfig.load(from: harness.paths.config)
+        #expect(saved.graphicsOverrides["com.x"] == override)
+        #expect(saved.cpuCount == 64)
+    }
+
+    /// The reverse: an override a hand edit made invalid never refuses the
+    /// Control Panel's own settings, which cannot change it.
+    @Test func invalidOverrideDoesNotBlockConfigurationUpdates() async throws {
+        var patch = GraphicsSettingsPatch()
+        patch.shortSide = 721
+        let harness = try Harness(apps: []) { $0.graphicsOverrides["com.x"] = AppGraphicsOverride(changes: patch) }
+        defer { harness.cleanUp() }
+        await harness.core.start()
+        let (panel, _) = await harness.connect(.controlPanel)
+        var edit = await harness.core.configurationSnapshot().config
+        edit.fpsLimit = 30
+        let result = try await harness.core.updateConfiguration(edit, client: panel)
+        #expect(!result.issues.contains { $0.field.hasPrefix("graphicsOverrides.") })
+        #expect(try VMConfig.load(from: harness.paths.config).fpsLimit == 30)
     }
 
     @Test func installsAnXAPKEndToEnd() async throws {
@@ -324,6 +466,49 @@ struct Harness {
         harness.engine.crash()
         #expect(await events.wait { $0 == .displayClosed(displayID: display) } != nil)
         #expect(await eventually { await harness.core.status().state == .failed })
+    }
+
+    /// Android's own factory reset: avo-vmm stops instead of rebooting into
+    /// recovery, and Avo erases the data as Reset Android does, then starts
+    /// the fresh Android again.
+    @Test func androidsFactoryResetErasesTheDataAndStartsAgain() async throws {
+        let harness = try Harness(apps: [FakeBridgeAgent.app("org.fdroid.fdroid", label: "F-Droid")])
+        defer { harness.cleanUp() }
+        await harness.core.start()
+        let (panel, events) = await harness.connect(.controlPanel)
+        try await harness.core.startVM(client: panel)
+        #expect(await eventually { await harness.core.status().state == .running })
+        // Avo knows the app before Android asks (the reset takes it out again).
+        #expect(await events.wait { if case .appInstalled(let app) = $0 { app.package == "org.fdroid.fdroid" } else { false } } != nil)
+        #expect(FileManager.default.fileExists(atPath: harness.paths.dataDisk.path))
+        try Data(repeating: 7, count: 4096).write(to: harness.paths.dataDisk)
+        let launches = harness.engine.launches.count
+
+        harness.engine.exit(AndroidFactoryReset())
+        #expect(await events.wait { $0 == .appRemoved(package: "org.fdroid.fdroid") } != nil)
+        #expect(await eventually { harness.engine.launches.count == launches + 1 })
+        #expect(await eventually { await harness.core.status().state == .running })
+        // The new start made a new, unwritten data disk.
+        #expect(!DataDiskStore.isWritten(harness.paths.dataDisk))
+    }
+
+    /// Android's own Restart: avo-vmm ends instead of rebooting inside, and
+    /// Avo starts Android again through its usual start.
+    @Test func androidsOwnRebootStartsItAgain() async throws {
+        let harness = try Harness(apps: [FakeBridgeAgent.app("org.fdroid.fdroid", label: "F-Droid")])
+        defer { harness.cleanUp() }
+        await harness.core.start()
+        let (panel, events) = await harness.connect(.controlPanel)
+        try await harness.core.startVM(client: panel)
+        #expect(await eventually { await harness.core.status().state == .running })
+        #expect(await events.wait { if case .appInstalled(let app) = $0 { app.package == "org.fdroid.fdroid" } else { false } } != nil)
+        let launches = harness.engine.launches.count
+
+        harness.engine.exit(AndroidRebooted())
+        #expect(await eventually { harness.engine.launches.count == launches + 1 })
+        #expect(await eventually { await harness.core.status().state == .running })
+        // Nothing was erased: the app is still Avo's.
+        #expect(!events.events.contains(.appRemoved(package: "org.fdroid.fdroid")))
     }
 
     @Test func incompatibleGuestIsReported() async throws {

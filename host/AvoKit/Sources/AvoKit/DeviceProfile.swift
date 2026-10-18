@@ -3,11 +3,13 @@ import Foundation
 /// A device identity template (spec §8, "Mock nama sistem").
 ///
 /// Templates live as JSON files in `profiles/devices/` so the community can
-/// add devices through pull requests. The Bridge Agent applies `properties`
-/// at boot; changing the profile needs a VM restart.
+/// add devices through pull requests. The engine applies `properties` at
+/// boot; changing the profile needs a VM restart.
 ///
-/// A profile changes what apps read from `Build.*`. It does not and cannot
-/// pass hardware attestation, and the UI says so.
+/// The default (`avo`) is Avo's honest identity. Every other template makes
+/// apps read another device's `Build.*` fields: impersonation, which does not
+/// and cannot pass hardware attestation, and the UI says so. Whichever is
+/// chosen, Avo still states what it is (`AvoIdentity`).
 public struct DeviceProfile: Codable, Identifiable, Equatable, Sendable {
     public struct Display: Codable, Equatable, Sendable {
         public var width: Int
@@ -15,12 +17,28 @@ public struct DeviceProfile: Codable, Identifiable, Equatable, Sendable {
         public var dpi: Int
     }
 
-    /// Avo's honest default identity.
+    /// Avo's honest identity, the default for new installs.
     public static let defaultID = "avo-virtual-device"
     /// The user-editable profile.
     public static let customID = "custom"
 
-    /// Properties every template must define.
+    /// The honest identity (profiles/devices/avo-virtual-device.json; the
+    /// daemon falls back to this copy). Android derives the build
+    /// fingerprint from brand, name and device with the image's own release,
+    /// build ID, incremental, type and tags (`fingerprint(image:)`), so it
+    /// stays true for every image: `Avo/avo_droid/avo_droid:17/…:userdebug/test-keys`.
+    public static let avo = DeviceProfile(
+        id: defaultID, name: "Avo (AVO-Droid)",
+        properties: [
+            "ro.product.brand": "Avo",
+            "ro.product.manufacturer": "Avo",
+            "ro.product.model": "AVO-Droid",
+            "ro.product.name": "avo_droid",
+            "ro.product.device": "avo_droid",
+        ],
+        notes: "Default, and Avo's honest identity: apps see a device made by Avo, model AVO-Droid. Brand, name and device say Avo too, and Android derives the build fingerprint from them with the image's own release, build ID, incremental, type and tags, so it is valid and true for every image. Board, hardware and SoC stay the image's (AOSP Cuttlefish), because they describe the virtual hardware Android runs on. Avo also states what it is on every boot whichever profile is chosen (ro.boot.avo.* and the dev.avo.feature.MAC system feature): see docs/for-game-developers.md.")
+
+    /// Properties every impersonation template must define.
     public static let requiredProperties = [
         "ro.product.brand",
         "ro.product.manufacturer",
@@ -29,38 +47,95 @@ public struct DeviceProfile: Codable, Identifiable, Equatable, Sendable {
         "ro.build.fingerprint",
     ]
 
-    /// Only identity properties may be overridden; anything else (security
-    /// state, debuggability, verified boot) is rejected.
-    public static let allowedPropertyPrefixes = [
-        "ro.product.", "ro.build.fingerprint", "ro.build.description", "ro.build.product",
-        "ro.build.display.id", "ro.build.version.incremental", "ro.build.id", "ro.build.tags",
-        "ro.build.type", "ro.soc.manufacturer", "ro.soc.model", "ro.hardware",
+    /// What the honest identity must say about itself. Its fingerprint is
+    /// Android's own derivation, never written down.
+    public static let avoRequiredProperties = [
+        "ro.product.brand",
+        "ro.product.manufacturer",
+        "ro.product.model",
+        "ro.product.name",
+        "ro.product.device",
     ]
 
+    /// The `ro.product.*` fields that name the device (`Build.BRAND`,
+    /// `MANUFACTURER`, `MODEL`, `PRODUCT`, `DEVICE`), also per partition
+    /// (`ro.product.vendor.model`).
+    public static let productFields = ["brand", "manufacturer", "model", "name", "device"]
+    static let productPartitions = ["system", "system_ext", "product", "vendor", "odm", "bootimage",
+                                    "vendor_dlkm", "odm_dlkm", "system_dlkm"]
+    /// What Android builds the fingerprint from: brand/name/device.
+    static let fingerprintFields: Set<String> = ["ro.product.brand", "ro.product.name", "ro.product.device"]
+
+    /// The build properties a template may set besides `ro.product.<field>`.
+    public static let buildProperties: Set<String> = [
+        "ro.build.fingerprint", "ro.build.description", "ro.build.product", "ro.build.display.id",
+        "ro.build.version.incremental", "ro.build.id", "ro.build.tags", "ro.build.type",
+        "ro.soc.manufacturer", "ro.soc.model",
+    ]
+
+    /// Security state, debuggability and verified boot; the hardware
+    /// (`ro.hardware*` picks init scripts, graphics and audio drivers) and
+    /// everything else that is not identity is rejected too.
     public static let forbiddenProperties: Set<String> = [
         "ro.debuggable", "ro.secure", "ro.adb.secure", "ro.boot.verifiedbootstate",
-        "ro.boot.flash.locked", "ro.boot.vbmeta.device_state", "ro.build.selinux",
+        "ro.boot.flash.locked", "ro.boot.vbmeta.device_state", "ro.build.selinux", "ro.hardware",
     ]
+
+    /// Whether a template may set `key`: the device's names and build
+    /// strings only. ABI lists, API levels, hardware drivers and Avo's own
+    /// `ro.boot.avo.*` markers are not identity.
+    public static func isIdentityProperty(_ key: String) -> Bool {
+        if buildProperties.contains(key) { return true }
+        guard key.hasPrefix("ro.product.") else { return false }
+        let parts = key.dropFirst("ro.product.".count).split(separator: ".", omittingEmptySubsequences: false)
+        switch parts.count {
+        case 1: return productFields.contains(String(parts[0]))
+        case 2: return productPartitions.contains(String(parts[0])) && productFields.contains(String(parts[1]))
+        default: return false
+        }
+    }
 
     public var schema: Int
     public var id: String
     public var name: String
     public var properties: [String: String]
     public var display: Display?
+    /// The SoC, CPU and GPU this profile reports when "Emulate this phone's
+    /// hardware" is on (`DeviceHardware`). Nil, or absent from the JSON, means
+    /// the profile changes only the device's name and build strings.
+    public var hardware: DeviceHardware?
     public var notes: String?
 
     public init(schema: Int = 1, id: String, name: String, properties: [String: String],
-                display: Display? = nil, notes: String? = nil) {
+                display: Display? = nil, hardware: DeviceHardware? = nil, notes: String? = nil) {
         self.schema = schema
         self.id = id
         self.name = name
         self.properties = properties
         self.display = display
+        self.hardware = hardware
         self.notes = notes
+    }
+
+    /// Whether this profile has hardware to emulate (any of SoC, CPU, GPU).
+    public var hasHardware: Bool {
+        guard let hardware else { return false }
+        return hardware.soc != nil || hardware.cpu != nil || !(hardware.gpu?.isEmpty ?? true)
+    }
+
+    /// The identity properties, plus the hardware ones when `emulateHardware`
+    /// is on. The identity always wins, so a profile that sets `ro.soc.model`
+    /// itself keeps it. The engine writes this at boot (`AvoIdentity`).
+    public func properties(emulateHardware: Bool) -> [String: String] {
+        guard emulateHardware, let hardware else { return properties }
+        return properties.merging(hardware.bootProperties()) { identity, _ in identity }
     }
 
     public var brand: String? { properties["ro.product.brand"] }
     public var model: String? { properties["ro.product.model"] }
+
+    /// The honest identity; every other template impersonates a device.
+    public var isAvoIdentity: Bool { id == Self.defaultID }
 
     /// Problems that make the template unusable.
     public func validate() -> [String] {
@@ -70,20 +145,25 @@ public struct DeviceProfile: Codable, Identifiable, Equatable, Sendable {
             problems.append("id must contain only letters, digits and '-'")
         }
         if name.trimmingCharacters(in: .whitespaces).isEmpty { problems.append("name is empty") }
-        // The default profile keeps the image's own identity and overrides nothing.
-        let required = id == Self.defaultID && properties.isEmpty ? [] : Self.requiredProperties
+        let required = isAvoIdentity ? Self.avoRequiredProperties : Self.requiredProperties
         for key in required where (properties[key] ?? "").isEmpty {
             problems.append("missing \(key)")
+        }
+        if isAvoIdentity, properties["ro.build.fingerprint"] != nil {
+            problems.append("ro.build.fingerprint is Android's own derivation for this profile")
         }
         for (key, value) in properties.sorted(by: { $0.key < $1.key }) {
             if Self.forbiddenProperties.contains(key) {
                 problems.append("\(key) may not be overridden")
-            } else if !Self.allowedPropertyPrefixes.contains(where: { key.hasPrefix($0) }) {
+            } else if !Self.isIdentityProperty(key) {
                 problems.append("\(key) is not an identity property")
             }
             // Property values are limited to 91 bytes (PROP_VALUE_MAX - 1) for non-ro props;
             // ro.* may be longer but must stay on one line.
             if value.contains(where: \.isNewline) { problems.append("\(key) contains a newline") }
+            if Self.fingerprintFields.contains(key), value.isEmpty || value.contains(where: { $0 == " " || $0 == "/" || $0 == ":" }) {
+                problems.append("\(key) is part of the build fingerprint: no spaces, '/' or ':'")
+            }
         }
         if let fingerprint = properties["ro.build.fingerprint"], !Self.isValidFingerprint(fingerprint) {
             problems.append("ro.build.fingerprint must look like brand/product/device:release/id/incremental:type/tags")
@@ -92,6 +172,7 @@ public struct DeviceProfile: Codable, Identifiable, Equatable, Sendable {
             if display.width < 240 || display.height < 240 { problems.append("display is too small") }
             if !VMConfig.dpiRange.contains(display.dpi) { problems.append("display dpi out of range") }
         }
+        if let hardware { problems.append(contentsOf: hardware.validate()) }
         return problems
     }
 
@@ -106,7 +187,20 @@ public struct DeviceProfile: Codable, Identifiable, Equatable, Sendable {
             && (head + middle + tail).allSatisfy { !$0.isEmpty && !$0.contains(" ") }
     }
 
+    /// `Build.FINGERPRINT` with this profile on an image whose own
+    /// fingerprint is `image`: the profile's, else what Android's init
+    /// derives (`brand/name/device`, the profile's where it sets them, then
+    /// the image's `release/id/incremental:type/tags`). Nil for an invalid `image`.
+    public func fingerprint(image: String) -> String? {
+        if let own = properties["ro.build.fingerprint"] { return own }
+        guard Self.isValidFingerprint(image), let colon = image.firstIndex(of: ":") else { return nil }
+        let head = image[..<colon].split(separator: "/").map(String.init)
+        let names = zip(["brand", "name", "device"], head).map { properties["ro.product.\($0)"] ?? $1 }
+        return names.joined(separator: "/") + image[colon...]
+    }
+
     /// Property file applied by the guest at boot (`key=value` lines, sorted).
+    /// The engine adds Avo's markers (`AvoIdentity.propertyFile`).
     public func propertyFile() -> String {
         properties.sorted { $0.key < $1.key }.map { "\($0.key)=\($0.value)\n" }.joined()
     }
@@ -142,6 +236,8 @@ public struct DeviceProfileCatalog: Sendable {
                 rejected.append((file.lastPathComponent, ["invalid JSON: \(error.localizedDescription)"]))
             }
         }
+        // The honest identity is always there, the default for new installs.
+        if !profiles.contains(where: \.isAvoIdentity) { profiles.append(.avo) }
         // The honest default first, then alphabetical by name.
         self.profiles = profiles.sorted {
             if $0.id == DeviceProfile.defaultID { return true }

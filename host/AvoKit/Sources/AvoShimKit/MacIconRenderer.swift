@@ -57,7 +57,14 @@ public enum MacIconRenderer {
         case .legacy(let image):
             if isFullBleed(image) {
                 context.draw(image, in: body)
+            } else if let shape = footprint(image), shape.isShape, let cropped = image.cropping(to: shape.bounds) {
+                // Already a shape (rounded square, circle, squircle): it becomes
+                // the icon's squircle, on its own edge colour instead of a white plate.
+                context.setFillColor(shape.edgeColor ?? CGColor(srgbRed: 1, green: 1, blue: 1, alpha: 1))
+                context.fill(body)
+                context.draw(cropped, in: body)
             } else {
+                // A glyph on transparency needs something behind it.
                 context.setFillColor(CGColor(srgbRed: 1, green: 1, blue: 1, alpha: 1))
                 context.fill(body)
                 context.draw(image, in: aspectFit(image, in: body.insetBy(dx: body.width * 0.1, dy: body.height * 0.1)))
@@ -118,6 +125,63 @@ public enum MacIconRenderer {
         let scale = min(rect.width / CGFloat(image.width), rect.height / CGFloat(image.height))
         let size = CGSize(width: CGFloat(image.width) * scale, height: CGFloat(image.height) * scale)
         return CGRect(x: rect.midX - size.width / 2, y: rect.midY - size.height / 2, width: size.width, height: size.height)
+    }
+
+    /// Where a legacy bitmap is opaque: its bounds (pixels, origin top left),
+    /// how much of them is opaque, and the average colour just inside them.
+    struct Footprint {
+        let bounds: CGRect
+        let coverage: Double
+        let edgeColor: CGColor?
+
+        /// A filled, roughly square shape (a circle covers π/4 of its box).
+        var isShape: Bool {
+            coverage >= 0.7 && bounds.height > 0 && (0.85...1.18).contains(bounds.width / bounds.height)
+        }
+    }
+
+    static func footprint(_ image: CGImage) -> Footprint? {
+        let size = 64
+        guard let context = CGContext(data: nil, width: size, height: size, bitsPerComponent: 8, bytesPerRow: size * 4,
+                                      space: CGColorSpace(name: CGColorSpace.sRGB)!,
+                                      bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue),
+              let data = context.data else { return nil }
+        context.draw(image, in: CGRect(x: 0, y: 0, width: size, height: size))
+        let pixels = data.assumingMemoryBound(to: UInt8.self)
+        func alpha(_ x: Int, _ y: Int) -> UInt8 { pixels[(y * size + x) * 4 + 3] }
+        var minX = size, minY = size, maxX = -1, maxY = -1
+        for y in 0..<size {
+            for x in 0..<size where alpha(x, y) > 32 {
+                minX = min(minX, x); maxX = max(maxX, x)
+                minY = min(minY, y); maxY = max(maxY, y)
+            }
+        }
+        guard maxX > minX, maxY > minY else { return nil }
+        var opaque = 0
+        for y in minY...maxY {
+            for x in minX...maxX where alpha(x, y) > 128 { opaque += 1 }
+        }
+        // Average colour two pixels inside the box (corners of round shapes are skipped).
+        var red = 0.0, green = 0.0, blue = 0.0, count = 0.0
+        func sample(_ x: Int, _ y: Int) {
+            let i = (y * size + x) * 4
+            let a = Double(pixels[i + 3])
+            guard a > 200 else { return }
+            red += Double(pixels[i]) / a
+            green += Double(pixels[i + 1]) / a
+            blue += Double(pixels[i + 2]) / a
+            count += 1
+        }
+        let inset = 2
+        if maxX - minX > 2 * inset, maxY - minY > 2 * inset {
+            for x in (minX + inset)...(maxX - inset) { sample(x, minY + inset); sample(x, maxY - inset) }
+            for y in (minY + inset)...(maxY - inset) { sample(minX + inset, y); sample(maxX - inset, y) }
+        }
+        let scaleX = Double(image.width) / Double(size), scaleY = Double(image.height) / Double(size)
+        let bounds = CGRect(x: Double(minX) * scaleX, y: Double(minY) * scaleY,
+                            width: Double(maxX - minX + 1) * scaleX, height: Double(maxY - minY + 1) * scaleY).integral
+        return Footprint(bounds: bounds, coverage: Double(opaque) / Double((maxX - minX + 1) * (maxY - minY + 1)),
+                         edgeColor: count > 0 ? CGColor(srgbRed: red / count, green: green / count, blue: blue / count, alpha: 1) : nil)
     }
 
     /// A square icon whose corners are opaque already fills its shape, so it is

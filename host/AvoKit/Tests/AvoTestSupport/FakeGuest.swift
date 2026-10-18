@@ -99,6 +99,12 @@ public actor FakeBridgeAgent {
         }
     }
 
+    /// What ListApps answers from now on, without an event (Android's own
+    /// view changing, as when apps resolve again after an unlock).
+    public func setApps(_ apps: [Avo_V1_AppInfo]) {
+        self.apps = apps
+    }
+
     /// Simulates PACKAGE_ADDED.
     public func install(_ app: Avo_V1_AppInfo) async {
         apps.removeAll { $0.package == app.package }
@@ -192,6 +198,12 @@ public final class FakeEngine: VMEngine, @unchecked Sendable {
 
     public func snapshot(to url: URL) async throws {
         try Data("snapshot".utf8).write(to: url)
+    }
+
+    /// Simulates the engine process exiting with `error` (nil: a clean exit).
+    public func exit(_ error: (any Error)?) {
+        lock.withLock { running = false }
+        exitSink.yield(error)
     }
 
     /// Simulates a crash of the engine process.

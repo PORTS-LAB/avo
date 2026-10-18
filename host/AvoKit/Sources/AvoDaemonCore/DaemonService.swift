@@ -26,7 +26,15 @@ public enum CallerPolicy: Sendable {
     func validate(pid: pid_t, role: ClientHello.Role, shimHash: String?) -> Bool {
         var code: SecCode?
         guard SecCodeCopyGuestWithAttributes(nil, [kSecGuestAttributePid: pid] as CFDictionary, [], &code) == errSecSuccess,
-              let code, SecCodeCheckValidity(code, [], nil) == errSecSuccess else { return false }
+              let code else { return false }
+        guard SecCodeCheckValidity(code, [], nil) == errSecSuccess else {
+            // A development build rebuilt while the caller ran: the running
+            // code no longer matches its bundle. The bundle path is all a
+            // development build is identified by, so the caller still counts
+            // if what is on disk now is validly signed.
+            guard case .development = self, role != .engine, Self.onDiskValid(code) else { return false }
+            return validateDevelopmentPath(code, role: role)
+        }
         switch role {
         case .shim:
             guard let shimHash, let hash = Self.cdhash(code) else { return false }
@@ -39,16 +47,30 @@ public enum CallerPolicy: Sendable {
                 guard SecRequirementCreateWithString(text as CFString, [], &requirement) == errSecSuccess,
                       let requirement else { return false }
                 return SecCodeCheckValidity(code, [], requirement) == errSecSuccess
-            case .development(let bundle):
-                var staticCode: SecStaticCode?
-                guard SecCodeCopyStaticCode(code, [], &staticCode) == errSecSuccess, let staticCode else { return false }
-                var url: CFURL?
-                guard SecCodeCopyPath(staticCode, [], &url) == errSecSuccess, let path = (url as URL?)?.standardizedFileURL.path else {
-                    return false
-                }
-                return path.hasPrefix(bundle.standardizedFileURL.path + "/") || path == bundle.standardizedFileURL.path
+            case .development:
+                return validateDevelopmentPath(code, role: role)
             }
         }
+    }
+
+    /// Development builds: Avo's own processes live inside the app bundle;
+    /// shims are checked by hash (their bundles live elsewhere).
+    private func validateDevelopmentPath(_ code: SecCode, role: ClientHello.Role) -> Bool {
+        guard case .development(let bundle) = self else { return false }
+        if case .shim = role { return false }
+        var staticCode: SecStaticCode?
+        guard SecCodeCopyStaticCode(code, [], &staticCode) == errSecSuccess, let staticCode else { return false }
+        var url: CFURL?
+        guard SecCodeCopyPath(staticCode, [], &url) == errSecSuccess, let path = (url as URL?)?.standardizedFileURL.path else {
+            return false
+        }
+        return path.hasPrefix(bundle.standardizedFileURL.path + "/") || path == bundle.standardizedFileURL.path
+    }
+
+    private static func onDiskValid(_ code: SecCode) -> Bool {
+        var staticCode: SecStaticCode?
+        guard SecCodeCopyStaticCode(code, [], &staticCode) == errSecSuccess, let staticCode else { return false }
+        return SecStaticCodeCheckValidity(staticCode, [], nil) == errSecSuccess
     }
 
     static func cdhash(_ code: SecCode) -> String? {
@@ -126,9 +148,22 @@ final class ClientConnection: NSObject, AvoDaemonXPC, @unchecked Sendable {
     private let service: DaemonService
     private var core: DaemonCore { service.core }
 
+    /// Input records go to the daemon one at a time, in the order the client
+    /// sent them. A Task per record could overtake another: a paste waits
+    /// for the Mac clipboard, and its key release must not reach Android
+    /// first (the key would stay down and repeat).
+    private let input = AsyncStream<Data>.makeStream()
+
     init(connection: NSXPCConnection, service: DaemonService) {
         self.connection = connection
         self.service = service
+        super.init()
+        let (records, core, id) = (input.stream, service.core, self.id)
+        Task { for await record in records { await core.sendInput(record, client: id) } }
+    }
+
+    deinit {
+        input.continuation.finish()
     }
 
     private func run(_ reply: @escaping @Sendable (NSError?) -> Void, _ body: @escaping @Sendable () async throws -> Void) {
@@ -172,8 +207,43 @@ final class ClientConnection: NSObject, AvoDaemonXPC, @unchecked Sendable {
     func startVM(reply: @escaping @Sendable (NSError?) -> Void) { run(reply) { [self] in try await core.startVM(client: id) } }
     func stopVM(reply: @escaping @Sendable (NSError?) -> Void) { run(reply) { [self] in try await core.stopVM(client: id) } }
     func restartVM(reply: @escaping @Sendable (NSError?) -> Void) { run(reply) { [self] in try await core.restartVM(client: id) } }
+    func retryGPU(reply: @escaping @Sendable (NSError?) -> Void) { run(reply) { [self] in try await core.retryGPU(client: id) } }
+    func gpuCacheStatus(reply: @escaping @Sendable (Data?, NSError?) -> Void) {
+        run(reply) { [self] in AvoXPC.encode(try await core.gpuCacheStatus(client: id)) }
+    }
+    func clearGPUCache(reply: @escaping @Sendable (Data?, NSError?) -> Void) {
+        run(reply) { [self] in AvoXPC.encode(try await core.clearGPUCache(client: id)) }
+    }
     func takeSnapshot(reply: @escaping @Sendable (NSError?) -> Void) { run(reply) { [self] in try await core.takeSnapshot(client: id) } }
     func resetAndroid(reply: @escaping @Sendable (NSError?) -> Void) { run(reply) { [self] in try await core.resetAndroid(client: id) } }
+
+    // MARK: Where Android's data is
+
+    func storageLocation(reply: @escaping @Sendable (Data?, NSError?) -> Void) {
+        run(reply) { [self] in AvoXPC.encode(try await core.storageLocation(client: id)) }
+    }
+
+    func inspectStorageLocation(_ path: String, reply: @escaping @Sendable (Data?, NSError?) -> Void) {
+        run(reply) { [self] in AvoXPC.encode(try await core.inspectStorageLocation(path.isEmpty ? nil : path, client: id)) }
+    }
+
+    func changeStorageLocation(_ request: Data, reply: @escaping @Sendable (NSError?) -> Void) {
+        run(reply) { [self] in
+            try await core.changeStorageLocation(try AvoXPC.decode(StorageChangeRequest.self, from: request), client: id)
+        }
+    }
+
+    func cancelStorageChange(reply: @escaping @Sendable (NSError?) -> Void) {
+        run(reply) { [self] in try await core.cancelStorageChange(client: id) }
+    }
+
+    func removeInternalStorageCopy(reply: @escaping @Sendable (NSError?) -> Void) {
+        run(reply) { [self] in try await core.removeInternalStorageCopy(client: id) }
+    }
+
+    func inspectSharedFolder(_ path: String, reply: @escaping @Sendable (Data?, NSError?) -> Void) {
+        run(reply) { [self] in AvoXPC.encode(try await core.inspectSharedFolder(path, client: id)) }
+    }
 
     // MARK: Configuration
 
@@ -186,6 +256,17 @@ final class ClientConnection: NSObject, AvoDaemonXPC, @unchecked Sendable {
             let new = try AvoXPC.decode(VMConfig.self, from: config)
             return AvoXPC.encode(try await core.updateConfiguration(new, client: id))
         }
+    }
+
+    func setAppGraphics(package: String, override: Data?, reply: @escaping @Sendable (Data?, NSError?) -> Void) {
+        run(reply) { [self] in
+            let decoded = try override.map { try AvoXPC.decode(AppGraphicsOverride.self, from: $0) }
+            return AvoXPC.encode(try await core.setAppGraphics(package, decoded, client: id))
+        }
+    }
+
+    func setFrameRateLimit(_ fps: Int, reply: @escaping @Sendable (Data?, NSError?) -> Void) {
+        run(reply) { [self] in AvoXPC.encode(try await core.setFrameRateLimit(fps, client: id)) }
     }
 
     // MARK: Apps
@@ -219,6 +300,62 @@ final class ClientConnection: NSObject, AvoDaemonXPC, @unchecked Sendable {
         run(reply) { [self] in try await core.deleteAppData(package, client: id) }
     }
 
+    func openNotification(key: String, reply: @escaping @Sendable (NSError?) -> Void) {
+        run(reply) { [self] in try await core.openNotification(key: key, client: id) }
+    }
+
+    func clearNotifications(reply: @escaping @Sendable (NSError?) -> Void) {
+        run(reply) { [self] in try await core.clearNotifications(client: id) }
+    }
+
+    func dismissNotifications(_ keys: Data, reply: @escaping @Sendable (NSError?) -> Void) {
+        run(reply) { [self] in try await core.dismissNotifications(try AvoXPC.decode([String].self, from: keys), client: id) }
+    }
+
+    func notificationPermission(reply: @escaping @Sendable (Data?, NSError?) -> Void) {
+        run(reply) { [self] in AvoXPC.encode(try await core.notificationPermission(client: id)) }
+    }
+
+    func requestNotificationPermission(reply: @escaping @Sendable (Data?, NSError?) -> Void) {
+        run(reply) { [self] in AvoXPC.encode(try await core.requestNotificationPermission(client: id)) }
+    }
+
+    func unlockAndroid(credential: String, reply: @escaping @Sendable (NSError?) -> Void) {
+        run(reply) { [self] in try await core.unlockAndroid(credential: credential, client: id) }
+    }
+
+    // MARK: Fingerprints
+
+    func fingerprints(refresh: Bool, reply: @escaping @Sendable (Data?, NSError?) -> Void) {
+        run(reply) { [self] in AvoXPC.encode(try await core.fingerprintStatus(refresh: refresh, client: id)) }
+    }
+
+    func addFingerprint(name: String, reply: @escaping @Sendable (Data?, NSError?) -> Void) {
+        run(reply) { [self] in AvoXPC.encode(try await core.addFingerprint(named: name, client: id)) }
+    }
+
+    func renameFingerprint(_ fingerprint: Int, name: String, reply: @escaping @Sendable (NSError?) -> Void) {
+        run(reply) { [self] in try await core.renameFingerprint(fingerprint, to: name, client: id) }
+    }
+
+    func removeFingerprint(_ fingerprint: Int, reply: @escaping @Sendable (NSError?) -> Void) {
+        run(reply) { [self] in try await core.removeFingerprint(fingerprint, client: id) }
+    }
+
+    func touchFingerprint(_ fingerprint: Int, reply: @escaping @Sendable (Data?, NSError?) -> Void) {
+        run(reply) { [self] in
+            AvoXPC.encode(try await core.touchFingerprint(fingerprint > 0 ? fingerprint : nil, client: id))
+        }
+    }
+
+    func cancelFingerprintRequest(reply: @escaping @Sendable (NSError?) -> Void) {
+        run(reply) { [self] in try await core.cancelFingerprintRequest(client: id) }
+    }
+
+    func lockAndroidForFingerprints(reply: @escaping @Sendable (NSError?) -> Void) {
+        run(reply) { [self] in try await core.lockAndroidForFingerprints(client: id) }
+    }
+
     func permissions(package: String, reply: @escaping @Sendable (Data?, NSError?) -> Void) {
         run(reply) { [self] in AvoXPC.encode(try await core.permissions(for: package, client: id)) }
     }
@@ -234,6 +371,42 @@ final class ClientConnection: NSObject, AvoDaemonXPC, @unchecked Sendable {
         }
     }
 
+    func appUsage(reply: @escaping @Sendable (Data?, NSError?) -> Void) {
+        run(reply) { [self] in AvoXPC.encode(try await core.appUsage(client: id)) }
+    }
+
+    func systemActivity(watch: Bool, reply: @escaping @Sendable (Data?, NSError?) -> Void) {
+        run(reply) { [self] in AvoXPC.encode(try await core.systemActivity(watch: watch, client: id)) }
+    }
+
+    // MARK: Google apps
+
+    func googleAppsStatus(reply: @escaping @Sendable (Data?, NSError?) -> Void) {
+        run(reply) { [self] in AvoXPC.encode(try await core.googleAppsStatus(client: id)) }
+    }
+
+    func installGoogleApps(_ request: Data, reply: @escaping @Sendable (NSError?) -> Void) {
+        run(reply) { [self] in
+            try await core.installGoogleApps(try AvoXPC.decode(GoogleAppsInstallRequest.self, from: request), client: id)
+        }
+    }
+
+    func cancelGoogleApps(_ request: String, reply: @escaping @Sendable (NSError?) -> Void) {
+        run(reply) { [self] in try await core.cancelGoogleApps(UUID(uuidString: request), client: id) }
+    }
+
+    // MARK: Location
+
+    func location(watch: Bool, reply: @escaping @Sendable (Data?, NSError?) -> Void) {
+        run(reply) { [self] in AvoXPC.encode(try await core.locationStatus(watch: watch, client: id)) }
+    }
+
+    func changeLocation(_ request: Data, reply: @escaping @Sendable (Data?, NSError?) -> Void) {
+        run(reply) { [self] in
+            AvoXPC.encode(try await core.changeLocation(try AvoXPC.decode(LocationRequest.self, from: request), client: id))
+        }
+    }
+
     // MARK: Displays
 
     func openDisplay(_ request: Data, reply: @escaping @Sendable (Data?, NSError?) -> Void) {
@@ -243,8 +416,8 @@ final class ClientConnection: NSObject, AvoDaemonXPC, @unchecked Sendable {
         }
     }
 
-    func resizeDisplay(_ displayID: UInt32, width: UInt32, height: UInt32, dpi: UInt32) {
-        Task { [self] in await core.resizeDisplay(displayID, width: width, height: height, dpi: dpi, client: id) }
+    func resizeDisplay(_ displayID: UInt32, width: UInt32, height: UInt32, dpi: UInt32, reply: @escaping @Sendable (NSError?) -> Void) {
+        run(reply) { [self] in try await core.resizeDisplay(displayID, width: width, height: height, dpi: dpi, client: id) }
     }
 
     func closeDisplay(_ displayID: UInt32) {
@@ -255,8 +428,12 @@ final class ClientConnection: NSObject, AvoDaemonXPC, @unchecked Sendable {
         Task { [self] in await core.setDisplayVisible(displayID, visible: visible, client: id) }
     }
 
+    func focusDisplay(_ displayID: UInt32) {
+        Task { [self] in await core.focusDisplay(displayID, client: id) }
+    }
+
     func sendInput(_ record: Data) {
-        Task { [self] in await core.sendInput(record, client: id) }
+        input.continuation.yield(record)
     }
 
     func shareFiles(_ displayID: UInt32, files: [FileHandle], names: [String], reply: @escaping @Sendable (NSError?) -> Void) {

@@ -1,0 +1,404 @@
+{
+  "builds": [
+    {
+      "buildId": "16373615",
+      "target": {
+        "name": "aosp_cf_arm64_only_phone-userdebug"
+      },
+      "successful": true,
+      "branch": "aosp-android-latest-release",
+      "creationTimestamp": "2026-09-17T15:53:08.934Z",
+      "completionTimestamp": "2026-09-17T18:31:55.756Z"
+    },
+    {
+      "buildId": "16102939",
+      "target": {
+        "name": "aosp_cf_arm64_only_phone-userdebug"
+      },
+      "successful": true,
+      "branch": "aosp-android-latest-release",
+      "creationTimestamp": "2026-08-17T15:41:47.858Z",
+      "completionTimestamp": "2026-08-17T17:58:46.837Z"
+    },
+    {
+      "buildId": "15885347",
+      "target": {
+        "name": "aosp_cf_arm64_only_phone-userdebug"
+      },
+      "successful": true,
+      "branch": "aosp-android-latest-release",
+      "creationTimestamp": "2026-07-17T15:15:45.944Z",
+      "completionTimestamp": "2026-07-17T17:48:48.450Z"
+    },
+    {
+      "buildId": "15660610",
+      "target": {
+        "name": "aosp_cf_arm64_only_phone-userdebug"
+      },
+      "successful": true,
+      "branch": "aosp-android-latest-release",
+      "creationTimestamp": "2026-06-16T23:38:30.512Z",
+      "completionTimestamp": "2026-06-17T02:35:49.198Z"
+    },
+    {
+      "buildId": "15581820",
+      "target": {
+        "name": "aosp_cf_arm64_only_phone-userdebug"
+      },
+      "successful": true,
+      "branch": "aosp-android-latest-release",
+      "creationTimestamp": "2026-06-06T15:38:53.521Z",
+      "completionTimestamp": "2026-06-06T17:39:01.262Z"
+    },
+    {
+      "buildId": "15357239",
+      "target": {
+        "name": "aosp_cf_arm64_only_phone-userdebug"
+      },
+      "successful": true,
+      "branch": "aosp-android-latest-release",
+      "creationTimestamp": "2026-05-06T15:32:07.126Z",
+      "completionTimestamp": "2026-05-06T17:44:00.893Z"
+    },
+    {
+      "buildId": "15150359",
+      "target": {
+        "name": "aosp_cf_arm64_only_phone-userdebug"
+      },
+      "successful": true,
+      "branch": "aosp-android-latest-release",
+      "creationTimestamp": "2026-04-05T15:20:01.424Z",
+      "completionTimestamp": "2026-04-05T17:21:51.393Z"
+    },
+    {
+      "buildId": "14981173",
+      "target": {
+        "name": "aosp_cf_arm64_only_phone-userdebug"
+      },
+      "successful": true,
+      "branch": "aosp-android-latest-release",
+      "creationTimestamp": "2026-03-05T15:26:28.845Z",
+      "completionTimestamp": "2026-03-05T17:27:44.082Z"
+    },
+    {
+      "buildId": "14818820",
+      "target": {
+        "name": "aosp_cf_arm64_only_phone-userdebug"
+      },
+      "successful": true,
+      "branch": "aosp-android-latest-release",
+      "creationTimestamp": "2026-02-02T15:21:05.143Z",
+      "completionTimestamp": "2026-02-02T17:24:07.198Z"
+    },
+    {
+      "buildId": "14781626",
+      "target": {
+        "name": "aosp_cf_arm64_only_phone-userdebug"
+      },
+      "successful": true,
+      "branch": "aosp-android-latest-release",
+      "creationTimestamp": "2026-01-27T00:14:47.955Z",
+      "completionTimestamp": "2026-01-27T02:26:13.203Z"
+    },
+    {
+      "buildId": "14654133",
+      "target": {
+        "name": "aosp_cf_arm64_only_phone-userdebug"
+      },
+      "successful": true,
+      "branch": "aosp-android-latest-release",
+      "creationTimestamp": "2026-01-02T15:00:51.330Z",
+      "completionTimestamp": "2026-01-02T17:13:36.844Z"
+    },
+    {
+      "buildId": "14524720",
+      "target": {
+        "name": "aosp_cf_arm64_only_phone-userdebug"
+      },
+      "successful": true,
+      "branch": "aosp-android-latest-release",
+      "creationTimestamp": "2025-12-02T21:27:29.090Z",
+      "completionTimestamp": "2025-12-02T23:44:57.296Z"
+    },
+    {
+      "buildId": "14421689",
+      "target": {
+        "name": "aosp_cf_arm64_only_phone-userdebug"
+      },
+      "successful": true,
+      "branch": "aosp-android-latest-release",
+      "creationTimestamp": "2025-11-11T22:46:51.082Z",
+      "completionTimestamp": "2025-11-12T01:08:42.364Z"
+    },
+    {
+      "buildId": "14253210",
+      "target": {
+        "name": "aosp_cf_arm64_only_phone-userdebug"
+      },
+      "successful": true,
+      "branch": "aosp-android-latest-release",
+      "creationTimestamp": "2025-10-12T15:26:24.375Z",
+      "completionTimestamp": "2025-10-12T17:30:58.281Z"
+    },
+    {
+      "buildId": "14085914",
+      "target": {
+        "name": "aosp_cf_arm64_only_phone-userdebug"
+      },
+      "successful": true,
+      "branch": "aosp-android-latest-release",
+      "creationTimestamp": "2025-09-11T15:07:01.449Z",
+      "completionTimestamp": "2025-09-11T17:17:04.729Z"
+    },
+    {
+      "buildId": "13912524",
+      "target": {
+        "name": "aosp_cf_arm64_only_phone-userdebug"
+      },
+      "successful": true,
+      "branch": "aosp-android-latest-release",
+      "creationTimestamp": "2025-08-11T15:15:40.605Z",
+      "completionTimestamp": "2025-08-11T17:33:29.518Z"
+    },
+    {
+      "buildId": "13625421",
+      "target": {
+        "name": "aosp_cf_arm64_only_phone-userdebug"
+      },
+      "successful": true,
+      "branch": "aosp-android-latest-release",
+      "creationTimestamp": "2025-06-10T21:03:03.408Z",
+      "completionTimestamp": "2025-06-10T23:19:53.508Z"
+    },
+    {
+      "buildId": "13455678",
+      "target": {
+        "name": "aosp_cf_arm64_only_phone-userdebug"
+      },
+      "successful": true,
+      "branch": "aosp-android-latest-release",
+      "creationTimestamp": "2025-05-06T22:34:54.224Z",
+      "completionTimestamp": "2025-05-07T00:30:45.485Z"
+    },
+    {
+      "buildId": "13455677",
+      "target": {
+        "name": "aosp_cf_arm64_only_phone-userdebug"
+      },
+      "successful": true,
+      "branch": "aosp-android-latest-release",
+      "creationTimestamp": "2025-05-06T22:34:50.952Z",
+      "completionTimestamp": "2025-05-07T00:31:55.107Z"
+    },
+    {
+      "buildId": "13455676",
+      "target": {
+        "name": "aosp_cf_arm64_only_phone-userdebug"
+      },
+      "successful": true,
+      "branch": "aosp-android-latest-release",
+      "creationTimestamp": "2025-05-06T22:34:48.345Z",
+      "completionTimestamp": "2025-05-07T00:29:27.915Z"
+    },
+    {
+      "buildId": "13455675",
+      "target": {
+        "name": "aosp_cf_arm64_only_phone-userdebug"
+      },
+      "successful": true,
+      "branch": "aosp-android-latest-release",
+      "creationTimestamp": "2025-05-06T22:34:44.487Z",
+      "completionTimestamp": "2025-05-07T00:29:30.196Z"
+    },
+    {
+      "buildId": "13455674",
+      "target": {
+        "name": "aosp_cf_arm64_only_phone-userdebug"
+      },
+      "successful": true,
+      "branch": "aosp-android-latest-release",
+      "creationTimestamp": "2025-05-06T22:34:40.430Z",
+      "completionTimestamp": "2025-05-07T00:30:46.750Z"
+    },
+    {
+      "buildId": "13455672",
+      "target": {
+        "name": "aosp_cf_arm64_only_phone-userdebug"
+      },
+      "successful": true,
+      "branch": "aosp-android-latest-release",
+      "creationTimestamp": "2025-05-06T22:34:31.440Z",
+      "completionTimestamp": "2025-05-07T00:28:53.208Z"
+    },
+    {
+      "buildId": "13455670",
+      "target": {
+        "name": "aosp_cf_arm64_only_phone-userdebug"
+      },
+      "successful": true,
+      "branch": "aosp-android-latest-release",
+      "creationTimestamp": "2025-05-06T22:34:27.166Z",
+      "completionTimestamp": "2025-05-07T00:31:23.492Z"
+    },
+    {
+      "buildId": "13455668",
+      "target": {
+        "name": "aosp_cf_arm64_only_phone-userdebug"
+      },
+      "successful": true,
+      "branch": "aosp-android-latest-release",
+      "creationTimestamp": "2025-05-06T22:34:24.528Z",
+      "completionTimestamp": "2025-05-07T00:28:25.063Z"
+    },
+    {
+      "buildId": "13455664",
+      "target": {
+        "name": "aosp_cf_arm64_only_phone-userdebug"
+      },
+      "successful": true,
+      "branch": "aosp-android-latest-release",
+      "creationTimestamp": "2025-05-06T22:34:04.821Z",
+      "completionTimestamp": "2025-05-07T00:32:17.486Z"
+    },
+    {
+      "buildId": "13455663",
+      "target": {
+        "name": "aosp_cf_arm64_only_phone-userdebug"
+      },
+      "successful": true,
+      "branch": "aosp-android-latest-release",
+      "creationTimestamp": "2025-05-06T22:34:02.069Z",
+      "completionTimestamp": "2025-05-07T00:29:27.679Z"
+    },
+    {
+      "buildId": "13455661",
+      "target": {
+        "name": "aosp_cf_arm64_only_phone-userdebug"
+      },
+      "successful": true,
+      "branch": "aosp-android-latest-release",
+      "creationTimestamp": "2025-05-06T22:33:59.230Z",
+      "completionTimestamp": "2025-05-07T00:27:48.084Z"
+    },
+    {
+      "buildId": "13455660",
+      "target": {
+        "name": "aosp_cf_arm64_only_phone-userdebug"
+      },
+      "successful": true,
+      "branch": "aosp-android-latest-release",
+      "creationTimestamp": "2025-05-06T22:33:56.534Z",
+      "completionTimestamp": "2025-05-07T00:41:37.406Z"
+    },
+    {
+      "buildId": "13455659",
+      "target": {
+        "name": "aosp_cf_arm64_only_phone-userdebug"
+      },
+      "successful": true,
+      "branch": "aosp-android-latest-release",
+      "creationTimestamp": "2025-05-06T22:33:54.146Z",
+      "completionTimestamp": "2025-05-07T00:29:36.979Z"
+    },
+    {
+      "buildId": "13455658",
+      "target": {
+        "name": "aosp_cf_arm64_only_phone-userdebug"
+      },
+      "successful": true,
+      "branch": "aosp-android-latest-release",
+      "creationTimestamp": "2025-05-06T22:33:51.544Z",
+      "completionTimestamp": "2025-05-07T00:32:34.919Z"
+    },
+    {
+      "buildId": "13455656",
+      "target": {
+        "name": "aosp_cf_arm64_only_phone-userdebug"
+      },
+      "successful": true,
+      "branch": "aosp-android-latest-release",
+      "creationTimestamp": "2025-05-06T22:33:48.187Z",
+      "completionTimestamp": "2025-05-07T00:28:26.395Z"
+    },
+    {
+      "buildId": "13455655",
+      "target": {
+        "name": "aosp_cf_arm64_only_phone-userdebug"
+      },
+      "successful": true,
+      "branch": "aosp-android-latest-release",
+      "creationTimestamp": "2025-05-06T22:33:44.958Z",
+      "completionTimestamp": "2025-05-07T00:27:50.571Z"
+    },
+    {
+      "buildId": "13455654",
+      "target": {
+        "name": "aosp_cf_arm64_only_phone-userdebug"
+      },
+      "successful": true,
+      "branch": "aosp-android-latest-release",
+      "creationTimestamp": "2025-05-06T22:33:41.845Z",
+      "completionTimestamp": "2025-05-07T00:30:54.576Z"
+    },
+    {
+      "buildId": "13455653",
+      "target": {
+        "name": "aosp_cf_arm64_only_phone-userdebug"
+      },
+      "successful": true,
+      "branch": "aosp-android-latest-release",
+      "creationTimestamp": "2025-05-06T22:33:39.177Z",
+      "completionTimestamp": "2025-05-07T00:30:56.996Z"
+    },
+    {
+      "buildId": "13455650",
+      "target": {
+        "name": "aosp_cf_arm64_only_phone-userdebug"
+      },
+      "successful": true,
+      "branch": "aosp-android-latest-release",
+      "creationTimestamp": "2025-05-06T22:33:34.895Z",
+      "completionTimestamp": "2025-05-07T00:25:49.593Z"
+    },
+    {
+      "buildId": "13455649",
+      "target": {
+        "name": "aosp_cf_arm64_only_phone-userdebug"
+      },
+      "successful": true,
+      "branch": "aosp-android-latest-release",
+      "creationTimestamp": "2025-05-06T22:33:30.753Z",
+      "completionTimestamp": "2025-05-07T00:27:11.464Z"
+    },
+    {
+      "buildId": "13455648",
+      "target": {
+        "name": "aosp_cf_arm64_only_phone-userdebug"
+      },
+      "successful": true,
+      "branch": "aosp-android-latest-release",
+      "creationTimestamp": "2025-05-06T22:33:28.035Z",
+      "completionTimestamp": "2025-05-07T00:29:24.903Z"
+    },
+    {
+      "buildId": "13411694",
+      "target": {
+        "name": "aosp_cf_arm64_only_phone-userdebug"
+      },
+      "successful": true,
+      "branch": "aosp-android-latest-release",
+      "creationTimestamp": "2025-04-26T01:56:26.566Z",
+      "completionTimestamp": "2025-04-26T03:53:40.883Z"
+    },
+    {
+      "buildId": "13263448",
+      "target": {
+        "name": "aosp_cf_arm64_only_phone-userdebug"
+      },
+      "successful": true,
+      "branch": "aosp-android-latest-release",
+      "creationTimestamp": "2025-03-24T19:47:18.482Z",
+      "completionTimestamp": "2025-03-24T21:56:14.529Z"
+    }
+  ]
+}

@@ -14,10 +14,13 @@ public actor VMManager {
     public struct Settings: Sendable {
         public var config: VMConfig
         public var profile: DeviceProfile?
+        /// Every Android display's refresh rate for this boot (FrameRates.androidRate).
+        public var displayRate: Int
 
-        public init(config: VMConfig, profile: DeviceProfile?) {
+        public init(config: VMConfig, profile: DeviceProfile?, displayRate: Int = FrameRates.standardRate) {
             self.config = config
             self.profile = profile
+            self.displayRate = displayRate
         }
     }
 
@@ -26,7 +29,14 @@ public actor VMManager {
     private let softwareVersion: String
     private let adbKey: ADBKey
     private let loadImage: @Sendable () throws -> AndroidImage
+    /// Runs before every start (Android's data must be where Avo keeps it).
+    private let preflight: @Sendable () async throws -> Void
+    /// Runs once Android answers, before the start counts as done (notes who used the data).
+    private let started: @Sendable () async -> Void
     private let bootTimeout: Duration
+    /// A boot on a data disk Android never wrote: it formats the data and
+    /// prepares ART and every app first, minutes before the agent listens.
+    private let firstBootTimeout: Duration
     private let logger = Logger(subsystem: AvoIdentifiers.logSubsystem, category: "VM")
 
     public private(set) var status = VMStatus.stopped
@@ -35,34 +45,57 @@ public actor VMManager {
     private var adb: ADBConnection?
     private var booting: Task<Void, any Error>?
     private var pumps: [Task<Void, Never>] = []
+    /// Pauses and wakes, one after the other ("Pause" below).
+    private var pauseTransition: Task<Void, Never>?
+    private var pausedAt: ContinuousClock.Instant?
+    /// When something last used Android through this manager (a channel, a
+    /// start, a wake): Pause When Idle counts its idle time from there.
+    public private(set) var lastUse = ContinuousClock.now
 
     /// Guest events from every Control session, across reboots.
     public nonisolated let guestEvents: AsyncStream<ControlSession.Payload>
     private let guestSink: AsyncStream<ControlSession.Payload>.Continuation
     public nonisolated let statusUpdates: AsyncStream<VMStatus>
     private let statusSink: AsyncStream<VMStatus>.Continuation
+    /// Android asked for a factory reset; the VM is stopped (AndroidFactoryReset).
+    public nonisolated let factoryResets: AsyncStream<Void>
+    private let factoryResetSink: AsyncStream<Void>.Continuation
+    /// Android rebooted itself; the VM is stopped (AndroidRebooted).
+    public nonisolated let reboots: AsyncStream<Void>
+    private let rebootSink: AsyncStream<Void>.Continuation
 
     public init(engine: any VMEngine, paths: AvoPaths, softwareVersion: String, adbKey: ADBKey,
-                bootTimeout: Duration = .seconds(180),
+                bootTimeout: Duration = .seconds(180), firstBootTimeout: Duration = .seconds(900),
+                preflight: @escaping @Sendable () async throws -> Void = {},
+                started: @escaping @Sendable () async -> Void = {},
                 loadImage: @escaping @Sendable () throws -> AndroidImage) {
         self.engine = engine
         self.paths = paths
         self.softwareVersion = softwareVersion
         self.adbKey = adbKey
         self.bootTimeout = bootTimeout
+        self.firstBootTimeout = firstBootTimeout
+        self.preflight = preflight
+        self.started = started
         self.loadImage = loadImage
         (guestEvents, guestSink) = AsyncStream.makeStream(of: ControlSession.Payload.self, bufferingPolicy: .bufferingNewest(4096))
         (statusUpdates, statusSink) = AsyncStream.makeStream(of: VMStatus.self, bufferingPolicy: .bufferingNewest(16))
+        (factoryResets, factoryResetSink) = AsyncStream.makeStream(of: Void.self, bufferingPolicy: .bufferingNewest(1))
+        (reboots, rebootSink) = AsyncStream.makeStream(of: Void.self, bufferingPolicy: .bufferingNewest(1))
         let exits = engine.exits
         Task { [weak self] in
             for await error in exits { await self?.engineExited(error) }
         }
+        // What the engine hands out itself (fingerprints, Google apps) wakes Android too.
+        (engine as? any PausableEngine)?.onUse { [weak self] in try? await self?.wake() }
     }
 
     // MARK: Lifecycle
 
     /// Starts the VM if needed and waits until the Bridge Agent answers.
     public func ensureRunning(_ settings: @autoclosure @Sendable () -> Settings) async throws {
+        // Paused: it goes on (a failed wake starts it again below).
+        if usedWhilePaused() { try? await wake() }
         if status.state == .running, let control, await control.isOpen { return }
         if let booting { return try await booting.value }
         let settings = settings()
@@ -81,18 +114,27 @@ public actor VMManager {
 
     private func boot(_ settings: Settings) async throws {
         update(VMStatus(state: .starting, detail: "Starting Android"))
+        try await preflight()
         let image = try loadImage()
         try paths.createDirectories()
-        try ensureDataDisk(gib: settings.config.dataDiskGiB)
+        let dataDisk = DataDiskStore(paths: paths)
+        let firstBoot = try dataDisk.ensure(gb: settings.config.dataDiskGiB)
+        dataDisk.clearFactoryResetProtection()
 
-        let bootConfig = BootConfig(adbKeys: [try adbKey.androidPublicKey(comment: "avo-daemon")],
-                                    profile: settings.profile, config: settings.config)
+        var adbKeys = [try adbKey.androidPublicKey(comment: "avo-daemon")]
+        // ADB support: adb on this Mac authenticates with its own key.
+        if settings.config.adbEnabled,
+           let key = try? String(contentsOf: paths.home.appending(path: ".android/adbkey.pub"), encoding: .utf8) {
+            adbKeys.append(key.trimmingCharacters(in: .whitespacesAndNewlines))
+        }
+        let bootConfig = BootConfig(adbKeys: adbKeys, profile: settings.profile, config: settings.config)
         let configDisk = paths.vm.appending(path: "avo_config.img")
         try bootConfig.write(to: configDisk)
-        try await engine.start(EngineLaunch(config: settings.config, paths: paths, image: image, bootConfigDisk: configDisk))
+        try await engine.start(EngineLaunch(config: settings.config, paths: paths, image: image, bootConfigDisk: configDisk,
+                                            profile: settings.profile, displayRate: settings.displayRate))
 
-        update(VMStatus(state: .starting, detail: "Waiting for Android to boot"))
-        let session = try await connectControl()
+        update(VMStatus(state: .starting, detail: String(localized: "Waiting for Android to boot", bundle: .avoKit)))
+        let session = try await connectControl(timeout: firstBoot ? max(bootTimeout, firstBootTimeout) : bootTimeout)
         let hello = try await session.start()
         control = session
         pumps.append(Task { [weak self] in
@@ -104,6 +146,7 @@ public actor VMManager {
         let channel = InputChannel(stream: inputStream)
         try await channel.start()
         input = channel
+        await started()
 
         update(VMStatus(state: .running, androidVersion: Self.androidVersion(sdk: Int(hello.androidSdk)),
                         protocolVersion: await session.negotiatedVersion, bootedAt: Date()))
@@ -111,8 +154,8 @@ public actor VMManager {
     }
 
     /// Retries until the Bridge Agent listens (it starts late in boot).
-    private func connectControl() async throws -> ControlSession {
-        let deadline = ContinuousClock.now + bootTimeout
+    private func connectControl(timeout: Duration) async throws -> ControlSession {
+        let deadline = ContinuousClock.now + timeout
         var lastError: (any Error)?
         while ContinuousClock.now < deadline {
             try Task.checkCancellation()
@@ -127,13 +170,16 @@ public actor VMManager {
         throw AvoError.timedOut("Android boot (\(lastError.map { "\($0)" } ?? "no answer"))")
     }
 
-    public func stop() async {
+    /// `reason`: why Android stopped, shown with the status (an eject).
+    public func stop(reason: String? = nil) async {
         guard status.state != .stopped else { return }
+        // A paused engine runs Android again for its power off (VMMEngine.stop).
+        pausedAt = nil
         update(VMStatus(state: .stopping))
         booting?.cancel()
         await teardown()
         await engine.stop()
-        update(.stopped)
+        update(VMStatus(state: .stopped, detail: reason))
     }
 
     public func restart(_ settings: @autoclosure @Sendable () -> Settings) async throws {
@@ -161,7 +207,22 @@ public actor VMManager {
 
     private func engineExited(_ error: (any Error)?) async {
         guard status.state != .stopped else { return }
+        pausedAt = nil
         await teardown()
+        if error is AndroidFactoryReset {
+            logger.notice("Android asked for a factory reset")
+            await engine.stop()
+            update(VMStatus(state: .stopped, detail: String(localized: "Erasing Android’s data", bundle: .avoKit)))
+            factoryResetSink.yield()
+            return
+        }
+        if error is AndroidRebooted {
+            logger.notice("Android rebooted itself; starting it again")
+            await engine.stop()
+            update(VMStatus(state: .stopped, detail: String(localized: "Android is restarting", bundle: .avoKit)))
+            rebootSink.yield()
+            return
+        }
         if let error {
             update(VMStatus(state: .failed, detail: (error as? LocalizedError)?.errorDescription ?? "\(error)"))
         } else {
@@ -172,23 +233,28 @@ public actor VMManager {
     private func controlClosed(_ session: ControlSession) async {
         guard control === session, status.state == .running else { return }
         logger.error("Control channel closed while running")
-        update(VMStatus(state: .failed, detail: "Android stopped responding"))
+        update(VMStatus(state: .failed, detail: String(localized: "Android stopped responding", bundle: .avoKit)))
     }
 
     // MARK: Channels
 
-    public func controlSession() throws -> ControlSession {
+    // Every channel wakes a paused Android first: using it is what resumes it.
+
+    public func controlSession() async throws -> ControlSession {
+        if usedWhilePaused() { try await wake() }
         guard let control, status.state == .running else { throw AvoError.vmNotRunning }
         return control
     }
 
-    public func inputChannel() throws -> InputChannel {
+    public func inputChannel() async throws -> InputChannel {
+        if usedWhilePaused() { try await wake() }
         guard let input, status.state == .running else { throw AvoError.vmNotRunning }
         return input
     }
 
     /// The ADB channel, connected on first use.
     public func adbConnection() async throws -> ADBConnection {
+        if usedWhilePaused() { try await wake() }
         if let adb { return adb }
         guard status.state == .running else { throw AvoError.vmNotRunning }
         let stream = try await engine.connect(port: AvoProtocol.Port.adb)
@@ -196,6 +262,49 @@ public actor VMManager {
         _ = try await connection.connect(timeout: .seconds(20))
         adb = connection
         return connection
+    }
+
+    /// Runs `command` over a fresh adbd connection, also while Android has
+    /// not finished booting or keeps restarting (system_server crashing):
+    /// adbd is up long before `sys.boot_completed`. For repairs only (taking
+    /// out a Google apps install that broke the boot). Throws `vmNotRunning`
+    /// at once when the engine is not running.
+    public func rescueShell(_ command: String, timeout: Duration) async throws -> ShellResult {
+        if usedWhilePaused() { try? await wake() }
+        let deadline = ContinuousClock.now + timeout
+        var lastError: (any Error)?
+        while ContinuousClock.now < deadline {
+            try Task.checkCancellation()
+            let stream: any ByteStream
+            do {
+                stream = try await engine.connect(port: AvoProtocol.Port.adb)
+            } catch AvoError.vmNotRunning {
+                throw AvoError.vmNotRunning
+            } catch {
+                lastError = error
+                try await Task.sleep(for: .seconds(1))
+                continue
+            }
+            let connection = ADBConnection(transport: stream, key: adbKey, keyComment: "avo-daemon")
+            do {
+                _ = try await connection.connect(timeout: .seconds(15))
+                let result = try await connection.shell(command)
+                await connection.close()
+                return result
+            } catch {
+                await connection.close()
+                lastError = error
+                try await Task.sleep(for: .seconds(1))
+            }
+        }
+        throw AvoError.timedOut("ADB (\(lastError.map { "\($0)" } ?? "no answer"))")
+    }
+
+    /// A socket to adbd in Android for `adb` on the Mac ("ADB support").
+    public func adbSocket() async throws -> Int32 {
+        if usedWhilePaused() { try await wake() }
+        guard status.state == .running else { throw AvoError.vmNotRunning }
+        return try await engine.connectSocket(port: AvoProtocol.Port.adb)
     }
 
     // MARK: Helpers
@@ -207,8 +316,25 @@ public actor VMManager {
     private func update(_ new: VMStatus) {
         var new = new
         if new.state == .running || new.state == .starting { new.openDisplays = status.openDisplays }
+        // The engine reports the renderer on its own (setRenderer).
+        new.renderer = status.renderer
+        // And Android's screen lock (setScreenLock), which lasts one run: a
+        // new start (also one after a lost Control channel) begins without.
+        if new.state == .running ? status.state == .starting || status.state == .running
+                                 : new.state == .starting && status.state == .starting {
+            new.screenLock = status.screenLock
+        }
         status = new
         statusSink.yield(new)
+    }
+
+    /// Android's screen lock while it keeps Android locked, from the engine
+    /// (ScreenLockEngine); kept only while Android starts or runs.
+    public func setScreenLock(_ lock: AndroidScreenLock?) {
+        let lock = status.state == .running || status.state == .starting || status.isPaused ? lock : nil
+        guard status.screenLock != lock else { return }
+        status.screenLock = lock
+        statusSink.yield(status)
     }
 
     public func setOpenDisplays(_ count: Int) {
@@ -216,16 +342,83 @@ public actor VMManager {
         statusSink.yield(status)
     }
 
-    /// Creates or grows the sparse user data disk (never shrinks it).
-    func ensureDataDisk(gib: Int) throws {
-        let url = paths.dataDisk
-        let size = UInt64(gib) << 30
-        if !FileManager.default.fileExists(atPath: url.path) {
-            FileManager.default.createFile(atPath: url.path, contents: nil, attributes: [.posixPermissions: 0o600])
+    /// GPU or software rendering, from the engine (VMMEngine.renderer).
+    public func setRenderer(_ renderer: RendererStatus?) {
+        guard status.renderer != renderer else { return }
+        status.renderer = renderer
+        statusSink.yield(status)
+    }
+
+    // MARK: Pause (Pause When Idle and the menu bar; PausableEngine)
+
+    /// Whether this engine can pause Android at all.
+    public nonisolated var canPause: Bool { engine is any PausableEngine }
+
+    /// Pauses a running Android: its vCPUs stop, it keeps its place and uses
+    /// no CPU until anything uses it (`wake`). `idleSince`: Pause When Idle's
+    /// decision, dropped when Android was used after it.
+    public func pause(automatic: Bool, idleSince: ContinuousClock.Instant? = nil) async throws {
+        try await serialized { try await self.performPause(automatic: automatic, idleSince: idleSince) }
+    }
+
+    /// Lets a paused Android go on; at once when it is not paused.
+    public func wake() async throws {
+        guard usedWhilePaused() else { return }
+        try await serialized { try await self.performResume() }
+    }
+
+    /// Notes a use; whether Android is paused (or a pause is under way) for it.
+    private func usedWhilePaused() -> Bool {
+        lastUse = .now
+        return status.isPaused || pauseTransition != nil
+    }
+
+    /// One pause or wake at a time, in the order asked.
+    private func serialized(_ body: @escaping @Sendable () async throws -> Void) async throws {
+        let previous = pauseTransition
+        let task = Task {
+            await previous?.value
+            try await body()
         }
-        let handle = try FileHandle(forWritingTo: url)
-        defer { try? handle.close() }
-        if try handle.seekToEnd() < size { try handle.truncate(atOffset: size) }
+        let done = Task { _ = await task.result }
+        pauseTransition = done
+        defer { if pauseTransition == done { pauseTransition = nil } }
+        try await task.value
+    }
+
+    private func performPause(automatic: Bool, idleSince: ContinuousClock.Instant?) async throws {
+        guard status.state == .running, control != nil, let engine = engine as? any PausableEngine else { return }
+        if let idleSince, lastUse > idleSince { return }
+        setPause(.suspending, VMPause(since: Date(), automatic: automatic))
+        do {
+            try await engine.pause()
+        } catch {
+            if status.state == .suspending { setPause(.running, nil) }
+            logger.error("could not pause Android: \(error.localizedDescription, privacy: .public)")
+            throw error
+        }
+        // Stopped or failed meanwhile.
+        guard status.state == .suspending else { return }
+        pausedAt = .now
+        setPause(.suspended, status.pause)
+        logger.notice("Android paused (\(automatic ? "idle" : "by the user", privacy: .public))")
+    }
+
+    private func performResume() async throws {
+        guard status.state == .suspended, let engine = engine as? any PausableEngine else { return }
+        let pausedFor = pausedAt.map { ContinuousClock.now - $0 } ?? .zero
+        try await engine.resume(pausedFor: pausedFor)
+        guard status.state == .suspended else { return }
+        pausedAt = nil
+        setPause(.running, nil)
+        logger.notice("Android resumed after \(pausedFor, privacy: .public)")
+    }
+
+    /// Pausing keeps everything else of the status (windows, renderer, lock).
+    private func setPause(_ state: VMState, _ pause: VMPause?) {
+        status.state = state
+        status.pause = pause
+        statusSink.yield(status)
     }
 
     static func androidVersion(sdk: Int) -> String {

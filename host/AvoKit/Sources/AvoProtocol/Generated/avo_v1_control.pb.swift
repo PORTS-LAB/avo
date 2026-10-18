@@ -317,6 +317,14 @@ public nonisolated struct Avo_V1_Envelope: @unchecked Sendable {
     set {_uniqueStorage()._payload = .setRefreshRate(newValue)}
   }
 
+  public var focusDisplay: Avo_V1_FocusDisplay {
+    get {
+      if case .focusDisplay(let v)? = _storage._payload {return v}
+      return Avo_V1_FocusDisplay()
+    }
+    set {_uniqueStorage()._payload = .focusDisplay(newValue)}
+  }
+
   /// Guest -> host.
   public var appInstalled: Avo_V1_AppInstalled {
     get {
@@ -406,6 +414,14 @@ public nonisolated struct Avo_V1_Envelope: @unchecked Sendable {
     set {_uniqueStorage()._payload = .displayContentChanged(newValue)}
   }
 
+  public var taskStarted: Avo_V1_TaskStarted {
+    get {
+      if case .taskStarted(let v)? = _storage._payload {return v}
+      return Avo_V1_TaskStarted()
+    }
+    set {_uniqueStorage()._payload = .taskStarted(newValue)}
+  }
+
   public var unknownFields = SwiftProtobuf.UnknownStorage()
 
   public nonisolated enum OneOf_Payload: Equatable, Sendable {
@@ -432,6 +448,7 @@ public nonisolated struct Avo_V1_Envelope: @unchecked Sendable {
     case openNotification(Avo_V1_OpenNotification)
     case dismissNotification(Avo_V1_DismissNotification)
     case setRefreshRate(Avo_V1_SetRefreshRate)
+    case focusDisplay(Avo_V1_FocusDisplay)
     /// Guest -> host.
     case appInstalled(Avo_V1_AppInstalled)
     case appRemoved(Avo_V1_AppRemoved)
@@ -444,6 +461,7 @@ public nonisolated struct Avo_V1_Envelope: @unchecked Sendable {
     case appList(Avo_V1_AppList)
     case permissionList(Avo_V1_PermissionList)
     case displayContentChanged(Avo_V1_DisplayContentChanged)
+    case taskStarted(Avo_V1_TaskStarted)
 
   }
 
@@ -656,7 +674,8 @@ public nonisolated struct Avo_V1_Launch: Sendable {
 
   public var mimeType: String = String()
 
-  /// Frame rate cap for the display (Control Panel "batas FPS"); 0 = 60.
+  /// Refresh rate of the display in Hz: Android's display rate this boot (60
+  /// to 120; every display has the same); 0 = 60.
   public var refreshRate: UInt32 = 0
 
   public var unknownFields = SwiftProtobuf.UnknownStorage()
@@ -727,6 +746,22 @@ public nonisolated struct Avo_V1_SetDisplayVisibility: Sendable {
   public init() {}
 }
 
+/// The display's window became the Mac's key window: its app takes Android's
+/// input focus, as a phone's one app has it (games pause their sound, and
+/// keys and gamepads go elsewhere, while their window is not focused). Only
+/// the GPU engine needs it; displays with their own focus already have it.
+public nonisolated struct Avo_V1_FocusDisplay: Sendable {
+  // SwiftProtobuf.Message conformance is added in an extension below. See the
+  // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
+  // methods supported on all messages.
+
+  public var displayID: UInt32 = 0
+
+  public var unknownFields = SwiftProtobuf.UnknownStorage()
+
+  public init() {}
+}
+
 public nonisolated struct Avo_V1_DisplayReady: Sendable {
   // SwiftProtobuf.Message conformance is added in an extension below. See the
   // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
@@ -749,6 +784,23 @@ public nonisolated struct Avo_V1_TaskClosed: Sendable {
   public var displayID: UInt32 = 0
 
   public var package: String = String()
+
+  public var unknownFields = SwiftProtobuf.UnknownStorage()
+
+  public init() {}
+}
+
+/// An app came to the front on Android's own screen, which no window shows
+/// (started by adb, another app or the system). The host opens a window for
+/// the package; its Launch brings the running task there.
+public nonisolated struct Avo_V1_TaskStarted: Sendable {
+  // SwiftProtobuf.Message conformance is added in an extension below. See the
+  // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
+  // methods supported on all messages.
+
+  public var package: String = String()
+
+  public var taskID: Int32 = 0
 
   public var unknownFields = SwiftProtobuf.UnknownStorage()
 
@@ -1157,7 +1209,7 @@ nonisolated extension Avo_V1_Orientation: SwiftProtobuf._ProtoNameProviding {
 
 nonisolated extension Avo_V1_Envelope: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
   public static let protoMessageName: String = _protobuf_package + ".Envelope"
-  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}protocol_version\0\u{3}request_id\0\u{2}\u{8}hello\0\u{1}goodbye\0\u{1}ping\0\u{1}pong\0\u{1}reply\0\u{2}\u{6}launch\0\u{1}resize\0\u{1}close\0\u{1}install\0\u{1}uninstall\0\u{3}set_clipboard\0\u{3}list_apps\0\u{3}force_stop\0\u{3}delete_app_data\0\u{3}get_permissions\0\u{3}set_permission\0\u{3}share_files\0\u{3}set_display_visibility\0\u{3}open_notification\0\u{3}dismiss_notification\0\u{3}set_refresh_rate\0\u{4}\u{f}app_installed\0\u{3}app_removed\0\u{3}display_ready\0\u{3}task_closed\0\u{1}notification\0\u{3}notification_removed\0\u{3}clipboard_changed\0\u{3}orientation_request\0\u{3}app_list\0\u{3}permission_list\0\u{3}display_content_changed\0")
+  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}protocol_version\0\u{3}request_id\0\u{2}\u{8}hello\0\u{1}goodbye\0\u{1}ping\0\u{1}pong\0\u{1}reply\0\u{2}\u{6}launch\0\u{1}resize\0\u{1}close\0\u{1}install\0\u{1}uninstall\0\u{3}set_clipboard\0\u{3}list_apps\0\u{3}force_stop\0\u{3}delete_app_data\0\u{3}get_permissions\0\u{3}set_permission\0\u{3}share_files\0\u{3}set_display_visibility\0\u{3}open_notification\0\u{3}dismiss_notification\0\u{3}set_refresh_rate\0\u{3}focus_display\0\u{4}\u{e}app_installed\0\u{3}app_removed\0\u{3}display_ready\0\u{3}task_closed\0\u{1}notification\0\u{3}notification_removed\0\u{3}clipboard_changed\0\u{3}orientation_request\0\u{3}app_list\0\u{3}permission_list\0\u{3}display_content_changed\0\u{3}task_started\0")
 
   fileprivate class _StorageClass {
     var _protocolVersion: UInt32 = 0
@@ -1469,6 +1521,19 @@ nonisolated extension Avo_V1_Envelope: SwiftProtobuf.Message, SwiftProtobuf._Mes
             _storage._payload = .setRefreshRate(v)
           }
         }()
+        case 36: try {
+          var v: Avo_V1_FocusDisplay?
+          var hadOneofValue = false
+          if let current = _storage._payload {
+            hadOneofValue = true
+            if case .focusDisplay(let m) = current {v = m}
+          }
+          try decoder.decodeSingularMessageField(value: &v)
+          if let v = v {
+            if hadOneofValue {try decoder.handleConflictingOneOf()}
+            _storage._payload = .focusDisplay(v)
+          }
+        }()
         case 50: try {
           var v: Avo_V1_AppInstalled?
           var hadOneofValue = false
@@ -1612,6 +1677,19 @@ nonisolated extension Avo_V1_Envelope: SwiftProtobuf.Message, SwiftProtobuf._Mes
             _storage._payload = .displayContentChanged(v)
           }
         }()
+        case 61: try {
+          var v: Avo_V1_TaskStarted?
+          var hadOneofValue = false
+          if let current = _storage._payload {
+            hadOneofValue = true
+            if case .taskStarted(let m) = current {v = m}
+          }
+          try decoder.decodeSingularMessageField(value: &v)
+          if let v = v {
+            if hadOneofValue {try decoder.handleConflictingOneOf()}
+            _storage._payload = .taskStarted(v)
+          }
+        }()
         default: break
         }
       }
@@ -1715,6 +1793,10 @@ nonisolated extension Avo_V1_Envelope: SwiftProtobuf.Message, SwiftProtobuf._Mes
         guard case .setRefreshRate(let v)? = _storage._payload else { preconditionFailure() }
         try visitor.visitSingularMessageField(value: v, fieldNumber: 35)
       }()
+      case .focusDisplay?: try {
+        guard case .focusDisplay(let v)? = _storage._payload else { preconditionFailure() }
+        try visitor.visitSingularMessageField(value: v, fieldNumber: 36)
+      }()
       case .appInstalled?: try {
         guard case .appInstalled(let v)? = _storage._payload else { preconditionFailure() }
         try visitor.visitSingularMessageField(value: v, fieldNumber: 50)
@@ -1758,6 +1840,10 @@ nonisolated extension Avo_V1_Envelope: SwiftProtobuf.Message, SwiftProtobuf._Mes
       case .displayContentChanged?: try {
         guard case .displayContentChanged(let v)? = _storage._payload else { preconditionFailure() }
         try visitor.visitSingularMessageField(value: v, fieldNumber: 60)
+      }()
+      case .taskStarted?: try {
+        guard case .taskStarted(let v)? = _storage._payload else { preconditionFailure() }
+        try visitor.visitSingularMessageField(value: v, fieldNumber: 61)
       }()
       case nil: break
       }
@@ -2200,6 +2286,36 @@ nonisolated extension Avo_V1_SetDisplayVisibility: SwiftProtobuf.Message, SwiftP
   }
 }
 
+nonisolated extension Avo_V1_FocusDisplay: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
+  public static let protoMessageName: String = _protobuf_package + ".FocusDisplay"
+  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}display_id\0")
+
+  public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
+    while let fieldNumber = try decoder.nextFieldNumber() {
+      // The use of inline closures is to circumvent an issue where the compiler
+      // allocates stack space for every case branch when no optimizations are
+      // enabled. https://github.com/apple/swift-protobuf/issues/1034
+      switch fieldNumber {
+      case 1: try { try decoder.decodeSingularUInt32Field(value: &self.displayID) }()
+      default: break
+      }
+    }
+  }
+
+  public func traverse<V: SwiftProtobuf.Visitor>(visitor: inout V) throws {
+    if self.displayID != 0 {
+      try visitor.visitSingularUInt32Field(value: self.displayID, fieldNumber: 1)
+    }
+    try unknownFields.traverse(visitor: &visitor)
+  }
+
+  public static func ==(lhs: Avo_V1_FocusDisplay, rhs: Avo_V1_FocusDisplay) -> Bool {
+    if lhs.displayID != rhs.displayID {return false}
+    if lhs.unknownFields != rhs.unknownFields {return false}
+    return true
+  }
+}
+
 nonisolated extension Avo_V1_DisplayReady: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
   public static let protoMessageName: String = _protobuf_package + ".DisplayReady"
   public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}display_id\0\u{1}package\0")
@@ -2265,6 +2381,41 @@ nonisolated extension Avo_V1_TaskClosed: SwiftProtobuf.Message, SwiftProtobuf._M
   public static func ==(lhs: Avo_V1_TaskClosed, rhs: Avo_V1_TaskClosed) -> Bool {
     if lhs.displayID != rhs.displayID {return false}
     if lhs.package != rhs.package {return false}
+    if lhs.unknownFields != rhs.unknownFields {return false}
+    return true
+  }
+}
+
+nonisolated extension Avo_V1_TaskStarted: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
+  public static let protoMessageName: String = _protobuf_package + ".TaskStarted"
+  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{1}package\0\u{3}task_id\0")
+
+  public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
+    while let fieldNumber = try decoder.nextFieldNumber() {
+      // The use of inline closures is to circumvent an issue where the compiler
+      // allocates stack space for every case branch when no optimizations are
+      // enabled. https://github.com/apple/swift-protobuf/issues/1034
+      switch fieldNumber {
+      case 1: try { try decoder.decodeSingularStringField(value: &self.package) }()
+      case 2: try { try decoder.decodeSingularInt32Field(value: &self.taskID) }()
+      default: break
+      }
+    }
+  }
+
+  public func traverse<V: SwiftProtobuf.Visitor>(visitor: inout V) throws {
+    if !self.package.isEmpty {
+      try visitor.visitSingularStringField(value: self.package, fieldNumber: 1)
+    }
+    if self.taskID != 0 {
+      try visitor.visitSingularInt32Field(value: self.taskID, fieldNumber: 2)
+    }
+    try unknownFields.traverse(visitor: &visitor)
+  }
+
+  public static func ==(lhs: Avo_V1_TaskStarted, rhs: Avo_V1_TaskStarted) -> Bool {
+    if lhs.package != rhs.package {return false}
+    if lhs.taskID != rhs.taskID {return false}
     if lhs.unknownFields != rhs.unknownFields {return false}
     return true
   }

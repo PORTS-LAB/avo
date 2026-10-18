@@ -16,6 +16,8 @@ public enum AvoIdentifiers {
     public static let daemonLabel = "\(prefix).daemon"
     /// Mach service the daemon vends over XPC.
     public static let daemonMachService = "\(prefix).daemon"
+    /// AvoDaemon.app's bundle identifier (it posts the macOS notifications).
+    public static let daemonBundleID = "\(prefix).daemon"
     /// Bundle identifier prefix of generated App Shims.
     public static let shimPrefix = "\(prefix).shim."
     /// os_log subsystem.

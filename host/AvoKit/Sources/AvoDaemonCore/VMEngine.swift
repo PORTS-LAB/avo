@@ -12,13 +12,20 @@ public struct EngineLaunch: Sendable {
     public var bootConfigDisk: URL
     /// Quick-boot snapshot to restore, when one matches this configuration.
     public var restoreSnapshot: URL?
+    /// The device identity to boot with (also inside the BootConfig disk).
+    public var profile: DeviceProfile?
+    /// The refresh rate of every Android display this boot (FrameRates.androidRate).
+    public var displayRate: Int
 
-    public init(config: VMConfig, paths: AvoPaths, image: AndroidImage, bootConfigDisk: URL, restoreSnapshot: URL? = nil) {
+    public init(config: VMConfig, paths: AvoPaths, image: AndroidImage, bootConfigDisk: URL, restoreSnapshot: URL? = nil,
+                profile: DeviceProfile? = nil, displayRate: Int = FrameRates.standardRate) {
         self.config = config
         self.paths = paths
         self.image = image
         self.bootConfigDisk = bootConfigDisk
         self.restoreSnapshot = restoreSnapshot
+        self.profile = profile
+        self.displayRate = displayRate
     }
 }
 
@@ -34,8 +41,60 @@ public protocol VMEngine: AnyObject, Sendable {
     func snapshot(to url: URL) async throws
     /// Opens a stream to a vsock port inside the guest.
     func connect(port: UInt32) async throws -> any ByteStream
+    /// The same as a blocking socket the caller owns (for splicing to a
+    /// TCP client, see ADBForwarder).
+    func connectSocket(port: UInt32) async throws -> Int32
     /// Yields once when the engine exits; nil for a clean shutdown.
     var exits: AsyncStream<(any Error)?> { get }
+}
+
+/// An engine that can pause Android: its vCPUs stop and its clock stands
+/// still, and it goes on where it was (avo-vmm's `pause` / `resume`,
+/// engine/hvf/vmm/src/pause.rs). VMManager pauses and wakes it.
+public protocol PausableEngine: VMEngine {
+    /// Returns once no vCPU runs Android's code.
+    func pause() async throws
+    /// `pausedFor`: how long Android stood still (its wall clock is set right after).
+    func resume(pausedFor: Duration) async throws
+    /// What the engine is doing now, for Pause When Idle and the menu bar.
+    func activity() async -> EngineActivity
+    /// What to call when something the engine hands out itself (fingerprints,
+    /// Google apps, the unlock) is about to use a paused Android.
+    func onUse(_ wake: @escaping @Sendable () async -> Void)
+}
+
+public struct EngineActivity: Sendable, Equatable {
+    /// Android plays sound, or records from the microphone.
+    public var playing: Bool
+    public var recording: Bool
+    /// CPU time the engine process used since it started, and its memory.
+    public var cpuTime: Duration?
+    public var residentBytes: UInt64?
+
+    public init(playing: Bool = false, recording: Bool = false, cpuTime: Duration? = nil, residentBytes: UInt64? = nil) {
+        self.playing = playing
+        self.recording = recording
+        self.cpuTime = cpuTime
+        self.residentBytes = residentBytes
+    }
+}
+
+/// An engine exit because Android asked for a factory reset (avo-vmm's
+/// EXIT_FACTORY_RESET): the daemon erases the data and starts Android again.
+public struct AndroidFactoryReset: Error, Equatable {
+    public init() {}
+}
+
+/// An engine exit because Android rebooted itself (avo-vmm's
+/// EXIT_GUEST_REBOOT): the daemon starts it again, as a new boot.
+public struct AndroidRebooted: Error, Equatable {
+    public init() {}
+}
+
+extension VMEngine {
+    public func connectSocket(port: UInt32) async throws -> Int32 {
+        throw AvoError.internalError("\(name) cannot hand out guest sockets")
+    }
 }
 
 /// crosvm with Avo's Hypervisor.framework backend, run as a child process.
@@ -117,7 +176,7 @@ public final class CrosvmEngine: VMEngine, @unchecked Sendable {
             try? logHandle.close()
             let clean = process.terminationReason == .exit && process.terminationStatus == 0
             logger.notice("crosvm exited with status \(process.terminationStatus)")
-            sink.yield(clean ? nil : AvoError.vmStartFailed("crosvm exited with status \(process.terminationStatus)"))
+            sink.yield(clean ? nil : AvoError.vmStartFailed(String(localized: "The VM engine exited with status \(Int(process.terminationStatus)).", bundle: .avoKit)))
         }
         do {
             try process.run()
@@ -132,7 +191,7 @@ public final class CrosvmEngine: VMEngine, @unchecked Sendable {
         // Ready when the vsock bridge socket accepts connections.
         let deadline = ContinuousClock.now + .seconds(30)
         while ContinuousClock.now < deadline {
-            guard process.isRunning else { throw AvoError.vmStartFailed("crosvm exited during startup; see \(log.path)") }
+            guard process.isRunning else { throw AvoError.vmStartFailed(String(localized: "The VM engine stopped while starting; see \(log.path).", bundle: .avoKit)) }
             if let fd = try? UnixSocket.connect(path: launch.paths.vsockSocket.path) {
                 close(fd)
                 return
@@ -162,6 +221,11 @@ public final class CrosvmEngine: VMEngine, @unchecked Sendable {
     public func connect(port: UInt32) async throws -> any ByteStream {
         guard let launch = lock.withLock({ self.launch }) else { throw AvoError.vmNotRunning }
         return try VsockBridge.connect(socketPath: launch.paths.vsockSocket.path, port: port)
+    }
+
+    public func connectSocket(port: UInt32) async throws -> Int32 {
+        guard let launch = lock.withLock({ self.launch }) else { throw AvoError.vmNotRunning }
+        return try VsockBridge.connectSocket(socketPath: launch.paths.vsockSocket.path, port: port)
     }
 
     @discardableResult

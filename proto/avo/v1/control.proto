@@ -62,6 +62,7 @@ message Envelope {
     OpenNotification open_notification = 33;
     DismissNotification dismiss_notification = 34;
     SetRefreshRate set_refresh_rate = 35;
+    FocusDisplay focus_display = 36;
 
     // Guest -> host.
     AppInstalled app_installed = 50;
@@ -75,6 +76,7 @@ message Envelope {
     AppList app_list = 58;
     PermissionList permission_list = 59;
     DisplayContentChanged display_content_changed = 60;
+    TaskStarted task_started = 61;
   }
 }
 
@@ -152,7 +154,8 @@ message Launch {
   // Optional: VIEW intent data URI (e.g. a file shared via "Open With").
   string data_uri = 8;
   string mime_type = 9;
-  // Frame rate cap for the display (Control Panel "batas FPS"); 0 = 60.
+  // Refresh rate of the display in Hz: Android's display rate this boot (60
+  // to 120; every display has the same); 0 = 60.
   uint32 refresh_rate = 10;
 }
 
@@ -182,6 +185,14 @@ message SetDisplayVisibility {
   bool visible = 2;
 }
 
+// The display's window became the Mac's key window: its app takes Android's
+// input focus, as a phone's one app has it (games pause their sound, and
+// keys and gamepads go elsewhere, while their window is not focused). Only
+// the GPU engine needs it; displays with their own focus already have it.
+message FocusDisplay {
+  uint32 display_id = 1;
+}
+
 message DisplayReady {
   uint32 display_id = 1;
   string package = 2;
@@ -190,6 +201,14 @@ message DisplayReady {
 message TaskClosed {
   uint32 display_id = 1;
   string package = 2;
+}
+
+// An app came to the front on Android's own screen, which no window shows
+// (started by adb, another app or the system). The host opens a window for
+// the package; its Launch brings the running task there.
+message TaskStarted {
+  string package = 1;
+  int32 task_id = 2;
 }
 
 // Top activity of a display changed (title, package) so the window can update

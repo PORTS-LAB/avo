@@ -56,6 +56,26 @@ public struct ShortcutManager: Sendable {
         return shortcuts
     }
 
+    /// A shim made by another Avo.app (a development build, a copy since
+    /// replaced or moved): its windows would load that Avo's frameworks, old
+    /// code or none, so it is made again for this one. So is one made from
+    /// another build's template (Avo updated in place: the same path, a new
+    /// CFBundleVersion), which may differ from this build's.
+    public func madeForAnotherAvo(_ shortcuts: AppRecord.Shortcuts) -> Bool {
+        guard let builder, let path = shortcuts.shimPath else { return false }
+        let plist = URL(filePath: path).appending(path: "Contents/Info.plist")
+        guard let info = NSDictionary(contentsOf: plist) else { return false }
+        guard let host = info[AvoIdentifiers.shimHostAppInfoKey] as? String else { return true }
+        if URL(filePath: host).standardizedFileURL.resolvingSymlinksInPath().path
+            != builder.hostApplication.standardizedFileURL.resolvingSymlinksInPath().path {
+            return true
+        }
+        let template = NSDictionary(contentsOf: builder.template.appending(path: "Contents/Info.plist"))
+        let build = { (info: NSDictionary?) in info?["CFBundleVersion"] as? String }
+        guard let templateBuild = build(template) else { return false }
+        return build(info) != templateBuild
+    }
+
     /// Uninstall removes the shim and its alias (spec §4).
     public func remove(_ shortcuts: AppRecord.Shortcuts) {
         if let alias = shortcuts.desktopAliasPath { Shortcuts.removeAlias(URL(filePath: alias)) }

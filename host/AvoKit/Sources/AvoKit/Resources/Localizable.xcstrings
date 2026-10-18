@@ -1,0 +1,2926 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "%@ (build %@)" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ (build %2$@)"
+          }
+        }
+      }
+    },
+    "%@ does not exist." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ tidak ada."
+          }
+        }
+      }
+    },
+    "%@ does not match the release’s SHA-256 checksum. Try downloading it again." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ tidak cocok dengan checksum SHA-256 rilisnya. Coba unduh lagi."
+          }
+        }
+      }
+    },
+    "%@ doesn’t look like part of an Android image." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ tidak tampak seperti bagian dari image Android."
+          }
+        }
+      }
+    },
+    "%@ failed its checksum." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Checksum %@ tidak cocok."
+          }
+        }
+      }
+    },
+    "%@ has the wrong size." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ukuran %@ salah."
+          }
+        }
+      }
+    },
+    "%@ holds Avo’s own files or Android’s data. Choose another folder to share." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ berisi file Avo sendiri atau data Android. Pilih folder lain untuk dibagikan."
+          }
+        }
+      }
+    },
+    "%@ holds other Android data than the data Avo used there. Choose it again in Settings › Storage to use it." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ berisi data Android lain, bukan data yang dipakai Avo di sana. Pilih lagi di Pengaturan › Storage untuk memakainya."
+          }
+        }
+      }
+    },
+    "%@ is bound more than once (%@)" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ is bound more than once (%2$@)"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ dipasang lebih dari sekali (%@)"
+          }
+        }
+      }
+    },
+    "%@ is in the way." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ menghalangi."
+          }
+        }
+      }
+    },
+    "%@ is missing" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ tidak ditemukan"
+          }
+        }
+      }
+    },
+    "%@ is not a GitHub release link." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ bukan tautan rilis GitHub."
+          }
+        }
+      }
+    },
+    "%@ is not a folder." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ bukan folder."
+          }
+        }
+      }
+    },
+    "%@ is not installed." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ tidak terinstal."
+          }
+        }
+      }
+    },
+    "%@ is part of Android’s system apps and cannot be uninstalled. Reset Android removes Google apps." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ termasuk aplikasi sistem Android dan tidak bisa diuninstal. Reset Android menghapus aplikasi Google."
+          }
+        }
+      }
+    },
+    "%@ is unexpectedly large (%@)." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ is unexpectedly large (%2$@)."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ terlalu besar (%@)."
+          }
+        }
+      }
+    },
+    "%@ timed out." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ melewati batas waktu."
+          }
+        }
+      }
+    },
+    "%@: aim area is invalid" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@: area bidik tidak valid"
+          }
+        }
+      }
+    },
+    "%@: anchor area is invalid" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@: area jangkar tidak valid"
+          }
+        }
+      }
+    },
+    "%@: curve exponent must be between 0.5 and 3" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@: eksponen kurva harus antara 0,5 dan 3"
+          }
+        }
+      }
+    },
+    "%@: deadzone must be between 0 and 50" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@: deadzone harus antara 0 dan 50"
+          }
+        }
+      }
+    },
+    "%@: holds must last at least %lld ms" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@: holds must last at least %2$lld ms"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@: tahan minimal %lld ms"
+          }
+        }
+      }
+    },
+    "%@: macros are not allowed in FPS mode (no recoil or fire macros)" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@: makro tidak diizinkan di mode FPS (tanpa makro recoil atau tembak)"
+          }
+        }
+      }
+    },
+    "%@: macros may run at most 10 s" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@: makro paling lama 10 detik"
+          }
+        }
+      }
+    },
+    "%@: macros need 1–32 steps" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@: makro butuh 1–32 langkah"
+          }
+        }
+      }
+    },
+    "%@: needs a trigger" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@: butuh pemicu"
+          }
+        }
+      }
+    },
+    "%@: position %@, %@ is outside the screen" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@: position %2$@, %3$@ is outside the screen"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@: posisi %@, %@ berada di luar layar"
+          }
+        }
+      }
+    },
+    "%@: position must be inside the anchor area" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@: posisi harus berada di dalam area jangkar"
+          }
+        }
+      }
+    },
+    "%@: radius must be between 0.01 and 0.5" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@: radius harus antara 0,01 dan 0,5"
+          }
+        }
+      }
+    },
+    "%@: reach must be between 0.05 and 2" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@: jangkauan harus antara 0,05 dan 2"
+          }
+        }
+      }
+    },
+    "%@: repeat interval must be at least 50 ms" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@: interval ulang minimal 50 ms"
+          }
+        }
+      }
+    },
+    "%@: repeated taps are not allowed in FPS mode (no automatic rapid fire)" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@: ketukan berulang tidak diizinkan di mode FPS (tanpa rapid fire otomatis)"
+          }
+        }
+      }
+    },
+    "%@: scroll triggers only work with tap, swipe or macro controls" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@: pemicu scroll hanya bisa untuk kontrol ketuk, geser, atau makro"
+          }
+        }
+      }
+    },
+    "%@: sensitivity must be between 0.01 and 20" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@: sensitivitas harus antara 0,01 dan 20"
+          }
+        }
+      }
+    },
+    "%@: size must be between %lf and %lf" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@: size must be between %2$lf and %3$lf"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@: ukuran harus antara %2$lf dan %3$lf"
+          }
+        }
+      }
+    },
+    "%@: swipe duration must be 30–2000 ms" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@: durasi geser harus 30–2000 ms"
+          }
+        }
+      }
+    },
+    "%@: swipes may not touch the aim area (no recoil compensation)" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@: geser tidak boleh menyentuh area bidik (tanpa kompensasi recoil)"
+          }
+        }
+      }
+    },
+    "%@: touch-down point must be inside the aim area" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@: titik sentuh harus berada di dalam area bidik"
+          }
+        }
+      }
+    },
+    "%@: waits must be at least %lld ms" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@: waits must be at least %2$lld ms"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@: jeda minimal %lld ms"
+          }
+        }
+      }
+    },
+    "A %lld GB disk takes its full size on “%@”, which has %@ free." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Disk %1$lld GB langsung memakai seluruh ukurannya di “%2$@”, yang hanya punya %3$@ ruang kosong."
+          }
+        }
+      }
+    },
+    "A finger named “%@” is already registered." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jari bernama “%@” sudah terdaftar."
+          }
+        }
+      }
+    },
+    "A finger’s name can’t contain line breaks or other control characters." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nama jari tidak boleh berisi baris baru atau karakter kontrol lain."
+          }
+        }
+      }
+    },
+    "Android already has “%@”. Choose another finger to add." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Android sudah punya “%@”. Pilih jari lain untuk ditambahkan."
+          }
+        }
+      }
+    },
+    "Android could not check the screen lock." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Android tidak dapat memeriksa kunci layar."
+          }
+        }
+      }
+    },
+    "Android could not start: %@" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Android tidak bisa dimulai: %@"
+          }
+        }
+      }
+    },
+    "Android did not list its apps" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Android tidak bisa mencantumkan aplikasinya"
+          }
+        }
+      }
+    },
+    "Android did not list its fingerprints." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Android tidak memberikan daftar sidik jarinya."
+          }
+        }
+      }
+    },
+    "Android did not respond." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Android tidak merespons."
+          }
+        }
+      }
+    },
+    "Android did not take the change: %@" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Android tidak menerima perubahan ini: %@"
+          }
+        }
+      }
+    },
+    "Android does not support this: %@" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Android tidak mendukung ini: %@"
+          }
+        }
+      }
+    },
+    "Android is already being changed; the install can no longer stop." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Android sedang diubah; instalasi tidak bisa dihentikan lagi."
+          }
+        }
+      }
+    },
+    "Android is already being unlocked." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kunci Android sedang dibuka."
+          }
+        }
+      }
+    },
+    "Android is locked by its screen lock. Unlock it in Avo to open your apps." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Android terkunci oleh kunci layarnya. Buka kuncinya di Avo untuk membuka aplikasi Anda."
+          }
+        }
+      }
+    },
+    "Android is not running." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Android tidak berjalan."
+          }
+        }
+      }
+    },
+    "Android is out of storage; enlarge the data disk in Settings › Storage" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "storage Android penuh; perbesar disk data di Pengaturan › Storage"
+          }
+        }
+      }
+    },
+    "Android is restarting" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Android sedang dimulai ulang"
+          }
+        }
+      }
+    },
+    "Android is running. Stop Android to change where its data is." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Android sedang berjalan. Hentikan Android untuk mengubah tempat datanya."
+          }
+        }
+      }
+    },
+    "Android keeps its storage on this disk. Avo is stopping Android; eject the disk again in a moment." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Android menyimpan penyimpanannya di disk ini. Avo sedang menghentikan Android; keluarkan disk lagi sebentar lagi."
+          }
+        }
+      }
+    },
+    "Android needs %@ free in %@ but has %@." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Android needs %1$@ free in %2$@ but has %3$@."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Android butuh ruang kosong %@ di %@, tetapi hanya ada %@."
+          }
+        }
+      }
+    },
+    "Android reported an error." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Android melaporkan kesalahan."
+          }
+        }
+      }
+    },
+    "Android restarts to make its system partitions writable." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Android dimulai ulang agar partisi sistemnya bisa ditulisi."
+          }
+        }
+      }
+    },
+    "Android restarts with Google apps." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Android dimulai ulang dengan aplikasi Google."
+          }
+        }
+      }
+    },
+    "Android restarts with verified boot off." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Android dimulai ulang dengan verified boot nonaktif."
+          }
+        }
+      }
+    },
+    "Android showed nothing on the GPU within a minute." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Android tidak menampilkan apa pun dengan GPU dalam satu menit."
+          }
+        }
+      }
+    },
+    "Android starts with this image. Choose another one first." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Android memakai image ini. Pilih image lain terlebih dahulu."
+          }
+        }
+      }
+    },
+    "Android stopped responding" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Android berhenti merespons"
+          }
+        }
+      }
+    },
+    "Android stopped so “%@” can be ejected. Eject it again." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Android dihentikan agar “%@” bisa dikeluarkan. Keluarkan lagi."
+          }
+        }
+      }
+    },
+    "Android stopped twice within 10 minutes while using the GPU." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Android berhenti dua kali dalam 10 menit saat memakai GPU."
+          }
+        }
+      }
+    },
+    "Android stopped while starting on the GPU." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Android berhenti saat dimulai dengan GPU."
+          }
+        }
+      }
+    },
+    "Android took the screen lock, but its lock screen stayed up. Try again." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Android menerima kunci layar, tetapi layar kuncinya tetap tampil. Coba lagi."
+          }
+        }
+      }
+    },
+    "Android was stopped while Google apps were being installed. Avo finishes or undoes the install the next time Android starts." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Android dihentikan saat aplikasi Google sedang diinstal. Avo menyelesaikan atau membatalkan instalasinya saat Android dijalankan berikutnya."
+          }
+        }
+      }
+    },
+    "Android was stopped." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Android dihentikan."
+          }
+        }
+      }
+    },
+    "Android’s Settings adds the finger that touches the sensor. Choose one of your fingers." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Setelan Android menambahkan jari yang menyentuh sensor. Pilih salah satu jari Anda."
+          }
+        }
+      }
+    },
+    "Android’s answer" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jawaban Android"
+          }
+        }
+      }
+    },
+    "Android’s data can’t be in a folder that syncs to the cloud (iCloud Drive, Dropbox, Google Drive …): it changes all the time while Android runs. Choose a folder on this Mac or a drive." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Data Android tidak bisa berada di folder yang disinkronkan ke cloud (iCloud Drive, Dropbox, Google Drive …): datanya terus berubah selama Android berjalan. Pilih folder di Mac ini atau di sebuah drive."
+          }
+        }
+      }
+    },
+    "Android’s data can’t be on a network volume. Choose a drive connected to this Mac." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Data Android tidak bisa berada di volume jaringan. Pilih drive yang tersambung ke Mac ini."
+          }
+        }
+      }
+    },
+    "Android’s data is not available." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Data Android tidak tersedia."
+          }
+        }
+      }
+    },
+    "Android’s data is there already." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Data Android sudah ada di sana."
+          }
+        }
+      }
+    },
+    "Android’s storage can grow to %@; “%@” has %@ free. Android runs out of space when the drive is full." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Penyimpanan Android bisa tumbuh hingga %1$@; “%2$@” punya %3$@ ruang kosong. Android kehabisan ruang jika drive penuh."
+          }
+        }
+      }
+    },
+    "Android’s storage can grow to %lld GB; “%@” has %@ free. Android runs out of space when the drive is full." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Penyimpanan Android bisa tumbuh hingga %1$lld GB; “%2$@” punya %3$@ ruang kosong. Android kehabisan ruang jika drive penuh."
+          }
+        }
+      }
+    },
+    "Android’s storage folder is missing: %@. Choose where Android’s data should be." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Folder penyimpanan Android tidak ada: %@. Pilih tempat data Android."
+          }
+        }
+      }
+    },
+    "Android’s storage is already created (%@). Its size changes only when Android’s data is erased: use Change Size… in Settings › Storage." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Penyimpanan Android sudah dibuat (%@). Ukurannya hanya bisa berubah bila data Android dihapus: gunakan Ubah Ukuran… di Pengaturan › Storage."
+          }
+        }
+      }
+    },
+    "Android’s storage is on “%@”, which isn’t connected. Connect it, or choose where Android’s data should be." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Penyimpanan Android ada di “%@”, yang tidak tersambung. Sambungkan, atau pilih tempat data Android."
+          }
+        }
+      }
+    },
+    "Android’s storage must be between %lld and %lld GB." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Penyimpanan Android harus antara %1$lld dan %2$lld GB."
+          }
+        }
+      }
+    },
+    "Android’s system partitions stayed read-only" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Partisi sistem Android tetap hanya-baca"
+          }
+        }
+      }
+    },
+    "Avo cannot unlock this Android." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Avo tidak dapat membuka kunci Android ini."
+          }
+        }
+      }
+    },
+    "Avo can’t find %@." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Avo tidak menemukan %@."
+          }
+        }
+      }
+    },
+    "Avo couldn’t reach Google’s Android build servers: %@" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Avo tidak bisa menghubungi server build Android Google: %@"
+          }
+        }
+      }
+    },
+    "Avo does not send this report anywhere. Attach it to your message to Avo’s developers." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Avo tidak mengirim laporan ini ke mana pun. Lampirkan ke pesan Anda untuk pengembang Avo."
+          }
+        }
+      }
+    },
+    "Avo doesn’t know Android %@." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Avo tidak mengenal Android %@."
+          }
+        }
+      }
+    },
+    "Avo is already changing where Android’s data is." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Avo sudah sedang memindahkan tempat data Android."
+          }
+        }
+      }
+    },
+    "Avo is changing where Android’s data is. Android starts when that is done." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Avo sedang memindahkan tempat data Android. Android berjalan setelah selesai."
+          }
+        }
+      }
+    },
+    "Avo is copying Android’s data on this disk. Eject it when the copy is done." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Avo sedang menyalin data Android di disk ini. Keluarkan setelah penyalinan selesai."
+          }
+        }
+      }
+    },
+    "Avo keeps up to %lld fingers. Remove one first." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Avo menyimpan paling banyak %lld jari. Hapus salah satunya dulu."
+          }
+        }
+      }
+    },
+    "Avo problem report" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Laporan masalah Avo"
+          }
+        }
+      }
+    },
+    "Avo removes only images it installed itself." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Avo hanya menghapus image yang dipasangnya sendiri."
+          }
+        }
+      }
+    },
+    "Avo’s background service is not reachable (%@)." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Layanan latar belakang Avo tidak bisa dihubungi (%@)."
+          }
+        }
+      }
+    },
+    "Avo’s log from the last 3 hours" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Log Avo dari 3 jam terakhir"
+          }
+        }
+      }
+    },
+    "Avo’s own storage holds a copy of Android’s data already. Use it, or replace it." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Penyimpanan Avo sendiri sudah berisi salinan data Android. Pakai salinan itu, atau gantikan."
+          }
+        }
+      }
+    },
+    "Avo’s settings, and Android’s status, renderer and storage" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pengaturan Avo, serta status, renderer, dan penyimpanan Android"
+          }
+        }
+      }
+    },
+    "Build %@ has no Android image to download." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Build %@ tidak punya image Android untuk diunduh."
+          }
+        }
+      }
+    },
+    "CPU cores must be between 1 and %lld." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jumlah core CPU harus antara 1 dan %lld."
+          }
+        }
+      }
+    },
+    "Can’t create %@." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tidak bisa membuat %@."
+          }
+        }
+      }
+    },
+    "Choose a device profile." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pilih profil perangkat."
+          }
+        }
+      }
+    },
+    "Choose a folder outside Android’s data folder." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pilih folder di luar folder data Android."
+          }
+        }
+      }
+    },
+    "Choose a folder outside Avo’s own folder." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pilih folder di luar folder Avo sendiri."
+          }
+        }
+      }
+    },
+    "Choose an Android image zip (%@) or the folder with its .img files." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pilih zip image Android (%@) atau folder berisi file .img-nya."
+          }
+        }
+      }
+    },
+    "Copying Google apps to Android" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Menyalin aplikasi Google ke Android"
+          }
+        }
+      }
+    },
+    "Copying into the system partitions" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Penyalinan ke partisi sistem"
+          }
+        }
+      }
+    },
+    "Eject “%@” only while Android is stopped. If you eject it while Android runs, Avo stops Android first and asks you to eject again." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keluarkan “%@” hanya saat Android berhenti. Jika Anda mengeluarkannya saat Android berjalan, Avo menghentikan Android terlebih dahulu dan meminta Anda mengeluarkannya lagi."
+          }
+        }
+      }
+    },
+    "Erasing Android’s data" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Menghapus data Android"
+          }
+        }
+      }
+    },
+    "FPS limit must be 30, or between 60 and 120." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Batas FPS harus 30, atau antara 60 dan 120."
+          }
+        }
+      }
+    },
+    "FPS mode supports one aim control" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mode FPS hanya mendukung satu kontrol bidik"
+          }
+        }
+      }
+    },
+    "Finger %lld" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jari %lld"
+          }
+        }
+      }
+    },
+    "GitHub answered with HTTP status %lld." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "GitHub menjawab dengan status HTTP %lld."
+          }
+        }
+      }
+    },
+    "GitHub has no release at %@." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "GitHub tidak punya rilis di %@."
+          }
+        }
+      }
+    },
+    "GitHub refused the request (too many requests from this network). Try again later." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "GitHub menolak permintaan ini (terlalu banyak permintaan dari jaringan ini). Coba lagi nanti."
+          }
+        }
+      }
+    },
+    "GitHub’s answer was not a release." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jawaban GitHub bukan data rilis."
+          }
+        }
+      }
+    },
+    "Give the finger a name." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Beri nama jari ini."
+          }
+        }
+      }
+    },
+    "Google apps are already being installed." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aplikasi Google sedang diinstal."
+          }
+        }
+      }
+    },
+    "Google apps are already installed. To install another package, reset Android first." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aplikasi Google sudah terinstal. Untuk menginstal paket lain, reset Android terlebih dahulu."
+          }
+        }
+      }
+    },
+    "Google apps are being installed, and Avo restarts Android by itself meanwhile. Wait until the install finishes." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aplikasi Google sedang diinstal, dan selama itu Avo memulai ulang Android sendiri. Tunggu sampai instalasinya selesai."
+          }
+        }
+      }
+    },
+    "Google apps for %@ are still on Android’s storage. Reset Android first, then install Google apps for the Android that runs now." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aplikasi Google untuk %@ masih ada di penyimpanan Android. Reset Android terlebih dahulu, lalu instal aplikasi Google untuk Android yang berjalan sekarang."
+          }
+        }
+      }
+    },
+    "Google apps from an earlier install are still on Android’s storage. Reset Android first, then install them again." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aplikasi Google dari instalasi sebelumnya masih ada di penyimpanan Android. Reset Android terlebih dahulu, lalu instal lagi."
+          }
+        }
+      }
+    },
+    "Google apps were not installed, and Avo could not restore Android yet (%@). Avo tries again the next time Android starts. %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Google apps were not installed, and Avo could not restore Android yet (%1$@). Avo tries again the next time Android starts. %2$@"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aplikasi Google gagal diinstal, dan Avo belum bisa memulihkan Android (%@). Avo mencoba lagi saat Android dijalankan berikutnya. %@"
+          }
+        }
+      }
+    },
+    "Google apps were not installed: Android was stopped during the install." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aplikasi Google gagal diinstal: Android dihentikan selama instalasi."
+          }
+        }
+      }
+    },
+    "Google apps were not installed; Android was not changed." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aplikasi Google gagal diinstal; Android tidak diubah."
+          }
+        }
+      }
+    },
+    "Google apps were not installed; Android was restored. %@" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aplikasi Google gagal diinstal; Android sudah dipulihkan. %@"
+          }
+        }
+      }
+    },
+    "Google’s Android build servers refused the request (HTTP %lld)." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Server build Android Google menolak permintaan (HTTP %lld)."
+          }
+        }
+      }
+    },
+    "Google’s Android build servers refused the request (HTTP %lld): %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Google’s Android build servers refused the request (HTTP %1$lld): %2$@"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Server build Android Google menolak permintaan (HTTP %lld): %@"
+          }
+        }
+      }
+    },
+    "Heavy games run best with at least 8 GB of RAM." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Game berat paling lancar dengan RAM minimal 8 GB."
+          }
+        }
+      }
+    },
+    "Install stopped. Android was not changed." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Instalasi aplikasi Google dihentikan. Android tidak diubah."
+          }
+        }
+      }
+    },
+    "Installation failed: %@" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Instalasi gagal: %@"
+          }
+        }
+      }
+    },
+    "Invalid file name in image manifest: %@" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nama file tidak valid di manifest image: %@"
+          }
+        }
+      }
+    },
+    "Its manifest is not one this version of Avo reads." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Manifest-nya tidak bisa dibaca oleh versi Avo ini."
+          }
+        }
+      }
+    },
+    "Its vbmeta images don’t say which Android build it is." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Image vbmeta-nya tidak menyebutkan build Android yang mana."
+          }
+        }
+      }
+    },
+    "It’s %@, and Avo needs Android 16 or newer." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ini %@, sedangkan Avo memerlukan Android 16 atau yang lebih baru."
+          }
+        }
+      }
+    },
+    "It’s a %@ build. Avo needs a userdebug build, which lets it set Android up as root." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ini build %@. Avo memerlukan build userdebug, yang memungkinkannya menyiapkan Android sebagai root."
+          }
+        }
+      }
+    },
+    "It’s an image for %@, not for Apple silicon. Use an arm64 Cuttlefish image (%@)." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "It’s an image for %1$@, not for Apple silicon. Use an arm64 Cuttlefish image (%2$@)."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ini image untuk %@, bukan untuk Apple silicon. Gunakan image Cuttlefish arm64 (%@)."
+          }
+        }
+      }
+    },
+    "It’s not an AOSP Cuttlefish image (the device is %@)." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ini bukan image AOSP Cuttlefish (perangkatnya %@)."
+          }
+        }
+      }
+    },
+    "Left index finger" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jari telunjuk kiri"
+          }
+        }
+      }
+    },
+    "Left little finger" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jari kelingking kiri"
+          }
+        }
+      }
+    },
+    "Left middle finger" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jari tengah kiri"
+          }
+        }
+      }
+    },
+    "Left ring finger" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jari manis kiri"
+          }
+        }
+      }
+    },
+    "Left thumb" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ibu jari kiri"
+          }
+        }
+      }
+    },
+    "Mac OS Extended" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mac OS Diperluas"
+          }
+        }
+      }
+    },
+    "More cores than this Mac’s %lld performance cores can slow macOS down." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lebih dari %lld core performa Mac ini bisa membuat macOS melambat."
+          }
+        }
+      }
+    },
+    "Moving Android’s data needs %@ on “%@”, which has %@ free." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Memindahkan data Android butuh %1$@ di “%2$@”, yang hanya punya %3$@ ruang kosong."
+          }
+        }
+      }
+    },
+    "Moving stopped. Android’s data stays where it was." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pemindahan dihentikan. Data Android tetap di tempatnya."
+          }
+        }
+      }
+    },
+    "Never in it: Android’s data and your apps’ files, the keys Avo uses for ADB, your fingerprints and your accounts. Email addresses, account names, tokens and locations are taken out of the logs, and your home folder shows as ~." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tidak pernah disertakan: data Android dan file aplikasi Anda, kunci yang dipakai Avo untuk ADB, sidik jari Anda, dan akun Anda. Alamat email, nama akun, token, dan lokasi dihapus dari log, dan folder rumah Anda ditampilkan sebagai ~."
+          }
+        }
+      }
+    },
+    "No screen of this Mac refreshes in step with %lld fps, so motion can judder a little." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tidak ada layar Mac ini yang ber-refresh seirama dengan %lld fps, jadi gerakan bisa sedikit tersendat."
+          }
+        }
+      }
+    },
+    "Port %lld is already in use by another app. Choose another port." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Port %lld sudah dipakai app lain. Pilih port lain."
+          }
+        }
+      }
+    },
+    "RAM must be a multiple of 256 MB." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "RAM harus kelipatan 256 MB."
+          }
+        }
+      }
+    },
+    "RAM must be between 2 and 16 GB." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "RAM harus antara 2 dan 16 GB."
+          }
+        }
+      }
+    },
+    "Release %@ has no .zip package." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rilis %@ tidak berisi paket .zip."
+          }
+        }
+      }
+    },
+    "Restarting Android" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Memulai ulang Android"
+          }
+        }
+      }
+    },
+    "Restoring Android" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pemulihan Android"
+          }
+        }
+      }
+    },
+    "Right index finger" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jari telunjuk kanan"
+          }
+        }
+      }
+    },
+    "Right little finger" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jari kelingking kanan"
+          }
+        }
+      }
+    },
+    "Right middle finger" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jari tengah kanan"
+          }
+        }
+      }
+    },
+    "Right ring finger" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jari manis kanan"
+          }
+        }
+      }
+    },
+    "Right thumb" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ibu jari kanan"
+          }
+        }
+      }
+    },
+    "Sharpness must be between 0 and 100." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ketajaman harus antara 0 dan 100."
+          }
+        }
+      }
+    },
+    "Socket path is too long: %@" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Path socket terlalu panjang: %@"
+          }
+        }
+      }
+    },
+    "Starting Android" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Menjalankan Android"
+          }
+        }
+      }
+    },
+    "That finger is no longer registered." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jari itu sudah tidak terdaftar."
+          }
+        }
+      }
+    },
+    "That place is not on Earth." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tempat itu tidak ada di Bumi."
+          }
+        }
+      }
+    },
+    "That route cannot be played." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rute itu tidak bisa diputar."
+          }
+        }
+      }
+    },
+    "That’s not Android’s screen lock. Try again." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Itu bukan kunci layar Android. Coba lagi."
+          }
+        }
+      }
+    },
+    "The ADB port must be between %lld and %lld." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "The ADB port must be between %1$lld and %2$lld."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Port ADB harus antara %lld dan %lld."
+          }
+        }
+      }
+    },
+    "The Android data in %@ is incomplete: %@ is missing." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Data Android di %1$@ tidak lengkap: %2$@ tidak ada."
+          }
+        }
+      }
+    },
+    "The Android data in %@ was made by a newer version of Avo. Update Avo to use it." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Data Android di %@ dibuat oleh versi Avo yang lebih baru. Perbarui Avo untuk memakainya."
+          }
+        }
+      }
+    },
+    "The Android image could not be saved: %@" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Image Android tidak bisa disimpan: %@"
+          }
+        }
+      }
+    },
+    "The Android image has not been downloaded yet." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Image Android belum diunduh."
+          }
+        }
+      }
+    },
+    "The Android image signature is invalid." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tanda tangan image Android tidak valid."
+          }
+        }
+      }
+    },
+    "The GPU renderer could not start." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Renderer GPU tidak bisa dimulai."
+          }
+        }
+      }
+    },
+    "The GPU stopped responding while Android started." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "GPU berhenti merespons saat Android dimulai."
+          }
+        }
+      }
+    },
+    "The VM engine exited with status %lld." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Engine VM berhenti dengan status %lld."
+          }
+        }
+      }
+    },
+    "The VM engine is not installed in this build of Avo." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Engine VM tidak ada di build Avo ini."
+          }
+        }
+      }
+    },
+    "The VM engine stopped while starting; see %@." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Engine VM berhenti saat dimulai; lihat %@."
+          }
+        }
+      }
+    },
+    "The app window could not be opened: %@" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jendela aplikasi tidak bisa dibuka: %@"
+          }
+        }
+      }
+    },
+    "The bundle does not contain a base APK." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bundel tidak berisi APK dasar."
+          }
+        }
+      }
+    },
+    "The caller is not allowed to talk to the Avo daemon." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pemanggil tidak diizinkan berkomunikasi dengan daemon Avo."
+          }
+        }
+      }
+    },
+    "The copy of %@ does not match Android’s data. Nothing changed; Android’s data stays where it was." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Salinan %@ tidak cocok dengan data Android. Tidak ada yang berubah; data Android tetap di tempatnya."
+          }
+        }
+      }
+    },
+    "The data disk can be enlarged but not shrunk (currently %lld GB)." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Disk data bisa diperbesar tetapi tidak bisa diperkecil (saat ini %lld GB)."
+          }
+        }
+      }
+    },
+    "The data disk must be at least 8 GB." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Disk data minimal 8 GB."
+          }
+        }
+      }
+    },
+    "The download ended early." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unduhan berhenti sebelum selesai."
+          }
+        }
+      }
+    },
+    "The download failed: %@" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unduhan gagal: %@"
+          }
+        }
+      }
+    },
+    "The download of %@ is damaged (its checksum doesn’t match). Download it again." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unduhan %@ rusak (checksum-nya tidak cocok). Unduh lagi."
+          }
+        }
+      }
+    },
+    "The end of Android’s log (logcat), which apps write to as well" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bagian akhir log Android (logcat), yang juga ditulisi aplikasi"
+          }
+        }
+      }
+    },
+    "The engine’s log and the end of Android’s kernel log" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Log mesin VM dan bagian akhir log kernel Android"
+          }
+        }
+      }
+    },
+    "The file is not an APK, XAPK, APKM or APKS package." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "File ini bukan paket APK, XAPK, APKM, atau APKS."
+          }
+        }
+      }
+    },
+    "The file is not an Android package (not a ZIP archive)." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "File ini bukan paket Android (bukan arsip ZIP)."
+          }
+        }
+      }
+    },
+    "The files are Android %@ build %@, not the build Avo expected (%@)." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "The files are Android %1$@ build %2$@, not the build Avo expected (%3$@)."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "File ini Android %@ build %@, bukan build yang diharapkan Avo (%@)."
+          }
+        }
+      }
+    },
+    "The image manifest does not cover %@." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Manifest image tidak mencakup %@."
+          }
+        }
+      }
+    },
+    "The interface size must be between %lld%% and %lld%%." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "The interface size must be between %1$lld%% and %2$lld%%."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ukuran tampilan harus antara %lld%% dan %lld%%."
+          }
+        }
+      }
+    },
+    "The names and versions of the installed apps" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nama dan versi aplikasi yang terinstal"
+          }
+        }
+      }
+    },
+    "The package could not be read: %@." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Paket tidak bisa dibaca: %@."
+          }
+        }
+      }
+    },
+    "The package has an unsafe file name: %@." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Paket ini berisi nama file yang tidak aman: %@."
+          }
+        }
+      }
+    },
+    "The package has files Avo does not install (%@). Use a MindTheGapps package." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Paket ini berisi file yang tidak dipasang Avo (%@). Gunakan paket MindTheGapps."
+          }
+        }
+      }
+    },
+    "The package is built for %@, but Android here is %@." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "The package is built for %1$@, but Android here is %2$@."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Paket ini dibuat untuk %@, sedangkan Android di sini %@."
+          }
+        }
+      }
+    },
+    "The package is damaged (%@ failed its checksum)." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Paket rusak (checksum %@ tidak cocok)."
+          }
+        }
+      }
+    },
+    "The package is damaged: %@." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Paket rusak: %@."
+          }
+        }
+      }
+    },
+    "The package is encrypted. Encrypted APKM files need APKMirror Installer and cannot be installed by Avo." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Paket ini terenkripsi. File APKM terenkripsi butuh APKMirror Installer dan tidak bisa diinstal oleh Avo."
+          }
+        }
+      }
+    },
+    "The package is for %@, but this Android has API level %lld." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Paket ini untuk %1$@, tetapi Android ini memakai API level %2$lld."
+          }
+        }
+      }
+    },
+    "The package is for %@, but this Android has API level %lld. Use %@." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Paket ini untuk %1$@, tetapi Android ini memakai API level %2$lld. Pakai %3$@."
+          }
+        }
+      }
+    },
+    "The package is missing %@." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Paket tidak berisi %@."
+          }
+        }
+      }
+    },
+    "The package uses an unsupported compression method (%lld)." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Paket memakai metode kompresi yang tidak didukung (%lld)."
+          }
+        }
+      }
+    },
+    "The package was not handed to Avo’s cache folder." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Paket tidak diserahkan ke folder cache Avo."
+          }
+        }
+      }
+    },
+    "The release publishes no SHA-256 checksum for %@, so Avo cannot verify the download." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rilis ini tidak menyertakan checksum SHA-256 untuk %@, jadi Avo tidak bisa memverifikasi unduhannya."
+          }
+        }
+      }
+    },
+    "The render scale must be between %lld%% and %lld%%." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "The render scale must be between %1$lld%% and %2$lld%%."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Skala render harus antara %lld%% dan %lld%%."
+          }
+        }
+      }
+    },
+    "The resolution must be an even number between %@ and %@ pixels on the short side." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "The resolution must be an even number between %1$@ and %2$@ pixels on the short side."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Resolusi harus berupa bilangan genap antara %1$@ dan %2$@ piksel di sisi pendek."
+          }
+        }
+      }
+    },
+    "The shared folder is missing: %@. Android starts without it." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Folder bersama tidak ada: %@. Android berjalan tanpanya."
+          }
+        }
+      }
+    },
+    "The shared folder is on “%@”, which isn’t connected. Android starts without it." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Folder bersama ada di “%@”, yang tidak tersambung. Android berjalan tanpanya."
+          }
+        }
+      }
+    },
+    "The zip has no %@, so it isn’t an Android image Avo can use." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zip ini tidak berisi %@, jadi bukan image Android yang bisa dipakai Avo."
+          }
+        }
+      }
+    },
+    "The zip is damaged, or it isn’t an Android image zip." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zip ini rusak, atau bukan zip image Android."
+          }
+        }
+      }
+    },
+    "There are no Android builds of %@ to download right now." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Saat ini tidak ada build Android %@ yang bisa diunduh."
+          }
+        }
+      }
+    },
+    "There is no Android data in this folder." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tidak ada data Android di folder ini."
+          }
+        }
+      }
+    },
+    "There isn’t enough free disk space. Android needs %@, and %@ is free." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "There isn’t enough free disk space. Android needs %1$@, and %2$@ is free."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ruang disk tidak cukup. Android butuh %@, sedangkan yang tersedia %@."
+          }
+        }
+      }
+    },
+    "There’s no Android image in this folder. Avo looks for boot.img, init_boot.img, vendor_boot.img, super.img and vbmeta.img." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tidak ada image Android di folder ini. Avo mencari boot.img, init_boot.img, vendor_boot.img, super.img, dan vbmeta.img."
+          }
+        }
+      }
+    },
+    "This Android data was last used by %@, newer than any Android on this Mac (the newest is %@). Android can’t go back to an older version without erasing its data. Download %@ in Settings › Android first." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Data Android ini terakhir dipakai oleh %1$@, lebih baru daripada semua Android di Mac ini (yang terbaru %2$@). Android tidak bisa kembali ke versi lama tanpa menghapus datanya. Unduh %3$@ di Pengaturan › Android terlebih dahulu."
+          }
+        }
+      }
+    },
+    "This Android data was last used by %@, newer than the Android that starts now. Android can’t go back to an older version without erasing its data. Choose %@ in Settings › Android first." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Data Android ini terakhir dipakai oleh %1$@, lebih baru daripada Android yang akan berjalan. Android tidak bisa kembali ke versi lama tanpa menghapus datanya. Pilih %2$@ di Pengaturan › Android terlebih dahulu."
+          }
+        }
+      }
+    },
+    "This Android data was last used by %@. Download %@ in Settings › Android first." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Data Android ini terakhir dipakai oleh %1$@. Unduh %2$@ di Pengaturan › Android terlebih dahulu."
+          }
+        }
+      }
+    },
+    "This Android has no fingerprint sensor Avo can use." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Android ini tidak punya sensor sidik jari yang bisa dipakai Avo."
+          }
+        }
+      }
+    },
+    "This Android image cannot take Google apps." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Image Android ini tidak bisa dipasangi aplikasi Google."
+          }
+        }
+      }
+    },
+    "This Mac can give Android at most %lld GB." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mac ini bisa memberi Android paling banyak %lld GB."
+          }
+        }
+      }
+    },
+    "This Mac’s screen refreshes at %lld Hz, out of step with %lld fps, so motion can judder a little." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Layar Mac ini ber-refresh di %1$lld Hz, tidak seirama dengan %2$lld fps, jadi gerakan bisa sedikit tersendat."
+          }
+        }
+      }
+    },
+    "This Mac’s screen shows up to %lld Hz. Android runs at %lld fps; the window shows %lld of them. Games respond a little faster; Android uses a bit more power." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Layar Mac ini menampilkan hingga %1$lld Hz. Android berjalan di %2$lld fps; jendela menampilkan %3$lld di antaranya. Game merespons sedikit lebih cepat; Android memakai daya sedikit lebih banyak."
+          }
+        }
+      }
+    },
+    "This Mac’s screens show up to %lld Hz. Android runs at %lld fps; windows show up to %lld of them. Games respond a little faster; Android uses a bit more power." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Layar-layar Mac ini menampilkan hingga %1$lld Hz. Android berjalan di %2$lld fps; jendela menampilkan hingga %3$lld di antaranya. Game merespons sedikit lebih cepat; Android memakai daya sedikit lebih banyak."
+          }
+        }
+      }
+    },
+    "This app needs Android API %lld; the Android image provides API %lld." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "This app needs Android API %1$lld; the Android image provides API %2$lld."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aplikasi ini butuh Android API %lld; image Android menyediakan API %lld."
+          }
+        }
+      }
+    },
+    "This app only contains %@ code. Avo runs 64-bit ARM Android, so the app cannot start." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aplikasi ini hanya berisi kode %@. Avo menjalankan Android ARM 64-bit, jadi aplikasi ini tidak bisa berjalan."
+          }
+        }
+      }
+    },
+    "This file cannot be installed: %@" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "File ini tidak bisa diinstal: %@"
+          }
+        }
+      }
+    },
+    "This file has no places in it." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "File ini tidak berisi tempat apa pun."
+          }
+        }
+      }
+    },
+    "This file is not a GPX or KML route." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "File ini bukan rute GPX atau KML."
+          }
+        }
+      }
+    },
+    "This folder already holds Android data. Use it, or choose another folder." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Folder ini sudah berisi data Android. Pakai data itu, atau pilih folder lain."
+          }
+        }
+      }
+    },
+    "This is not a MindTheGapps package: build.prop or the system folder is missing. Choose the .zip, or the folder it unzips to." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ini bukan paket MindTheGapps: build.prop atau folder system tidak ada. Pilih file .zip-nya, atau folder hasil ekstraknya."
+          }
+        }
+      }
+    },
+    "This report holds:" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Laporan ini berisi:"
+          }
+        }
+      }
+    },
+    "Too many wrong tries. Android accepts the next one in about a minute." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Terlalu banyak percobaan yang salah. Android menerima percobaan berikutnya sekitar satu menit lagi."
+          }
+        }
+      }
+    },
+    "Unknown device profile." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Profil perangkat tidak dikenal."
+          }
+        }
+      }
+    },
+    "Use a shorter name (up to %lld characters)." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gunakan nama yang lebih pendek (paling banyak %lld karakter)."
+          }
+        }
+      }
+    },
+    "Versions of Avo, macOS and Android, and this Mac’s model, memory and cores" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Versi Avo, macOS, dan Android, serta model, memori, dan core Mac ini"
+          }
+        }
+      }
+    },
+    "Waiting for Android to boot" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Menunggu Android selesai boot"
+          }
+        }
+      }
+    },
+    "What happened:" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apa yang terjadi:"
+          }
+        }
+      }
+    },
+    "Windows must be at least 240 × 240 points." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jendela minimal 240 × 240 poin."
+          }
+        }
+      }
+    },
+    "a network volume" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "volume jaringan"
+          }
+        }
+      }
+    },
+    "a newer version is already installed" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "versi yang lebih baru sudah terinstal"
+          }
+        }
+      }
+    },
+    "a required split APK is missing from the bundle" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "split APK yang dibutuhkan tidak ada di bundel"
+          }
+        }
+      }
+    },
+    "an installed version is signed with a different key; uninstall it first" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "versi yang terinstal ditandatangani dengan kunci lain; uninstal dulu"
+          }
+        }
+      }
+    },
+    "at most %lld controls can be active at once" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "paling banyak %lld kontrol bisa aktif bersamaan"
+          }
+        }
+      }
+    },
+    "avbctl could not read verified boot’s state" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "avbctl tidak bisa membaca status verified boot"
+          }
+        }
+      }
+    },
+    "avbctl could not turn off verified boot" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "avbctl tidak bisa menonaktifkan verified boot"
+          }
+        }
+      }
+    },
+    "copying into the system partitions failed" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "penyalinan ke partisi sistem gagal"
+          }
+        }
+      }
+    },
+    "duplicate control id %@" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "id kontrol ganda %@"
+          }
+        }
+      }
+    },
+    "fps.aim_control must name an aim control" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "fps.aim_control harus menunjuk kontrol bidik"
+          }
+        }
+      }
+    },
+    "left stick: dead zone must be between %lld%% and %lld%%" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "left stick: dead zone must be between %1$lld%% and %2$lld%%"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "stik kiri: zona mati harus antara %1$lld%% dan %2$lld%%"
+          }
+        }
+      }
+    },
+    "left stick: sensitivity must be between 0.25× and 4×" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "stik kiri: sensitivitas harus antara 0,25× dan 4×"
+          }
+        }
+      }
+    },
+    "macOS doesn’t let Avo use %@. Allow Avo in System Settings › Privacy & Security › Files & Folders." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "macOS tidak mengizinkan Avo memakai %@. Izinkan Avo di Pengaturan Sistem › Privasi & Keamanan › File & Folder."
+          }
+        }
+      }
+    },
+    "macOS doesn’t let Avo use %@. Allow Avo under Removable Volumes or Network Volumes in System Settings › Privacy & Security › Files & Folders." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "macOS tidak mengizinkan Avo memakai %@. Izinkan Avo di Volume yang Dapat Dilepas atau Volume Jaringan pada Pengaturan Sistem › Privasi & Keamanan › File & Folder."
+          }
+        }
+      }
+    },
+    "no answer" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "tidak ada jawaban"
+          }
+        }
+      }
+    },
+    "package is empty" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "package kosong"
+          }
+        }
+      }
+    },
+    "reading the install’s file list failed" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "daftar file instalasi gagal dibaca"
+          }
+        }
+      }
+    },
+    "removing the copied files failed" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "penghapusan file yang sudah disalin gagal"
+          }
+        }
+      }
+    },
+    "right stick: dead zone must be between %lld%% and %lld%%" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "right stick: dead zone must be between %1$lld%% and %2$lld%%"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "stik kanan: zona mati harus antara %1$lld%% dan %2$lld%%"
+          }
+        }
+      }
+    },
+    "right stick: sensitivity must be between 0.25× and 4×" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "stik kanan: sensitivitas harus antara 0,25× dan 4×"
+          }
+        }
+      }
+    },
+    "the app has no 64-bit ARM code" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "aplikasi tidak punya kode ARM 64-bit"
+          }
+        }
+      }
+    },
+    "the app needs a newer Android version" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "aplikasi butuh versi Android yang lebih baru"
+          }
+        }
+      }
+    },
+    "the cursor toggle %@ is also bound to a control" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "tombol kursor %@ juga dipakai kontrol lain"
+          }
+        }
+      }
+    },
+    "the files were copied, but Android does not list Google Play services and the Play Store." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "file sudah disalin, tetapi Android tidak mencantumkan Layanan Google Play dan Play Store."
+          }
+        }
+      }
+    },
+    "the hero point %@, %@ is outside the screen" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "the hero point %1$@, %2$@ is outside the screen"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "titik hero %@, %@ berada di luar layar"
+          }
+        }
+      }
+    },
+    "the install did not finish" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "instalasinya tidak selesai"
+          }
+        }
+      }
+    },
+    "the package is not signed" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "paket tidak ditandatangani"
+          }
+        }
+      }
+    },
+    "unsupported schema %lld" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "schema %lld tidak didukung"
+          }
+        }
+      }
+    },
+    "“%@” is formatted as %@. Avo is made for APFS drives; format it as APFS in Disk Utility if Android has trouble with it." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "“%1$@” diformat sebagai %2$@. Avo dibuat untuk drive APFS; format sebagai APFS di Utilitas Disk jika Android bermasalah dengannya."
+          }
+        }
+      }
+    },
+    "“%@” is formatted as ExFAT. It has no sparse files, so Android’s data disk takes its full size on the drive, and no journal, so unplugging the drive while Android runs can damage it. APFS is better: format the drive as APFS in Disk Utility." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "“%@” diformat sebagai ExFAT. Format ini tidak punya file sparse, jadi disk data Android langsung memakai seluruh ukurannya di drive, dan tidak punya jurnal, jadi mencabut drive saat Android berjalan bisa merusaknya. APFS lebih baik: format drive sebagai APFS di Utilitas Disk."
+          }
+        }
+      }
+    },
+    "“%@” is formatted as MS-DOS (FAT), which can’t hold files over 4 GB, and Android’s data disk is bigger. Format the drive as APFS in Disk Utility." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "“%@” diformat sebagai MS-DOS (FAT), yang tidak bisa menyimpan file lebih dari 4 GB, sedangkan disk data Android lebih besar. Format drive sebagai APFS di Utilitas Disk."
+          }
+        }
+      }
+    },
+    "“%@” is formatted as Mac OS Extended, which has no sparse files: Android’s data disk takes its full size on the drive. APFS keeps it as small as what Android stores." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "“%@” diformat sebagai Mac OS Diperluas, yang tidak punya file sparse: disk data Android langsung memakai seluruh ukurannya di drive. APFS membuatnya hanya sebesar yang disimpan Android."
+          }
+        }
+      }
+    },
+    "“%@” is read-only." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "“%@” hanya bisa dibaca."
+          }
+        }
+      }
+    },
+    "“%@” was disconnected while Android used it. Connect it again, then start Android." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "“%@” terputus saat dipakai Android. Sambungkan lagi, lalu jalankan Android."
+          }
+        }
+      }
+    },
+    "“Pause when idle” must be Never or 5, 15 or 30 minutes." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "“Jeda saat tidak dipakai” harus Tidak pernah atau 5, 15, atau 30 menit."
+          }
+        }
+      }
+    }
+  },
+  "version" : "1.0"
+}

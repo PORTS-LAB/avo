@@ -10,12 +10,19 @@ import Foundation
 /// pointer set, as Android's MotionEvent expects.
 public struct KeymapEngine: Sendable {
     public static let tapDurationMilliseconds = 40
-    /// Mouse counts per second at full gamepad stick deflection.
+    /// Mouse counts per second at full gamepad stick deflection (at the
+    /// stick's standard sensitivity; StickSettings).
     public static let stickAimSpeed = 1400.0
-    public static let stickDeadzone = 0.15
+    /// How long a stick that drives the eye rests before its finger lifts,
+    /// like a thumb let go of the screen (a quick pass through the centre
+    /// keeps it down).
+    static let stickRestSeconds = 0.1
     /// Reference height that makes aim sensitivity resolution-independent.
     static let referenceHeight = 1080.0
     static let swipeStepMilliseconds = 8
+    /// How quickly a key-driven D-pad glides to its target (time constant):
+    /// a thumb pushing the stick, not a jump to the edge.
+    static let dpadGlideSeconds = 0.03
 
     public enum Input: Sendable, Equatable {
         case keyDown(KeyName)
@@ -24,6 +31,21 @@ public struct KeymapEngine: Sendable {
         case mouseUp(MouseButton)
         /// Raw, unaccelerated mouse delta in counts (pointer locked).
         case mouseMoved(dx: Double, dy: Double)
+        /// Cursor movement in display pixels while the pointer is free
+        /// (anchor taps follow it; nothing else does).
+        case pointerMoved(dx: Double, dy: Double)
+        /// Where the free cursor is, in display pixels and not clamped to
+        /// the display: MOBA move and smart cast aim at it, and a click's
+        /// finger follows it. The host reports it before a press and on every
+        /// frame while `isFollowingCursor`; the fingers glide to it on `tick`.
+        case cursor(x: Double, y: Double)
+        /// A left click that no control takes, as a finger at (x, y) in
+        /// display pixels until `fingerUp`. It joins the engine's touches, so
+        /// a click while a key holds a touch (the MOBA joystick) is a second
+        /// finger of one gesture, not a second stream that also claims
+        /// pointer 0 and makes Android drop the held touch.
+        case fingerDown(x: Double, y: Double)
+        case fingerUp(x: Double, y: Double)
         /// One wheel notch per event; positive scrolls up.
         case scroll(dy: Double)
         case gamepadButton(GamepadButton, pressed: Bool)
@@ -72,11 +94,41 @@ public struct KeymapEngine: Sendable {
     private var movedSinceFlush = false
     private var events: [TouchEvent] = []
     private var pressed: Set<Trigger> = []
-    /// Touches held by hold, ads, dpad and aim controls.
+    /// Touches held by hold, ads, dpad, aim, anchor, MOBA move and smart cast controls.
     private var held: [String: Int] = [:]
+    /// Where each held anchor tap's touch is now, and the area it stays in, in pixels.
+    private var anchors: [String: AnchorTouch] = [:]
+
+    private struct AnchorTouch: Sendable {
+        var x: Double
+        var y: Double
+        let minX: Double
+        let maxX: Double
+        let minY: Double
+        let maxY: Double
+    }
+    /// When each tap, MOBA move or smart cast went down: it lasts as long
+    /// as its key, but never less than tapDurationMilliseconds.
+    private var heldSince: [String: TimeInterval] = [:]
+    /// Each joystick-like touch (D-pad, MOBA move, smart cast) and the
+    /// point it glides to, in pixels.
+    private var glides: [String: GlideTouch] = [:]
+    /// The free cursor, in pixels, as the host last reported it.
+    private var cursor: (x: Double, y: Double)?
+    /// The touch of a click that no control took (`fingerDown`).
+    private var clickFinger: Int?
+
+    private struct GlideTouch: Sendable {
+        var x: Double
+        var y: Double
+        var targetX: Double
+        var targetY: Double
+    }
     private var schedule: [Scheduled] = []
     private var scheduleOrder = 0
     private var sticks: [GamepadStick: (x: Double, y: Double)] = [:]
+    /// Since when each eye's stick has rested, while its finger is down.
+    private var stickRestingSince: [String: TimeInterval] = [:]
     private var lastTick: TimeInterval?
 
     public init(profile: KeymapProfile, displayID: UInt32, width: Double, height: Double) {
@@ -93,25 +145,56 @@ public struct KeymapEngine: Sendable {
         runDue(until: now)
         switch input {
         case .keyDown(let key): output.consumed = press(.key(key), at: now, output: &output)
-        case .keyUp(let key): output.consumed = release(.key(key))
+        case .keyUp(let key): output.consumed = release(.key(key), at: now)
         case .mouseDown(let button): output.consumed = press(.mouse(button), at: now, output: &output)
-        case .mouseUp(let button): output.consumed = release(.mouse(button))
+        case .mouseUp(let button): output.consumed = release(.mouse(button), at: now)
         case .gamepadButton(let button, true): output.consumed = press(.gamepad(button), at: now, output: &output)
-        case .gamepadButton(let button, false): output.consumed = release(.gamepad(button))
+        case .gamepadButton(let button, false): output.consumed = release(.gamepad(button), at: now)
         case .scroll(let dy):
             let trigger: Trigger = dy > 0 ? .scrollUp : .scrollDown
             output.consumed = press(trigger, at: now, output: &output)
-            _ = release(trigger)
+            _ = release(trigger, at: now)
         case let .mouseMoved(dx, dy):
-            if pointerLocked, let camera = fpsAim {
+            // A held anchor tap takes the mouse; the camera waits.
+            if !anchors.isEmpty {
+                let scale = height / Self.referenceHeight
+                moveAnchors(dx: dx * scale, dy: dy * scale)
+                output.consumed = true
+            } else if pointerLocked, let camera = fpsAim {
                 aim(control: camera, dx: dx, dy: dy, applyCurve: true)
                 output.consumed = true
             }
+        case let .pointerMoved(dx, dy):
+            output.consumed = !anchors.isEmpty
+            moveAnchors(dx: dx, dy: dy)
+        case let .cursor(x, y):
+            cursor = (x, y)
+            output.consumed = isFollowingCursor
+            for control in controls where control.followsCursor && held[control.id] != nil { aimAtCursor(control, now: false) }
+            if let clickFinger { move(clickFinger, x: clampX(x), y: clampY(y)) }
+            // Where the fingers go, nothing sent yet: the host reports the
+            // cursor on every frame, and `tick` sends one move per frame and
+            // glides at one pace whatever the frame rate.
+            output.events = takeEvents()
+            return output
+        case let .fingerDown(x, y):
+            output.consumed = true
+            if let clickFinger {
+                move(clickFinger, x: clampX(x), y: clampY(y))
+            } else {
+                clickFinger = down(x: clampX(x), y: clampY(y))
+            }
+        case let .fingerUp(x, y):
+            guard let touch = clickFinger else { break }
+            output.consumed = true
+            clickFinger = nil
+            move(touch, x: clampX(x), y: clampY(y))
+            lift(touch)
         case let .gamepadStick(stick, x, y):
             sticks[stick] = (x, y)
             output.consumed = controls.contains { $0.stick == stick }
             for control in profile.controls where control.stick == stick {
-                if case .dpad = control.kind { updateDPad(control) }
+                if case .dpad = control.kind { updateDPad(control, smoothly: false) }
             }
         }
         flushMoves()
@@ -124,14 +207,17 @@ public struct KeymapEngine: Sendable {
         let dt = lastTick.map { min(max(now - $0, 0), 0.1) } ?? 0
         lastTick = now
         runDue(until: now)
+        if dt > 0 { glideAll(fraction: 1 - exp(-dt / Self.dpadGlideSeconds)) }
         if dt > 0 {
             for control in profile.controls where control.stick != nil && isActive(control) {
                 guard case .aim = control.kind, let stick = control.stick, let value = sticks[stick] else { continue }
-                let magnitude = hypot(value.x, value.y)
-                guard magnitude > Self.stickDeadzone else { continue }
-                let scale = (magnitude - Self.stickDeadzone) / (1 - Self.stickDeadzone) / magnitude
-                aim(control: control, dx: value.x * scale * Self.stickAimSpeed * dt,
-                    dy: -value.y * scale * Self.stickAimSpeed * dt, applyCurve: false)
+                let d = stickSettings(stick).deflection(x: value.x, y: value.y)
+                guard d.x != 0 || d.y != 0 else {
+                    restStick(of: control, at: now)
+                    continue
+                }
+                stickRestingSince[control.id] = nil
+                aim(control: control, dx: d.x * Self.stickAimSpeed * dt, dy: -d.y * Self.stickAimSpeed * dt, applyCurve: false)
             }
         }
         flushMoves()
@@ -143,6 +229,12 @@ public struct KeymapEngine: Sendable {
         schedule.removeAll()
         pressed.removeAll()
         held.removeAll()
+        anchors.removeAll()
+        heldSince.removeAll()
+        glides.removeAll()
+        stickRestingSince.removeAll()
+        cursor = nil
+        clickFinger = nil
         adsActive = false
         pointerLocked = false
         flushMoves()
@@ -160,11 +252,21 @@ public struct KeymapEngine: Sendable {
             guard let control = profile.controls.first(where: { $0.id == controlID }), !isActive(control) || isFPSAim(control) else { continue }
             lift(touchID)
             held[controlID] = nil
+            anchors[controlID] = nil
+            heldSince[controlID] = nil
+            glides[controlID] = nil
             if case .ads = control.kind { adsActive = false }
         }
         if !locked { adsActive = false }
-        if locked, let camera = fpsAim, case let .aim(area, _, _, _, _, _, _) = camera.kind {
-            held[camera.id] = down(area.center)
+        // A click's finger belongs to the cursor, which locking hides and
+        // parks (and freeing moves).
+        if let clickFinger {
+            lift(clickFinger)
+            self.clickFinger = nil
+        }
+        if locked, let camera = fpsAim, case let .aim(area, _, _, _, _, _, _, origin) = camera.kind {
+            let start = touchDown(in: area, at: origin)
+            held[camera.id] = down(x: start.x, y: start.y)
         }
         flushMoves()
         return takeEvents()
@@ -179,6 +281,14 @@ public struct KeymapEngine: Sendable {
 
     public var activeTouchCount: Int { touches.count }
 
+    /// A MOBA move or smart cast is held, or a click's finger is down: they
+    /// follow the cursor, so the host reports it on every frame (while a
+    /// mouse button is down macOS sends drags, which do not reach the keymap
+    /// as moves).
+    public var isFollowingCursor: Bool {
+        clickFinger != nil || controls.contains { $0.followsCursor && held[$0.id] != nil }
+    }
+
     // MARK: Triggers
 
     private var controls: [Control] { profile.controls }
@@ -190,8 +300,28 @@ public struct KeymapEngine: Sendable {
 
     private func isFPSAim(_ control: Control) -> Bool { control.id == profile.fps?.aimControl }
 
+    private func stickSettings(_ stick: GamepadStick) -> StickSettings { profile.gamepadSettings[stick] }
+
+    /// The eye's stick rests: its finger lifts once it has rested a moment,
+    /// unless the locked mouse holds it (FPS mode keeps that finger down).
+    private mutating func restStick(of control: Control, at now: TimeInterval) {
+        guard let touch = held[control.id], !(pointerLocked && isFPSAim(control)) else {
+            stickRestingSince[control.id] = nil
+            return
+        }
+        let since = stickRestingSince[control.id] ?? now
+        stickRestingSince[control.id] = since
+        guard now - since >= Self.stickRestSeconds else { return }
+        lift(touch)
+        held[control.id] = nil
+        stickRestingSince[control.id] = nil
+    }
+
     private func isActive(_ control: Control) -> Bool {
-        guard profile.fps != nil, let layer = control.layer else { return true }
+        guard profile.fps != nil else { return true }
+        // Aimed at the cursor, which is hidden and parked while the mouse is locked.
+        if control.followsCursor, pointerLocked { return false }
+        guard let layer = control.layer else { return true }
         return pointerLocked ? layer == .locked : layer == .cursor
     }
 
@@ -202,7 +332,14 @@ public struct KeymapEngine: Sendable {
             return true
         }
         guard !pressed.contains(trigger) || trigger.isMomentary else { return true }
-        let matches = controls.filter { isActive($0) && $0.allTriggers.contains(trigger) }
+        var matches = controls.filter { isActive($0) && $0.allTriggers.contains(trigger) }
+        // With the mouse free, a left click is the player's finger on the
+        // game: it fires a control only while the mouse is locked (or for a
+        // control made for the cursor, such as moving a MOBA hero by mouse),
+        // so the game's own buttons stay clickable.
+        if trigger == .mouse(.left), !pointerLocked {
+            matches = matches.filter { $0.layer == .cursor || $0.followsCursor }
+        }
         // In cursor mode an unbound left click is a normal touch at the cursor (handled by the host).
         guard !matches.isEmpty else { return false }
         pressed.insert(trigger)
@@ -210,19 +347,42 @@ public struct KeymapEngine: Sendable {
         return true
     }
 
-    private mutating func release(_ trigger: Trigger) -> Bool {
+    private mutating func release(_ trigger: Trigger, at now: TimeInterval) -> Bool {
         guard pressed.remove(trigger) != nil else {
             return profile.fps?.cursorToggle == trigger
         }
         for control in controls where control.allTriggers.contains(trigger) {
             switch control.kind {
-            case .hold:
-                if let touch = held.removeValue(forKey: control.id) { lift(touch) }
+            case .tap, .hold:
+                // Still held through another of its triggers.
+                guard !control.triggers.contains(where: pressed.contains),
+                      let touch = held.removeValue(forKey: control.id) else { continue }
+                let earliest = (heldSince.removeValue(forKey: control.id) ?? now) + Double(Self.tapDurationMilliseconds) / 1000
+                // A quick press still gives the app a whole tap.
+                if now < earliest { enqueue(earliest, .lift(touch: touch)) } else { lift(touch) }
             case .ads(_, let toggle) where !toggle:
                 if let touch = held.removeValue(forKey: control.id) { lift(touch) }
                 adsActive = false
             case .dpad:
                 updateDPad(control)
+            case .anchor:
+                anchors[control.id] = nil
+                if let touch = held.removeValue(forKey: control.id) { lift(touch) }
+            case .mobaMove, .smartCast:
+                guard !control.triggers.contains(where: pressed.contains),
+                      let touch = held.removeValue(forKey: control.id) else { continue }
+                // Let go where it is aimed now, not partway through the
+                // glide: a skill casts where the finger leaves the screen.
+                let aim = glides.removeValue(forKey: control.id)
+                let earliest = (heldSince.removeValue(forKey: control.id) ?? now) + Double(Self.tapDurationMilliseconds) / 1000
+                if now < earliest {
+                    // A quick press still gives the game a whole touch.
+                    if let aim { enqueue(earliest, .move(touch: touch, x: aim.targetX / width, y: aim.targetY / height)) }
+                    enqueue(earliest, .lift(touch: touch))
+                } else {
+                    if let aim { move(touch, x: aim.targetX, y: aim.targetY) }
+                    lift(touch)
+                }
             default:
                 break
             }
@@ -232,10 +392,15 @@ public struct KeymapEngine: Sendable {
 
     private mutating func activate(_ control: Control, trigger: Trigger, at now: TimeInterval) {
         switch control.kind {
-        case .tap(let point):
-            tap(point, at: now)
-        case .hold(let point):
-            if held[control.id] == nil { held[control.id] = down(point) }
+        case .tap(let point), .hold(let point):
+            if trigger.isMomentary {
+                // A wheel notch has no release: a short tap.
+                tap(point, at: now)
+            } else if held[control.id] == nil, let touch = down(point) {
+                // Down while the key is down, like a finger: a tap or a hold.
+                held[control.id] = touch
+                heldSince[control.id] = now
+            }
         case let .ads(point, toggle):
             if toggle {
                 tap(point, at: now)
@@ -254,7 +419,9 @@ public struct KeymapEngine: Sendable {
             for step in 1...steps {
                 let t = Double(step) / Double(steps)
                 let time = now + Double(ms) / 1000 * t
-                enqueue(time, .move(touch: touch, x: from.x + (to.x - from.x) * t, y: from.y + (to.y - from.y) * t))
+                // Ease in and out, like a finger: slow start, fast middle, slow end.
+                let eased = t * t * (3 - 2 * t)
+                enqueue(time, .move(touch: touch, x: from.x + (to.x - from.x) * eased, y: from.y + (to.y - from.y) * eased))
             }
             enqueue(now + Double(ms) / 1000, .lift(touch: touch))
         case let .repeatTap(point, interval):
@@ -262,6 +429,34 @@ public struct KeymapEngine: Sendable {
             enqueue(now + Double(interval) / 1000, .repeatTap(control: control.id, trigger: trigger))
         case .macro:
             runMacroStep(control, index: 0, at: now)
+        case let .anchor(point, area):
+            guard held[control.id] == nil, let touch = down(point) else { return }
+            held[control.id] = touch
+            let bounds = area ?? .screen
+            anchors[control.id] = AnchorTouch(x: point.x * width, y: point.y * height,
+                                              minX: clampX(bounds.minX * width), maxX: clampX(bounds.maxX * width),
+                                              minY: clampY(bounds.minY * height), maxY: clampY(bounds.maxY * height))
+        case .mobaMove(let origin, _), .smartCast(let origin, _, _):
+            // Down on the joystick or the skill button, then dragged: the
+            // game needs the drag to start moving or aiming.
+            guard held[control.id] == nil, let touch = down(origin) else { return }
+            held[control.id] = touch
+            heldSince[control.id] = now
+            let x = origin.x * width, y = origin.y * height
+            glides[control.id] = GlideTouch(x: x, y: y, targetX: x, targetY: y)
+            aimAtCursor(control, now: true)
+        }
+    }
+
+    /// Drags every held anchor tap by the mouse movement, kept in its area
+    /// (the whole screen unless it has one).
+    private mutating func moveAnchors(dx: Double, dy: Double) {
+        for (controlID, var anchor) in anchors {
+            guard let touch = held[controlID] else { continue }
+            anchor.x = min(max(anchor.x + dx, anchor.minX), anchor.maxX)
+            anchor.y = min(max(anchor.y + dy, anchor.minY), anchor.maxY)
+            anchors[controlID] = anchor
+            move(touch, x: anchor.x, y: anchor.y)
         }
     }
 
@@ -284,22 +479,34 @@ public struct KeymapEngine: Sendable {
 
     // MARK: D-pad
 
-    private mutating func updateDPad(_ control: Control) {
+    private mutating func updateDPad(_ control: Control, smoothly: Bool = true) {
         guard case let .dpad(center, radius, up, down, left, right, stick) = control.kind else { return }
-        var vx = (pressed.contains(right) ? 1.0 : 0) - (pressed.contains(left) ? 1.0 : 0)
-        var vy = (pressed.contains(down) ? 1.0 : 0) - (pressed.contains(up) ? 1.0 : 0)
+        // A direction's key, or the controller's d-pad when it pushes this joystick too.
+        func pushed(_ key: Trigger, _ button: GamepadButton) -> Double {
+            pressed.contains(key) || (control.dpadButtons && pressed.contains(.gamepad(button))) ? 1 : 0
+        }
+        var vx = pushed(right, .dpadRight) - pushed(left, .dpadLeft)
+        var vy = pushed(down, .dpadDown) - pushed(up, .dpadUp)
         let length = hypot(vx, vy)
+        var smooth = smoothly
         if length > 0 {
             vx /= length
             vy /= length
-        } else if let stick, let value = sticks[stick], hypot(value.x, value.y) > Self.stickDeadzone {
-            let magnitude = min(hypot(value.x, value.y), 1)
-            let scale = (magnitude - Self.stickDeadzone) / (1 - Self.stickDeadzone) / hypot(value.x, value.y)
-            vx = value.x * scale
-            vy = -value.y * scale
+        } else if let stick, let value = sticks[stick] {
+            // A real stick is analog already: follow it as it is, past its
+            // dead zone, and no further than the rim at a high sensitivity.
+            let d = stickSettings(stick).deflection(x: value.x, y: value.y)
+            let lean = hypot(d.x, d.y)
+            if lean > 0 {
+                smooth = false
+                let rim = min(1, 1 / lean)
+                vx = d.x * rim
+                vy = -d.y * rim
+            }
         }
         let active = vx != 0 || vy != 0
         if !active || !isActive(control) {
+            glides[control.id] = nil
             if let touch = held.removeValue(forKey: control.id) { lift(touch) }
             return
         }
@@ -308,15 +515,92 @@ public struct KeymapEngine: Sendable {
         let targetY = center.y * height + vy * radiusPixels
         if held[control.id] == nil {
             // Touch down at the joystick centre, then drag: dynamic joysticks need the drag.
-            held[control.id] = self.down(center)
+            guard let touch = self.down(center) else { return }
+            held[control.id] = touch
+            glides[control.id] = GlideTouch(x: center.x * width, y: center.y * height, targetX: targetX, targetY: targetY)
+        } else {
+            glides[control.id]?.targetX = targetX
+            glides[control.id]?.targetY = targetY
         }
-        if let touch = held[control.id] { move(touch, x: targetX, y: targetY) }
+        // Part of the way now (no added latency), the rest over the next frames.
+        glide(control.id, fraction: smooth ? 0.45 : 1)
+    }
+
+    private mutating func glideAll(fraction: Double) {
+        for id in Array(glides.keys) { glide(id, fraction: fraction) }
+    }
+
+    private mutating func glide(_ id: String, fraction: Double) {
+        guard var glide = glides[id], let touch = held[id] else { return }
+        glide.x += (glide.targetX - glide.x) * fraction
+        glide.y += (glide.targetY - glide.y) * fraction
+        if hypot(glide.targetX - glide.x, glide.targetY - glide.y) < 0.5 {
+            glide.x = glide.targetX
+            glide.y = glide.targetY
+        }
+        glides[id] = glide
+        move(touch, x: glide.x, y: glide.y)
+    }
+
+    // MARK: MOBA (move by mouse, smart cast)
+
+    /// Turns a held MOBA control's finger the way the cursor lies from the
+    /// hero, over the next frames (the D-pad's glide). `now` also moves it
+    /// part of the way at once, as a D-pad key does: the press itself.
+    private mutating func aimAtCursor(_ control: Control, now: Bool) {
+        guard glides[control.id] != nil, let target = cursorTarget(for: control) else { return }
+        glides[control.id]?.targetX = target.x
+        glides[control.id]?.targetY = target.y
+        if now { glide(control.id, fraction: 0.45) }
+    }
+
+    /// Where a MOBA control's finger belongs for the current cursor, in pixels.
+    private func cursorTarget(for control: Control) -> (x: Double, y: Double)? {
+        let hero = profile.hero ?? KeymapProfile.defaultHero
+        let heroX = hero.x * width, heroY = hero.y * height
+        // No cursor yet: aim at the hero itself, so the finger stays put.
+        let (cursorX, cursorY) = cursor ?? (heroX, heroY)
+        let dx = cursorX - heroX, dy = cursorY - heroY
+        let distance = hypot(dx, dy)
+        switch control.kind {
+        case let .mobaMove(center, radius):
+            // Partway while the cursor is close to the hero (no jitter around
+            // it), all the way out beyond one radius: the hero runs.
+            return offset(from: center, dx: dx, dy: dy, distance: distance, length: min(distance, radius * height))
+        case let .smartCast(button, radius, reach):
+            // As far as the cursor is from the hero, scaled so that `reach`
+            // is a full drag, and clamped to the cast radius.
+            let length = min(distance * radius / max(reach, .ulpOfOne), radius * height)
+            return offset(from: button, dx: dx, dy: dy, distance: distance, length: length)
+        default:
+            return nil
+        }
+    }
+
+    private func clampX(_ x: Double) -> Double { min(max(x, 0), max(width - 1, 0)) }
+    private func clampY(_ y: Double) -> Double { min(max(y, 0), max(height - 1, 0)) }
+
+    /// `origin` moved `length` pixels along (dx, dy), shortened if needed to
+    /// stay on the screen without changing the direction (skill buttons sit
+    /// near the edges).
+    private func offset(from origin: NormalizedPoint, dx: Double, dy: Double, distance: Double,
+                        length: Double) -> (x: Double, y: Double) {
+        let x = origin.x * width, y = origin.y * height
+        guard distance > 0, length > 0 else { return (x, y) }
+        let ux = dx / distance * length, uy = dy / distance * length
+        var t = 1.0
+        if x + ux > width - 1 { t = min(t, (width - 1 - x) / ux) }
+        if x + ux < 0 { t = min(t, -x / ux) }
+        if y + uy > height - 1 { t = min(t, (height - 1 - y) / uy) }
+        if y + uy < 0 { t = min(t, -y / uy) }
+        t = max(t, 0)
+        return (x + ux * t, y + uy * t)
     }
 
     // MARK: Aim (mouse-look)
 
     private mutating func aim(control: Control, dx: Double, dy: Double, applyCurve: Bool) {
-        guard case let .aim(area, sensitivity, ads, exponent, deadzone, invertY, _) = control.kind, isActive(control) else { return }
+        guard case let .aim(area, sensitivity, ads, exponent, deadzone, invertY, _, origin) = control.kind, isActive(control) else { return }
         var x = dx, y = dy
         let magnitude = hypot(x, y)
         if applyCurve {
@@ -334,15 +618,19 @@ public struct KeymapEngine: Sendable {
 
         let minX = area.minX * width + 1, maxX = area.maxX * width - 1
         let minY = area.minY * height + 1, maxY = area.maxY * height - 1
-        if held[control.id] == nil { held[control.id] = down(area.center) }
+        guard minX <= maxX, minY <= maxY else { return }
+        let start = touchDown(in: area, at: origin)
+        if held[control.id] == nil { held[control.id] = down(x: start.x, y: start.y) }
 
         // Re-centering: when the drag would leave the camera area, finish the
-        // drag at the edge, lift, touch down again at the centre and carry on
-        // with the rest of the movement, so the camera turns without limit.
+        // drag at the edge, lift, touch down again at the eye's point and
+        // carry on with the rest of the movement, so the camera turns without
+        // limit. The finger uses the whole area: a tall one lets a look up or
+        // down go all the way to its top or bottom before starting over.
         for _ in 0..<8 {
             guard let touchID = held[control.id], let touch = touches.first(where: { $0.id == touchID }) else { return }
             let targetX = touch.x + deltaX, targetY = touch.y + deltaY
-            if (minX...maxX).contains(targetX) && (minY...maxY).contains(targetY) {
+            if minX <= targetX && targetX <= maxX && minY <= targetY && targetY <= maxY {
                 move(touchID, x: targetX, y: targetY)
                 return
             }
@@ -352,12 +640,27 @@ public struct KeymapEngine: Sendable {
             if targetY > maxY { t = min(t, (maxY - touch.y) / deltaY) }
             if targetY < minY { t = min(t, (minY - touch.y) / deltaY) }
             t = max(0, min(t, 1))
+            // Already at its point and still unable to go that way (a point
+            // on the edge of the area): stay down rather than lift and touch
+            // down on the same spot again and again.
+            if t == 0, touch.x == start.x, touch.y == start.y { return }
             move(touchID, x: touch.x + deltaX * t, y: touch.y + deltaY * t)
             lift(touchID)
-            held[control.id] = down(area.center)
+            held[control.id] = down(x: start.x, y: start.y)
             deltaX *= 1 - t
             deltaY *= 1 - t
         }
+    }
+
+    /// Where the eye's finger touches down, and touches down again once it
+    /// reaches the edge of its area: its point (the centre unless the player
+    /// moved it), in pixels, inside the area by the pixel the finger keeps
+    /// from its edge.
+    private func touchDown(in area: NormalizedRect, at origin: NormalizedPoint?) -> (x: Double, y: Double) {
+        let p = origin ?? area.center
+        let minX = area.minX * width + 1, maxX = max(area.maxX * width - 1, minX)
+        let minY = area.minY * height + 1, maxY = max(area.maxY * height - 1, minY)
+        return (min(max(p.x * width, minX), maxX), min(max(p.y * height, minY), maxY))
     }
 
     // MARK: Scheduling
@@ -392,12 +695,15 @@ public struct KeymapEngine: Sendable {
 
     // MARK: Touches → MotionEvents
 
-    private mutating func down(_ point: NormalizedPoint) -> Int? {
+    private mutating func down(_ point: NormalizedPoint) -> Int? { down(x: point.x * width, y: point.y * height) }
+
+    /// A new touch at (x, y) in pixels, on the lowest free pointer id.
+    private mutating func down(x: Double, y: Double) -> Int? {
         guard touches.count < KeymapProfile.maxPointers else { return nil }
         flushMoves()
         let used = Set(touches.map(\.pointerID))
         let pointerID = (0..<UInt32(KeymapProfile.maxPointers)).first { !used.contains($0) }!
-        let touch = Touch(id: nextTouchID, pointerID: pointerID, x: point.x * width, y: point.y * height)
+        let touch = Touch(id: nextTouchID, pointerID: pointerID, x: x, y: y)
         nextTouchID += 1
         touches.append(touch)
         emit(touches.count == 1 ? .down : .pointerDown, index: touches.count - 1)
@@ -440,10 +746,11 @@ public struct KeymapEngine: Sendable {
 }
 
 extension Control {
-    var stick: GamepadStick? {
+    /// The stick that drives a joystick or the eye.
+    public var stick: GamepadStick? {
         switch kind {
         case let .dpad(_, _, _, _, _, _, stick): stick
-        case let .aim(_, _, _, _, _, _, stick): stick
+        case let .aim(_, _, _, _, _, _, stick, _): stick
         default: nil
         }
     }

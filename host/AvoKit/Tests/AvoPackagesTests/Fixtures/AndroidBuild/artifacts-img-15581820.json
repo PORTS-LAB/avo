@@ -1,0 +1,14 @@
+{
+  "artifacts": [
+    {
+      "name": "aosp_cf_arm64_only_phone-img-15581820.zip",
+      "size": "1046288463",
+      "lastModifiedTime": "2026-06-06T17:38:30.632Z",
+      "md5": "2a5039a3bdf3df8b8847f33517a11b05",
+      "contentType": "application/zip",
+      "revision": "pHju257bNMS/nyMTHmWBiQ==",
+      "creationTime": "2026-06-06T17:38:30.632Z",
+      "crc32c": 684884737
+    }
+  ]
+}

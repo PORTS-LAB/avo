@@ -11,6 +11,26 @@ public protocol NotificationPresenter: Sendable {
     func start(onOpen: @escaping @Sendable (_ package: String, _ key: String) -> Void)
     func post(_ notification: Avo_V1_Notification, appName: String, icon: Data?)
     func remove(key: String)
+    /// Whether macOS lets Avo show notifications (System Settings ›
+    /// Notifications), asked now: the user can change it there at any time.
+    func permission() async -> MacNotificationPermission
+    /// Asks macOS for permission: its alert while it has no answer yet.
+    /// Returns once macOS answers by itself (a decision it already has, or a
+    /// refusal to ask), or while its alert still waits for the user
+    /// (`asking`); `observePermission` hears the answer.
+    func requestPermission() async -> MacNotificationPermission
+    /// `onChange` gets the permission each time the user answers macOS's alert.
+    func observePermission(_ onChange: @escaping @Sendable (MacNotificationPermission) -> Void)
+    /// `onDismiss` gets the key of each notification the user closes in
+    /// Notification Center (not the ones Avo removes).
+    func observeDismissals(_ onDismiss: @escaping @Sendable (String) -> Void)
+}
+
+public extension NotificationPresenter {
+    func permission() async -> MacNotificationPermission { .allowed }
+    func requestPermission() async -> MacNotificationPermission { await permission() }
+    func observePermission(_ onChange: @escaping @Sendable (MacNotificationPermission) -> Void) {}
+    func observeDismissals(_ onDismiss: @escaping @Sendable (String) -> Void) {}
 }
 
 /// Two-way clipboard sync.
@@ -19,6 +39,13 @@ public protocol ClipboardBridge: Sendable {
     func start(onChange: @escaping @Sendable (String) -> Void)
     /// Puts text copied in Android on the Mac clipboard without echoing it back.
     func set(_ text: String)
+    /// Text copied on the Mac that `onChange` has not had yet, now (before a
+    /// paste in Android, which must not wait for the next look).
+    func takeChange() -> String?
+}
+
+public extension ClipboardBridge {
+    func takeChange() -> String? { nil }
 }
 
 /// Opens App Shims (for notification clicks).

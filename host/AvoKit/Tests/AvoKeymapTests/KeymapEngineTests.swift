@@ -32,14 +32,64 @@ private func summary(_ events: [TouchEvent]) -> [String] {
 
     @Test func holdsFollowTheKeyAndShareMultitouch() {
         var e = engine([
-            Control(id: "fire", kind: .hold(NormalizedPoint(0.8, 0.6)), triggers: [.mouse(.left)]),
+            Control(id: "fire", kind: .hold(NormalizedPoint(0.8, 0.6)), triggers: [.mouse(.right)]),
             Control(id: "crouch", kind: .hold(NormalizedPoint(0.9, 0.9)), triggers: [.key(.c)]),
         ])
-        #expect(summary(e.handle(.mouseDown(.left), at: 0).events) == ["down[0] 0@1920,648"])
+        #expect(summary(e.handle(.mouseDown(.right), at: 0).events) == ["down[0] 0@1920,648"])
         #expect(summary(e.handle(.keyDown(.c), at: 0.1).events) == ["pointerDown[1] 0@1920,648 1@2160,972"])
         // Lifting the first pointer reports its index while both are still listed.
-        #expect(summary(e.handle(.mouseUp(.left), at: 0.2).events) == ["pointerUp[0] 0@1920,648 1@2160,972"])
+        #expect(summary(e.handle(.mouseUp(.right), at: 0.2).events) == ["pointerUp[0] 0@1920,648 1@2160,972"])
         #expect(summary(e.handle(.keyUp(.c), at: 0.3).events) == ["up[0] 1@2160,972"])
+    }
+
+    @Test func anchorTapFollowsTheMouseFromItsPoint() {
+        // An emote wheel: hold B, move towards an item, let go.
+        var e = engine([Control(id: "emote", kind: .anchor(NormalizedPoint(0.5, 0.5)), triggers: [.key(.b)])])
+        #expect(!e.handle(.pointerMoved(dx: 50, dy: 0), at: 0).consumed) // not held: the cursor is free
+        #expect(summary(e.handle(.keyDown(.b), at: 0.1).events) == ["down[0] 0@1200,540"])
+        let moved = e.handle(.pointerMoved(dx: 120, dy: -80), at: 0.2)
+        #expect(moved.consumed)
+        #expect(summary(moved.events) == ["move[0] 0@1320,460"])
+        // Kept on the screen.
+        #expect(summary(e.handle(.pointerMoved(dx: 5000, dy: 0), at: 0.3).events) == ["move[0] 0@2399,460"])
+        #expect(summary(e.handle(.keyUp(.b), at: 0.4).events) == ["up[0] 0@2399,460"])
+        #expect(e.activeTouchCount == 0)
+    }
+
+    @Test func anchorTapTakesTheLockedMouseFromTheCamera() {
+        let camera = Control(id: "camera", kind: .aim(area: NormalizedRect(0.5, 0.1, 1, 0.7), sensitivity: AxisPair(x: 1, y: 1),
+                                                      adsSensitivity: AxisPair(x: 1, y: 1), exponent: 1, deadzone: 0,
+                                                      invertY: false, stick: nil))
+        let emote = Control(id: "emote", kind: .anchor(NormalizedPoint(0.2, 0.5)), triggers: [.key(.b)])
+        var e = engine([camera, emote], fps: FPSSettings(aimControl: "camera"))
+        _ = e.setPointerLocked(true) // the camera touch goes down
+        _ = e.handle(.keyDown(.b), at: 0)
+        let scale = H / KeymapEngine.referenceHeight
+        let events = summary(e.handle(.mouseMoved(dx: 10, dy: 0), at: 0.1).events)
+        // Only the anchor (pointer 1) moves; the camera (pointer 0) stays put.
+        #expect(events == ["move[0] 0@1800,432 1@\(Int((480 + 10 * scale).rounded())),540"])
+    }
+
+    @Test func tapsLastAsLongAsTheirKey() {
+        var e = engine([Control(id: "jump", kind: .tap(NormalizedPoint(0.5, 0.5)), triggers: [.key(.space)])])
+        #expect(summary(e.handle(.keyDown(.space), at: 0).events) == ["down[0] 0@1200,540"])
+        #expect(e.tick(at: 0.5).isEmpty) // still held: a long press
+        #expect(summary(e.handle(.keyUp(.space), at: 0.6).events) == ["up[0] 0@1200,540"])
+    }
+
+    @Test func leftClickStaysAClickUntilTheMouseIsLocked() {
+        let camera = Control(id: "camera", kind: .aim(area: NormalizedRect(0.5, 0.1, 1, 0.7), sensitivity: AxisPair(x: 1, y: 1),
+                                                      adsSensitivity: AxisPair(x: 1, y: 1), exponent: 1, deadzone: 0,
+                                                      invertY: false, stick: nil))
+        let fire = Control(id: "fire", kind: .tap(NormalizedPoint(0.8, 0.8)), triggers: [.mouse(.left)])
+        var e = engine([camera, fire], fps: FPSSettings(aimControl: "camera"))
+        // Free mouse: the click reaches the game as a normal touch.
+        #expect(!e.handle(.mouseDown(.left), at: 0).consumed)
+        _ = e.handle(.mouseUp(.left), at: 0.05)
+        _ = e.setPointerLocked(true)
+        let locked = e.handle(.mouseDown(.left), at: 0.1)
+        #expect(locked.consumed)
+        #expect(summary(locked.events) == ["pointerDown[1] 0@1800,432 1@1920,864"])
     }
 
     @Test func unboundKeysPassThrough() {
@@ -52,13 +102,20 @@ private func summary(_ events: [TouchEvent]) -> [String] {
         let dpad = Control(id: "move", kind: .dpad(center: NormalizedPoint(0.15, 0.7), radius: 0.1,
                                                     up: .key(.w), down: .key(.s), left: .key(.a), right: .key(.d), stick: .left))
         var e = engine([dpad])
-        // Down at the centre, then drag to the target.
-        #expect(summary(e.handle(.keyDown(.w), at: 0).events) == ["down[0] 0@360,756", "move[0] 0@360,648"])
-        let diagonal = e.handle(.keyDown(.d), at: 0.05).events
+        // Down at the centre, part of the way out at once, then a glide over
+        // the next frames (no jump to the edge).
+        #expect(summary(e.handle(.keyDown(.w), at: 0).events) == ["down[0] 0@360,756", "move[0] 0@360,707"])
+        let glide = (1...30).flatMap { e.tick(at: Double($0) / 120) }
+        #expect(glide.count > 3)
+        #expect(summary(Array(glide.suffix(1))) == ["move[0] 0@360,648"])
+        // Diagonals are normalized: W+D settles at radius·(1/√2, 1/√2).
+        _ = e.handle(.keyDown(.d), at: 0.3)
+        let diagonal = (37...80).flatMap { e.tick(at: Double($0) / 120) }
         let r = 0.1 * H / 2.squareRoot()
-        #expect(summary(diagonal) == ["move[0] 0@\(Int((360 + r).rounded())),\(Int((756 - r).rounded()))"])
-        _ = e.handle(.keyUp(.w), at: 0.1)
-        #expect(summary(e.handle(.keyUp(.d), at: 0.2).events) == ["up[0] 0@468,756"])
+        #expect(summary(Array(diagonal.suffix(1))) == ["move[0] 0@\(Int((360 + r).rounded())),\(Int((756 - r).rounded()))"])
+        _ = e.handle(.keyUp(.w), at: 0.7)
+        _ = (85...130).flatMap { e.tick(at: Double($0) / 120) }
+        #expect(summary(e.handle(.keyUp(.d), at: 1.2).events) == ["up[0] 0@468,756"])
 
         // The left stick drives the same joystick proportionally.
         let stick = e.handle(.gamepadStick(.left, x: 0, y: 1), at: 1)
@@ -270,11 +327,12 @@ private func summary(_ events: [TouchEvent]) -> [String] {
     }
 
     @Test func communityProfilesAreValid() throws {
-        let directory = URL(filePath: #filePath).deletingLastPathComponent().appending(path: "../../../../profiles/keymaps")
-            .standardizedFileURL
+        let root = URL(filePath: #filePath).deletingLastPathComponent().appending(path: "../../../..").standardizedFileURL
+        let directory = root.appending(path: "profiles/keymaps")
+        // Plus the sample app's profile (guest/samples/hello), which uses every kind of control.
         let files = try FileManager.default.contentsOfDirectory(at: directory, includingPropertiesForKeys: nil)
-            .filter { $0.pathExtension == "json" }
-        #expect(!files.isEmpty)
+            .filter { $0.pathExtension == "json" } + [root.appending(path: "guest/samples/hello/keymap/dev.avo.hello.json")]
+        #expect(files.count > 1)
         for file in files {
             let profile = try KeymapProfile.decode(Data(contentsOf: file))
             #expect(profile.validate().isEmpty, "\(file.lastPathComponent): \(profile.validate())")

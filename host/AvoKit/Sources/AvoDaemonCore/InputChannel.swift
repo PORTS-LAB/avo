@@ -77,9 +77,6 @@ public actor InputChannel {
         switch record {
         case .ping:
             throw AvoError.unauthorizedCaller
-        case .gamepad:
-            // Gamepads follow focus; any client with a window may drive them.
-            guard !allowedDisplays.isEmpty else { throw AvoError.unauthorizedCaller }
         default:
             guard let display = Self.displayID(of: record), allowedDisplays.contains(display) else {
                 throw AvoError.unauthorizedCaller
@@ -130,7 +127,10 @@ public actor InputChannel {
         case .scroll(let e): e.displayID
         case .text(let display, _): display
         case .mouse(let e): e.displayID
-        case .gamepad, .ping: nil
+        // Gamepads follow focus: the record names the key window's display,
+        // and the guest unplugs the gamepad when that display goes away.
+        case .gamepad(let state): state.displayID
+        case .ping: nil
         }
     }
 }

@@ -16,6 +16,15 @@ private func pixel(_ image: CGImage, _ x: Int, _ y: Int) -> (r: UInt8, g: UInt8,
     return (data[offset], data[offset + 1], data[offset + 2], data[offset + 3])
 }
 
+private func outlineImage(size: Int, argb: UInt32, lineWidth: CGFloat) -> CGImage {
+    let context = CGContext(data: nil, width: size, height: size, bitsPerComponent: 8, bytesPerRow: size * 4,
+                            space: CGColorSpace(name: CGColorSpace.sRGB)!, bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)!
+    context.setStrokeColor(MacIconRenderer.color(argb: argb))
+    context.setLineWidth(lineWidth)
+    context.stroke(CGRect(x: 20, y: 20, width: size - 40, height: size - 40))
+    return context.makeImage()!
+}
+
 private func solidImage(size: Int, argb: UInt32, insetTransparent: Int = 0) -> CGImage {
     let context = CGContext(data: nil, width: size, height: size, bitsPerComponent: 8, bytesPerRow: 0,
                             space: CGColorSpace(name: CGColorSpace.sRGB)!, bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)!
@@ -38,12 +47,23 @@ private func solidImage(size: Int, argb: UInt32, insetTransparent: Int = 0) -> C
         #expect(pixel(image, 512, 960).a == 0)
     }
 
-    @Test func transparentLegacyIconsSitOnAWhitePlate() throws {
-        let round = solidImage(size: 192, argb: 0xFF00_00FF, insetTransparent: 40)
-        #expect(!MacIconRenderer.isFullBleed(round))
-        let image = try #require(MacIconRenderer.render(.legacy(round), pixels: 512))
-        #expect(pixel(image, 70, 256) == (255, 255, 255, 255))
+    @Test func shapedLegacyIconsBecomeTheSquircle() throws {
+        // An opaque shape with transparent margins (a rounded-square launcher
+        // icon): no white plate, it fills the squircle.
+        let shape = solidImage(size: 192, argb: 0xFF00_00FF, insetTransparent: 40)
+        #expect(!MacIconRenderer.isFullBleed(shape))
+        #expect(MacIconRenderer.footprint(shape)?.isShape == true)
+        let image = try #require(MacIconRenderer.render(.legacy(shape), pixels: 512))
+        #expect(pixel(image, 70, 256) == (0, 0, 255, 255))
         #expect(pixel(image, 256, 256) == (0, 0, 255, 255))
+    }
+
+    @Test func glyphLegacyIconsSitOnAWhitePlate() throws {
+        // A thin outline on transparency is a glyph: it needs a plate.
+        let glyph = outlineImage(size: 192, argb: 0xFF00_00FF, lineWidth: 8)
+        #expect(MacIconRenderer.footprint(glyph)?.isShape == false)
+        let image = try #require(MacIconRenderer.render(.legacy(glyph), pixels: 512))
+        #expect(pixel(image, 256, 256) == (255, 255, 255, 255))
     }
 
     @Test func opaqueSquareLegacyIconsAreMasked() throws {

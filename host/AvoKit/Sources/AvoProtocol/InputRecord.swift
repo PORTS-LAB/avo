@@ -119,13 +119,19 @@ public struct GamepadState: Sendable, Equatable {
         case leftX, leftY, rightX, rightY, leftTrigger, rightTrigger, hatX, hatY
     }
 
+    /// The display of the window that drives the gamepad (0 when unknown):
+    /// the daemon checks the sender owns it, and the guest unplugs the
+    /// gamepad when that display closes (a shim that quit or crashed).
+    public var displayID: UInt32
     public var pad: UInt8
     public var connected: Bool
     public var buttons: UInt32
     public var axes: [Float]
 
-    public init(pad: UInt8, connected: Bool = true, buttons: UInt32 = 0, axes: [Float] = Array(repeating: 0, count: 8)) {
+    public init(displayID: UInt32 = 0, pad: UInt8, connected: Bool = true, buttons: UInt32 = 0,
+                axes: [Float] = Array(repeating: 0, count: 8)) {
         precondition(axes.count == Axis.allCases.count, "GamepadState needs exactly 8 axes")
+        self.displayID = displayID
         self.pad = pad
         self.connected = connected
         self.buttons = buttons
@@ -245,7 +251,7 @@ public enum InputWire {
             writer.u32(event.buttons)
             writer.u32(event.actionButton)
         case let .gamepad(state):
-            header(.gamepad, displayID: 0)
+            header(.gamepad, displayID: state.displayID)
             writer.u8(state.pad)
             writer.u8(state.connected ? 1 : 0)
             writer.u16(0)
@@ -326,7 +332,7 @@ public enum InputWire {
             _ = reader.u16()
             let buttons = reader.u32()
             let axes = (0..<8).map { _ in reader.f32() }
-            record = .gamepad(GamepadState(pad: pad, connected: connected, buttons: buttons, axes: axes))
+            record = .gamepad(GamepadState(displayID: displayID, pad: pad, connected: connected, buttons: buttons, axes: axes))
         case .ping:
             try require(16)
             record = .ping(token: reader.u64())

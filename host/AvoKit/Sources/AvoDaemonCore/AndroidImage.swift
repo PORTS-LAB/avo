@@ -61,23 +61,24 @@ public struct AndroidImage: Codable, Sendable, Equatable {
         let manifest = try Data(contentsOf: url(Self.manifestName))
         let signature = try Data(contentsOf: url(Self.signatureName))
         guard publicKey.isValidSignature(signature, for: manifest) else {
-            throw AvoError.internalError("The Android image signature is invalid.")
+            throw AvoError.internalError(String(localized: "The Android image signature is invalid.", bundle: .avoKit))
         }
         let referenced = Set([kernel, initrd, overlayStock, overlayRooted].compactMap { $0 } + partitions)
         let listed = Set(files.map(\.name))
         guard referenced.isSubset(of: listed) else {
-            throw AvoError.internalError("The image manifest does not cover \(referenced.subtracting(listed).sorted().joined(separator: ", ")).")
+            throw AvoError.internalError(String(localized: "The image manifest does not cover \(referenced.subtracting(listed).sorted().joined(separator: ", ")).",
+                                                       bundle: .avoKit))
         }
         for file in files {
             guard !file.name.contains("/") && !file.name.hasPrefix(".") else {
-                throw AvoError.internalError("Invalid file name in image manifest: \(file.name)")
+                throw AvoError.internalError(String(localized: "Invalid file name in image manifest: \(file.name)", bundle: .avoKit))
             }
             let attributes = try FileManager.default.attributesOfItem(atPath: url(file.name).path)
             guard (attributes[.size] as? NSNumber)?.int64Value == file.size else {
-                throw AvoError.internalError("\(file.name) has the wrong size.")
+                throw AvoError.internalError(String(localized: "\(file.name) has the wrong size.", bundle: .avoKit))
             }
             guard try Self.sha256(of: url(file.name)) == file.sha256.lowercased() else {
-                throw AvoError.internalError("\(file.name) failed its checksum.")
+                throw AvoError.internalError(String(localized: "\(file.name) failed its checksum.", bundle: .avoKit))
             }
         }
     }
@@ -114,13 +115,16 @@ public struct BootConfig: Codable, Sendable, Equatable {
     public init(adbKeys: [String], profile: DeviceProfile?, config: VMConfig,
                 locale: Locale = .current, timeZone: TimeZone = .current) {
         self.adbKeys = adbKeys
-        self.deviceProfile = profile?.properties ?? [:]
+        // With hardware emulation on, the profile's SoC and GPU properties go
+        // with the identity (the engine applies them before anything reads).
+        self.deviceProfile = profile?.properties(emulateHardware: config.emulateHardware) ?? [:]
         self.deviceProfileID = profile?.id ?? DeviceProfile.defaultID
         self.rooted = config.rooted
         self.gms = config.gms
         self.locale = locale.identifier(.bcp47)
         self.timeZone = timeZone.identifier
-        self.defaultDensity = config.defaultDPI ?? profile?.display?.dpi
+        // The profile's screen density is part of its hardware (the checkbox).
+        self.defaultDensity = config.bootDensity ?? (config.emulateHardware ? profile?.display?.dpi : nil)
     }
 
     public func diskImage() throws -> Data {

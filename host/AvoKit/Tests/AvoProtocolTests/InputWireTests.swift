@@ -95,6 +95,13 @@ import Testing
         #expect(try Data(contentsOf: url) == Data(bytes))
     }
 
+    @Test func gamepadCarriesItsDisplayInTheHeader() throws {
+        let record = InputRecord.gamepad(GamepadState(displayID: 4, pad: 0, buttons: 1))
+        let bytes = try InputWire.encode(record)
+        #expect(Array(bytes[4..<8]) == [4, 0, 0, 0])
+        #expect(try InputWire.decode(bytes[...])?.record == record)
+    }
+
     @Test func preambleNegotiation() throws {
         let preamble = InputWire.preamble()
         #expect(preamble == [0x41, 0x56, 0x4F, 0x49, 1, 0, 0, 0])

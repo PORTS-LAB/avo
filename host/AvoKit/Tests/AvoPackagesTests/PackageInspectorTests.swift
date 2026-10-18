@@ -59,6 +59,30 @@ private let pngSignature = Data([0x89, 0x50, 0x4E, 0x47])
         #expect(plain == compact)
     }
 
+    @Test func inflatesLargeEntriesExactly() throws {
+        // Deflated output arrives in several chunks per write, sharing one
+        // buffer: each must be copied before the next (a 600 KB manifest broke).
+        let directory = FileManager.default.temporaryDirectory.appending(path: "avo-zip-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        var state: UInt32 = 1
+        let original = Data((0..<700_000).map { _ in
+            state = state &* 1_103_515_245 &+ 12_345
+            return UInt8(truncatingIfNeeded: state >> 16) & 0x3F
+        })
+        try original.write(to: directory.appending(path: "big.bin"))
+        let zip = Process()
+        zip.executableURL = URL(filePath: "/usr/bin/zip")
+        zip.currentDirectoryURL = directory
+        zip.arguments = ["-q", "-9", "big.zip", "big.bin"]
+        try zip.run()
+        zip.waitUntilExit()
+        let archive = try ZipArchive(url: directory.appending(path: "big.zip"))
+        let entry = try #require(archive.entry("big.bin"))
+        #expect(entry.method == 8)
+        #expect(try archive.data(of: entry) == original)
+    }
+
     @Test func rejectsArm32OnlyApps() throws {
         let summary = try PackageArchive(url: fixture("arm32-only.apk")).summary
         #expect(summary.nativeABIs == ["armeabi-v7a"])

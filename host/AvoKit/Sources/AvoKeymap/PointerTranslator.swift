@@ -26,8 +26,12 @@ public struct PointerTranslator: Sendable {
     }
 
     private var gesture = Gesture.none
-    /// Distance between the two fingers when a pinch begins, in pixels.
-    static let pinchStartDistance = 200.0
+    /// Distance between the two fingers when a pinch begins, in pixels: a
+    /// share of the display, so a pinch zooms as far at a low internal
+    /// resolution as at the window's full one.
+    private var pinchStartDistance: Double { 0.2 * min(width, height) }
+    /// The fingers never come closer than this, or Android sees one touch.
+    private var pinchMinimumDistance: Double { 0.02 * min(width, height) }
 
     public init(displayID: UInt32, width: Double, height: Double) {
         self.displayID = displayID
@@ -97,7 +101,7 @@ public struct PointerTranslator: Sendable {
         case .began:
             var events = cancel()
             let cx = clampX(centerX), cy = clampY(centerY)
-            let d = Self.pinchStartDistance
+            let d = pinchStartDistance
             gesture = .pinch(cx: cx, cy: cy, distance: d)
             let (a, b) = fingers(cx: cx, cy: cy, distance: d)
             events.append(touch(.down, [(0, a.0, a.1)]))
@@ -105,7 +109,7 @@ public struct PointerTranslator: Sendable {
             return events
         case .changed:
             guard case let .pinch(cx, cy, _) = gesture else { return [] }
-            let distance = max(20, Self.pinchStartDistance * (1 + magnification))
+            let distance = max(pinchMinimumDistance, pinchStartDistance * (1 + magnification))
             gesture = .pinch(cx: cx, cy: cy, distance: distance)
             let (a, b) = fingers(cx: cx, cy: cy, distance: distance)
             return [touch(.move, [(0, a.0, a.1), (1, b.0, b.1)])]
