@@ -1,0 +1,40 @@
+/* Typeface set A: Hubot Sans (headings), Mona Sans (text), Mona Sans Mono
+   (labels and code). GitHub's open-source superfamily, SIL OFL 1.1; licenses
+   in assets/fonts/<family>/OFL.txt. Hubot Sans and Mona Sans are Google
+   Fonts' Latin files, unmodified; Mona Sans Mono is GitHub's release file. */
+
+@font-face {
+  font-family: 'Hubot Sans';
+  src: url('../fonts/hubot-sans/hubot-sans.woff2') format('woff2');
+  font-weight: 200 900;
+  font-stretch: 75% 125%;
+  font-display: swap;
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'Mona Sans';
+  src: url('../fonts/mona-sans/mona-sans.woff2') format('woff2');
+  font-weight: 200 900;
+  font-stretch: 75% 125%;
+  font-display: swap;
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'Mona Sans Mono';
+  src: url('../fonts/mona-sans-mono/mona-sans-mono.woff2') format('woff2');
+  font-weight: 200 900;
+  font-display: swap;
+}
+
+:root {
+  --font-display: 'Hubot Sans', var(--font-fallback);
+  --font-sans: 'Mona Sans', var(--font-fallback);
+  --font-mono: 'Mona Sans Mono', var(--font-mono-fallback);
+  --display-weight: 650;
+  --display-stretch: 108%;
+  --display-stretch-narrow: 102%;
+  --display-tracking: -0.01em;
+  --display-leading: 1.04;
+}

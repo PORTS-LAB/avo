@@ -1,0 +1,31 @@
+/* Typeface set C: Archivo (Omnibus-Type), wide cuts for headings, normal
+   width for text; JetBrains Mono for labels and code. SIL OFL 1.1; licenses
+   in assets/fonts/<family>/OFL.txt. Google Fonts' Latin files, unmodified. */
+
+@font-face {
+  font-family: 'Archivo';
+  src: url('../fonts/archivo/archivo.woff2') format('woff2');
+  font-weight: 100 900;
+  font-stretch: 62% 125%;
+  font-display: swap;
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'JetBrains Mono';
+  src: url('../fonts/jetbrains-mono/jetbrains-mono.woff2') format('woff2');
+  font-weight: 100 800;
+  font-display: swap;
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+:root {
+  --font-display: 'Archivo', var(--font-fallback);
+  --font-sans: 'Archivo', var(--font-fallback);
+  --font-mono: 'JetBrains Mono', var(--font-mono-fallback);
+  --display-weight: 650;
+  --display-stretch: 112.5%;
+  --display-stretch-narrow: 104%;
+  --display-tracking: -0.01em;
+  --display-leading: 1.04;
+}

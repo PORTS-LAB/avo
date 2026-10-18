@@ -1,0 +1,71 @@
+<!doctype html>
+<!-- Template for the 1200x630 social preview images in src/assets/img/og/.
+     Render with headless Chrome, then convert to JPEG, for example:
+       "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --headless=new --hide-scrollbars \
+         --allow-file-access-from-files --window-size=1200,630 --screenshot=/tmp/og-en.png \
+         "file://$PWD/tools/og-image.html?lang=en"
+       sips -s format jpeg -s formatOptions 86 /tmp/og-en.png --out src/assets/img/og/og-en.jpg
+     lang: en | id. Files: og-en, og-id. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Avo social image</title>
+<style>
+  @font-face { font-family: 'Hubot Sans'; src: url('../src/assets/fonts/hubot-sans/hubot-sans.woff2') format('woff2'); font-weight: 200 900; font-stretch: 75% 125%; }
+  @font-face { font-family: 'Mona Sans'; src: url('../src/assets/fonts/mona-sans/mona-sans.woff2') format('woff2'); font-weight: 200 900; font-stretch: 75% 125%; }
+  @font-face { font-family: 'Mona Sans Mono'; src: url('../src/assets/fonts/mona-sans-mono/mona-sans-mono.woff2') format('woff2'); font-weight: 200 900; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; width: 1200px; height: 630px; overflow: hidden; }
+  body {
+    position: relative;
+    color: #f3f1e8;
+    font-family: 'Mona Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background:
+      radial-gradient(38% 52% at 80% 52%, rgba(234, 205, 150, 0.30), transparent 70%),
+      radial-gradient(22% 30% at 80% 52%, rgba(251, 236, 201, 0.35), transparent 70%),
+      radial-gradient(70% 70% at 10% 0%, rgba(47, 74, 31, 0.65), transparent 70%),
+      radial-gradient(60% 50% at 60% 100%, rgba(34, 53, 25, 0.8), transparent 70%),
+      #0a1108;
+  }
+  .smoke { position: absolute; inset: 0; opacity: 0.5; }
+  .copy { position: absolute; left: 84px; top: 64px; width: 640px; }
+  .brand { display: flex; align-items: center; gap: 18px; margin-bottom: 40px; }
+  .brand img { width: 84px; height: 84px; }
+  .brand span { font: 650 44px/1 'Hubot Sans', sans-serif; font-stretch: 108%; letter-spacing: -0.01em; }
+  h1 { margin: 0 0 26px; font: 650 60px/1.04 'Hubot Sans', sans-serif; font-stretch: 108%; letter-spacing: -0.01em; }
+  p { margin: 0; color: #c5cdb9; font-size: 26px; line-height: 1.4; }
+  .tags { position: absolute; left: 84px; bottom: 52px; display: flex; gap: 12px; }
+  .tags span { padding: 10px 18px; border-radius: 999px; background: rgba(216, 232, 167, 0.1); color: #e3eccd; font: 500 19px/1.2 'Mona Sans Mono', monospace; text-transform: uppercase; letter-spacing: 0.04em; }
+  .mark { position: absolute; right: 120px; top: 165px; width: 300px; height: 300px; opacity: 0.95; filter: drop-shadow(0 30px 60px rgba(0,0,0,0.5)); }
+</style>
+</head>
+<body>
+<svg class="smoke" viewBox="0 0 1200 630" aria-hidden="true">
+  <filter id="f"><feTurbulence type="fractalNoise" baseFrequency="0.004 0.009" numOctaves="4" seed="7"/><feColorMatrix values="0 0 0 0 0.55  0 0 0 0 0.6  0 0 0 0 0.45  0 0 0 1.1 -0.45"/></filter>
+  <rect width="1200" height="630" filter="url(#f)"/>
+</svg>
+<div class="copy">
+  <div class="brand"><img src="../src/assets/img/avo-mark.svg" alt=""><span>Avo</span></div>
+  <h1 id="title"></h1>
+  <p id="line"></p>
+</div>
+<img class="mark" id="mark" src="../src/assets/img/avo-icon-macos.svg" alt="">
+<div class="tags" id="tags"></div>
+<script>
+  const q = new URLSearchParams(location.search);
+  const lang = q.get('lang') || 'en';
+  const text = {
+    en: ['Android apps and games, right on your Mac.', 'Each app in its own window. Play with keyboard, mouse or controller.', ['Free', 'Open source', 'For Apple chips']],
+    id: ['Aplikasi dan game Android, langsung di Mac kamu.', 'Setiap aplikasi di jendelanya sendiri. Main pakai keyboard, mouse, atau controller.', ['Gratis', 'Open source', 'Untuk chip Apple']],
+  }[lang];
+  document.documentElement.lang = lang;
+  document.getElementById('title').textContent = text[0];
+  document.getElementById('line').textContent = text[1];
+  for (const tag of text[2]) {
+    const span = document.createElement('span');
+    span.textContent = tag;
+    document.getElementById('tags').append(span);
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,6 @@
+# Build output and local state (see README.md)
+dist/
+dist.building-*/
+dist.previous-*/
+.dev/
+node_modules/

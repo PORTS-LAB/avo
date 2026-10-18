@@ -1,0 +1,349 @@
+<!doctype html>
+<html lang="{{v:lang}}">
+<head>
+{{> head}}
+</head>
+<body class="page page-home">
+{{> sprite}}
+{{> header}}
+<main id="main">
+
+  <section class="hero" aria-labelledby="hero-title">
+    <div class="hero-sky" aria-hidden="true"></div>
+    <canvas class="haze-canvas" data-haze="hero" aria-hidden="true"></canvas>
+    <div class="wrap hero-grid">
+      <div class="hero-copy">
+        {{h:releasePill}}
+        <h1 id="hero-title" class="display">{{t:hero.title}}</h1>
+        <p class="lede">{{t:hero.lede}}</p>
+        <div class="cta-row">
+{{h:heroCtas}}
+        </div>
+        <ul class="hero-points">
+          <li>{{t:hero.pointFree}}</li>
+          <li>{{t:hero.pointMac}}</li>
+          <li>{{t:hero.pointPrivate}}</li>
+        </ul>
+      </div>
+
+      <div class="hero-visual">
+        <div class="shot shot-library hero-shot">
+          <picture>
+            <source type="image/avif" srcset="{{v:root}}assets/img/screens/library-640.avif 640w, {{v:root}}assets/img/screens/library-1080.avif 1080w" sizes="(max-width: 1080px) min(92vw, 720px), 600px">
+            <source type="image/webp" srcset="{{v:root}}assets/img/screens/library-640.webp 640w, {{v:root}}assets/img/screens/library-1080.webp 1080w" sizes="(max-width: 1080px) min(92vw, 720px), 600px">
+            <img src="{{v:root}}assets/img/screens/library-1080.jpg" srcset="{{v:root}}assets/img/screens/library-640.jpg 640w, {{v:root}}assets/img/screens/library-1080.jpg 1080w" sizes="(max-width: 1080px) min(92vw, 720px), 600px" width="1080" height="760" alt="{{a:hero.shotAlt}}" fetchpriority="high">
+          </picture>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section gaming" id="gaming" aria-labelledby="games-title">
+    <div class="glow glow-gaming" aria-hidden="true"></div>
+    <div class="wrap">
+      <header class="section-head">
+        <p class="kicker">{{t:games.kicker}}</p>
+        <h2 id="games-title" class="display">{{t:games.title}}</h2>
+        <p class="lede">{{t:games.lede}}</p>
+      </header>
+
+      <div class="split split-art-left">
+        <div class="art art-shots">
+          <figure class="shot-figure">
+            <div class="shot shot-game">
+              <picture>
+                <source type="image/avif" srcset="{{v:root}}assets/img/screens/game-play-640.avif 640w, {{v:root}}assets/img/screens/game-play-1309.avif 1309w" sizes="(max-width: 1080px) min(92vw, 720px), 600px">
+                <source type="image/webp" srcset="{{v:root}}assets/img/screens/game-play-640.webp 640w, {{v:root}}assets/img/screens/game-play-1309.webp 1309w" sizes="(max-width: 1080px) min(92vw, 720px), 600px">
+                <img src="{{v:root}}assets/img/screens/game-play-1309.jpg" srcset="{{v:root}}assets/img/screens/game-play-640.jpg 640w, {{v:root}}assets/img/screens/game-play-1309.jpg 1309w" sizes="(max-width: 1080px) min(92vw, 720px), 600px" width="1309" height="770" alt="{{a:games.shotPlayAlt}}" loading="lazy" decoding="async">
+              </picture>
+            </div>
+            <figcaption><span class="shot-label">{{t:games.shotPlayLabel}}</span> {{t:games.shotPlayText}}</figcaption>
+          </figure>
+          <figure class="shot-figure">
+            <div class="shot shot-game">
+              <picture>
+                <source type="image/avif" srcset="{{v:root}}assets/img/screens/game-keys-640.avif 640w, {{v:root}}assets/img/screens/game-keys-1309.avif 1309w" sizes="(max-width: 1080px) min(92vw, 720px), 600px">
+                <source type="image/webp" srcset="{{v:root}}assets/img/screens/game-keys-640.webp 640w, {{v:root}}assets/img/screens/game-keys-1309.webp 1309w" sizes="(max-width: 1080px) min(92vw, 720px), 600px">
+                <img src="{{v:root}}assets/img/screens/game-keys-1309.jpg" srcset="{{v:root}}assets/img/screens/game-keys-640.jpg 640w, {{v:root}}assets/img/screens/game-keys-1309.jpg 1309w" sizes="(max-width: 1080px) min(92vw, 720px), 600px" width="1309" height="770" alt="{{a:games.shotKeysAlt}}" loading="lazy" decoding="async">
+              </picture>
+            </div>
+            <figcaption><span class="shot-label">{{t:games.shotKeysLabel}}</span> {{t:games.shotKeysText}}</figcaption>
+          </figure>
+          <p class="shot-note">{{t:games.shotNote}}</p>
+        </div>
+
+        <ul class="features">
+          <li class="feature"><h3>{{t:games.keysTitle}}</h3><p>{{t:games.keysText}}</p></li>
+          <li class="feature"><h3>{{t:games.aimTitle}}</h3><p>{{t:games.aimText}}</p></li>
+          <li class="feature"><h3>{{t:games.padTitle}}</h3><p>{{t:games.padText}}</p></li>
+          <li class="feature"><h3>{{t:games.shareTitle}}</h3><p>{{t:games.shareText}}</p></li>
+          <li class="feature"><h3>{{t:games.fairTitle}}</h3><p>{{t:games.fairText}}</p></li>
+        </ul>
+      </div>
+      <p class="status-note">{{t:games.status}}</p>
+    </div>
+  </section>
+
+  <section class="section mac" id="mac" aria-labelledby="mac-title">
+    <div class="glow glow-mac" aria-hidden="true"></div>
+    <div class="wrap">
+      <header class="section-head section-head-center">
+        <p class="kicker">{{t:mac.kicker}}</p>
+        <h2 id="mac-title" class="display">{{t:mac.title}}</h2>
+      </header>
+      <div class="bento">
+        <article class="tile tile-dock">
+          <div class="tile-art" role="img" aria-label="{{a:mac.artDockAlt}}">
+            <div class="mini-dock" aria-hidden="true">
+              <img src="{{v:root}}assets/img/avo-icon-macos.svg" alt="" width="40" height="40" loading="lazy">
+              <span class="dock-sep"></span>
+              <span class="dock-app is-running"><svg><use href="#app-game"/></svg></span>
+              <span class="dock-app is-running"><svg><use href="#app-messages"/></svg></span>
+              <span class="dock-app"><svg><use href="#app-notes"/></svg></span>
+              <span class="dock-app is-running"><svg><use href="#app-maps"/></svg></span>
+              <span class="dock-app"><svg><use href="#app-reader"/></svg></span>
+              <span class="dock-app"><svg><use href="#app-term"/></svg></span>
+            </div>
+          </div>
+          <h3>{{t:mac.windowsTitle}}</h3>
+          <p>{{t:mac.windowsText}}</p>
+        </article>
+        <article class="tile tile-notif">
+          <div class="tile-art" aria-hidden="true">
+            <div class="notif notif-static">
+              <svg class="notif-icon"><use href="#app-messages"/></svg>
+              <div class="notif-text"><p class="notif-app">{{t:mac.artNotifTitle}}</p><p class="notif-body">{{t:mac.artNotifBody}}</p></div>
+            </div>
+          </div>
+          <h3>{{t:mac.notifTitle}}</h3>
+          <p>{{t:mac.notifText}}</p>
+        </article>
+        <article class="tile tile-clip">
+          <div class="tile-art" aria-hidden="true">
+            <div class="clip-flow">
+              <span class="pill"><svg class="icon"><use href="#i-copy"/></svg>{{t:mac.artCopy}}</span>
+              <svg class="icon flow-arrow"><use href="#i-arrow"/></svg>
+              <span class="pill pill-accent">{{t:mac.artPaste}}</span>
+            </div>
+          </div>
+          <h3>{{t:mac.clipTitle}}</h3>
+          <p>{{t:mac.clipText}}</p>
+        </article>
+        <article class="tile tile-translate">
+          <div class="tile-art" aria-hidden="true">
+            <div class="translate-demo">
+              <span class="translate-line">{{t:mac.artTranslateFrom}}<span class="translate-plate">{{t:mac.artTranslateTo}}</span></span>
+              <span class="translate-line translate-line-muted">{{t:mac.artTranslateSub}}</span>
+            </div>
+          </div>
+          <h3>{{t:mac.translateTitle}}</h3>
+          <p>{{t:mac.translateText}}</p>
+        </article>
+        <article class="tile tile-follow">
+          <div class="tile-art" aria-hidden="true">
+            <ul class="chips">
+              <li>{{t:mac.artFollowDark}}</li>
+              <li>{{t:mac.artFollowZone}}</li>
+              <li>{{t:mac.artFollowClock}}</li>
+              <li>{{t:mac.artFollowLang}}</li>
+              <li>{{t:mac.artFollowBattery}}</li>
+            </ul>
+          </div>
+          <h3>{{t:mac.followTitle}}</h3>
+          <p>{{t:mac.followText}}</p>
+        </article>
+        <article class="tile tile-capture">
+          <div class="tile-art" aria-hidden="true">
+            <div class="rec-bar"><span class="lights"><i></i><i></i><i></i></span><span class="rec-dot"></span><span class="rec-time">{{t:mac.artRecording}} 00:12</span><svg class="icon"><use href="#i-cam"/></svg></div>
+          </div>
+          <h3>{{t:mac.captureTitle}}</h3>
+          <p>{{t:mac.captureText}}</p>
+        </article>
+      </div>
+      <p class="also">{{t:mac.alsoText}}</p>
+      <p class="status-note">{{t:mac.notYet}}</p>
+    </div>
+  </section>
+
+  <section class="section tour" id="tour" aria-labelledby="tour-title">
+    <div class="glow glow-tour" aria-hidden="true"></div>
+    <div class="wrap">
+      <header class="section-head">
+        <p class="kicker">{{t:tour.kicker}}</p>
+        <h2 id="tour-title" class="display">{{t:tour.title}}</h2>
+        <p class="lede">{{t:tour.lede}}</p>
+      </header>
+      <div class="tour-gallery" data-tour data-tour-label="{{a:tour.tabsLabel}}">
+        <figure class="tour-item" id="tour-graphics" data-tour-item>
+          <div class="shot shot-settings">
+            <picture>
+              <source type="image/avif" srcset="{{v:root}}assets/img/screens/settings-graphics-640.avif 640w, {{v:root}}assets/img/screens/settings-graphics-955.avif 955w" sizes="(max-width: 900px) 92vw, 800px">
+              <source type="image/webp" srcset="{{v:root}}assets/img/screens/settings-graphics-640.webp 640w, {{v:root}}assets/img/screens/settings-graphics-955.webp 955w" sizes="(max-width: 900px) 92vw, 800px">
+              <img src="{{v:root}}assets/img/screens/settings-graphics-955.jpg" srcset="{{v:root}}assets/img/screens/settings-graphics-640.jpg 640w, {{v:root}}assets/img/screens/settings-graphics-955.jpg 955w" sizes="(max-width: 900px) 92vw, 800px" width="955" height="662" alt="{{a:tour.graphicsAlt}}" loading="lazy" decoding="async">
+            </picture>
+          </div>
+          <figcaption>
+            <h3>{{t:tour.graphicsTitle}}</h3>
+            <p>{{t:tour.graphicsText}}</p>
+          </figcaption>
+        </figure>
+        <figure class="tour-item" id="tour-privacy" data-tour-item>
+          <div class="shot shot-settings">
+            <picture>
+              <source type="image/avif" srcset="{{v:root}}assets/img/screens/settings-privacy-640.avif 640w, {{v:root}}assets/img/screens/settings-privacy-955.avif 955w" sizes="(max-width: 900px) 92vw, 800px">
+              <source type="image/webp" srcset="{{v:root}}assets/img/screens/settings-privacy-640.webp 640w, {{v:root}}assets/img/screens/settings-privacy-955.webp 955w" sizes="(max-width: 900px) 92vw, 800px">
+              <img src="{{v:root}}assets/img/screens/settings-privacy-955.jpg" srcset="{{v:root}}assets/img/screens/settings-privacy-640.jpg 640w, {{v:root}}assets/img/screens/settings-privacy-955.jpg 955w" sizes="(max-width: 900px) 92vw, 800px" width="955" height="662" alt="{{a:tour.privacyAlt}}" loading="lazy" decoding="async">
+            </picture>
+          </div>
+          <figcaption>
+            <h3>{{t:tour.privacyTitle}}</h3>
+            <p>{{t:tour.privacyText}}</p>
+          </figcaption>
+        </figure>
+        <figure class="tour-item" id="tour-fingerprints" data-tour-item>
+          <div class="shot shot-settings">
+            <picture>
+              <source type="image/avif" srcset="{{v:root}}assets/img/screens/settings-fingerprints-640.avif 640w, {{v:root}}assets/img/screens/settings-fingerprints-955.avif 955w" sizes="(max-width: 900px) 92vw, 800px">
+              <source type="image/webp" srcset="{{v:root}}assets/img/screens/settings-fingerprints-640.webp 640w, {{v:root}}assets/img/screens/settings-fingerprints-955.webp 955w" sizes="(max-width: 900px) 92vw, 800px">
+              <img src="{{v:root}}assets/img/screens/settings-fingerprints-955.jpg" srcset="{{v:root}}assets/img/screens/settings-fingerprints-640.jpg 640w, {{v:root}}assets/img/screens/settings-fingerprints-955.jpg 955w" sizes="(max-width: 900px) 92vw, 800px" width="955" height="662" alt="{{a:tour.fingerprintsAlt}}" loading="lazy" decoding="async">
+            </picture>
+          </div>
+          <figcaption>
+            <h3>{{t:tour.fingerprintsTitle}}</h3>
+            <p>{{t:tour.fingerprintsText}}</p>
+          </figcaption>
+        </figure>
+        <figure class="tour-item" id="tour-android" data-tour-item>
+          <div class="shot shot-settings">
+            <picture>
+              <source type="image/avif" srcset="{{v:root}}assets/img/screens/settings-android-640.avif 640w, {{v:root}}assets/img/screens/settings-android-955.avif 955w" sizes="(max-width: 900px) 92vw, 800px">
+              <source type="image/webp" srcset="{{v:root}}assets/img/screens/settings-android-640.webp 640w, {{v:root}}assets/img/screens/settings-android-955.webp 955w" sizes="(max-width: 900px) 92vw, 800px">
+              <img src="{{v:root}}assets/img/screens/settings-android-955.jpg" srcset="{{v:root}}assets/img/screens/settings-android-640.jpg 640w, {{v:root}}assets/img/screens/settings-android-955.jpg 955w" sizes="(max-width: 900px) 92vw, 800px" width="955" height="662" alt="{{a:tour.androidAlt}}" loading="lazy" decoding="async">
+            </picture>
+          </div>
+          <figcaption>
+            <h3>{{t:tour.androidTitle}}</h3>
+            <p>{{t:tour.androidText}}</p>
+          </figcaption>
+        </figure>
+        <figure class="tour-item" id="tour-google" data-tour-item>
+          <div class="shot shot-settings">
+            <picture>
+              <source type="image/avif" srcset="{{v:root}}assets/img/screens/settings-google-640.avif 640w, {{v:root}}assets/img/screens/settings-google-955.avif 955w" sizes="(max-width: 900px) 92vw, 800px">
+              <source type="image/webp" srcset="{{v:root}}assets/img/screens/settings-google-640.webp 640w, {{v:root}}assets/img/screens/settings-google-955.webp 955w" sizes="(max-width: 900px) 92vw, 800px">
+              <img src="{{v:root}}assets/img/screens/settings-google-955.jpg" srcset="{{v:root}}assets/img/screens/settings-google-640.jpg 640w, {{v:root}}assets/img/screens/settings-google-955.jpg 955w" sizes="(max-width: 900px) 92vw, 800px" width="955" height="662" alt="{{a:tour.googleAlt}}" loading="lazy" decoding="async">
+            </picture>
+          </div>
+          <figcaption>
+            <h3>{{t:tour.googleTitle}}</h3>
+            <p>{{t:tour.googleText}}</p>
+          </figcaption>
+        </figure>
+        <figure class="tour-item" id="tour-general" data-tour-item>
+          <div class="shot shot-settings">
+            <picture>
+              <source type="image/avif" srcset="{{v:root}}assets/img/screens/settings-general-640.avif 640w, {{v:root}}assets/img/screens/settings-general-955.avif 955w" sizes="(max-width: 900px) 92vw, 800px">
+              <source type="image/webp" srcset="{{v:root}}assets/img/screens/settings-general-640.webp 640w, {{v:root}}assets/img/screens/settings-general-955.webp 955w" sizes="(max-width: 900px) 92vw, 800px">
+              <img src="{{v:root}}assets/img/screens/settings-general-955.jpg" srcset="{{v:root}}assets/img/screens/settings-general-640.jpg 640w, {{v:root}}assets/img/screens/settings-general-955.jpg 955w" sizes="(max-width: 900px) 92vw, 800px" width="955" height="662" alt="{{a:tour.generalAlt}}" loading="lazy" decoding="async">
+            </picture>
+          </div>
+          <figcaption>
+            <h3>{{t:tour.generalTitle}}</h3>
+            <p>{{t:tour.generalText}}</p>
+          </figcaption>
+        </figure>
+      </div>
+    </div>
+  </section>
+
+  <section class="section how" id="how" aria-labelledby="how-title">
+    <div class="wrap">
+      <header class="section-head">
+        <p class="kicker">{{t:how.kicker}}</p>
+        <h2 id="how-title" class="display">{{t:how.title}}</h2>
+      </header>
+      <ol class="steps">
+        <li><h3>{{t:how.step1Title}}</h3><p>{{t:how.step1Text}}</p></li>
+        <li><h3>{{t:how.step2Title}}</h3><p>{{t:how.step2Text}}</p></li>
+        <li><h3>{{t:how.step3Title}}</h3><p>{{t:how.step3Text}}</p></li>
+      </ol>
+      <p class="more-link"><a href="{{v:blobUrl}}/docs/architecture.md">{{t:how.more}}<svg class="icon"><use href="#i-arrow"/></svg></a></p>
+    </div>
+  </section>
+
+  <section class="section req" id="requirements" aria-labelledby="req-title">
+    <div class="wrap">
+      <header class="section-head">
+        <p class="kicker">{{t:req.kicker}}</p>
+        <h2 id="req-title" class="display">{{t:req.title}}</h2>
+      </header>
+      <dl class="req-list">
+        <div><dt>{{t:req.macTitle}}</dt><dd>{{t:req.macText}}</dd></div>
+        <div><dt>{{t:req.osTitle}}</dt><dd>{{t:req.osText}}</dd></div>
+        <div><dt>{{t:req.gpuTitle}}</dt><dd>{{t:req.gpuText}}</dd></div>
+      </dl>
+    </div>
+  </section>
+
+  <section class="section dev" id="developers" aria-labelledby="dev-title">
+    <div class="glow glow-dev" aria-hidden="true"></div>
+    <div class="wrap dev-grid">
+      <header class="section-head">
+        <p class="kicker">{{t:dev.kicker}}</p>
+        <h2 id="dev-title" class="display">{{t:dev.title}}</h2>
+      </header>
+      <div>
+        <ul class="plain-list">
+          <li>{{t:dev.adb}}</li>
+          <li>{{t:dev.root}}</li>
+          <li>{{t:dev.source}}</li>
+        </ul>
+        <div class="cta-row">
+          <a class="btn btn-quiet" href="{{v:githubUrl}}">{{t:dev.repo}}<svg class="icon"><use href="#i-arrow"/></svg></a>
+          <a class="btn btn-quiet" href="{{v:githubUrl}}#readme">{{t:dev.docs}}</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section support" id="support" aria-labelledby="support-title">
+    <div class="glow glow-support" aria-hidden="true"></div>
+    <div class="wrap support-grid">
+      <header class="section-head">
+        <p class="kicker">{{t:support.kicker}}</p>
+        <h2 id="support-title" class="display">{{t:support.title}}</h2>
+        <p class="lede">{{t:support.text}}</p>
+      </header>
+      <div class="channels-block">
+        <h3 class="list-title">{{t:support.channelsTitle}}</h3>
+{{h:supportChannels}}
+        <p class="note">{{t:support.note}}</p>
+        <p class="thanks">{{t:support.thanks}}</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="section faq" id="faq" aria-labelledby="faq-title">
+    <div class="wrap faq-grid">
+      <header class="section-head">
+        <p class="kicker">{{t:faq.kicker}}</p>
+        <h2 id="faq-title" class="display">{{t:faq.title}}</h2>
+      </header>
+      <div class="faq-list">
+        <details><summary>{{t:faq.q1}}</summary><p>{{t:faq.a1}}</p></details>
+        <details><summary>{{t:faq.q2}}</summary><p>{{t:faq.a2}}</p></details>
+        <details><summary>{{t:faq.q3}}</summary><p>{{t:faq.a3}}</p></details>
+        <details><summary>{{t:faq.q4}}</summary><p>{{t:faq.a4}}</p></details>
+        <details><summary>{{t:faq.q5}}</summary><p>{{t:faq.a5}}</p></details>
+        <details><summary>{{t:faq.q6}}</summary><p>{{t:faq.a6}}</p></details>
+        <details><summary>{{t:faq.q7}}</summary><p>{{t:faq.a7}}</p></details>
+        <details><summary>{{t:faq.q8}}</summary><p>{{t:faq.a8}}</p></details>
+      </div>
+    </div>
+  </section>
+
+</main>
+{{> footer}}
+<script type="module" src="{{v:root}}assets/js/site.js?v={{v:jsVersion}}"></script>
+</body>
+</html>
