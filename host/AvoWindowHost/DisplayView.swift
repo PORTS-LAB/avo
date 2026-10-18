@@ -1,12 +1,14 @@
 import AppKit
 import AvoKeymap
+import AvoKit
 import AvoProtocol
 
 /// Shows one Android display and turns Mac input into Input channel records.
 ///
 /// Order of precedence: the keymap (when the app has a profile), then the
-/// default translation (click = touch, trackpad scroll = drag, pinch = two
-/// fingers, Esc and two-finger swipe left = Back, typing = committed text).
+/// default translation (click = touch, trackpad scroll = drag, the mouse
+/// wheel by the scroll mode, pinch = two fingers, Esc and two-finger swipe
+/// left = Back, typing = committed text).
 @MainActor
 final class DisplayView: NSView, @preconcurrency NSTextInputClient {
     let renderer: MetalRenderer
@@ -19,6 +21,8 @@ final class DisplayView: NSView, @preconcurrency NSTextInputClient {
     var keymap: KeymapController?
     /// Files dragged from Finder onto the window (copied to /sdcard/Download and shared).
     var onDropFiles: (([URL]) -> Void)?
+    /// The mouse wheel, by the scroll mode (WheelScrolling.swift).
+    private(set) lazy var wheel = WheelScrollController(view: self)
 
     private var pointer = PointerTranslator(displayID: 0, width: 1080, height: 2340)
     private var pinchTotal = 0.0
@@ -62,6 +66,7 @@ final class DisplayView: NSView, @preconcurrency NSTextInputClient {
         displaySize = size
         let events = pointer.resize(width: size.width, height: size.height)
         events.forEach { send?(.touch($0)) }
+        wheel.displayChanged()
         keymap?.resize(width: size.width, height: size.height)
     }
 
@@ -69,7 +74,8 @@ final class DisplayView: NSView, @preconcurrency NSTextInputClient {
         super.layout()
         let scale = window?.backingScaleFactor ?? 2
         renderer.layer.contentsScale = scale
-        renderer.layer.drawableSize = CGSize(width: bounds.width * scale, height: bounds.height * scale)
+        // Whole pixels: the renderer and displayRect place the picture in them.
+        renderer.layer.drawableSize = CGSize(width: (bounds.width * scale).rounded(), height: (bounds.height * scale).rounded())
         renderer.redraw()
     }
 
@@ -80,12 +86,19 @@ final class DisplayView: NSView, @preconcurrency NSTextInputClient {
 
     // MARK: Coordinates
 
-    /// The rect (in view points) where the display is drawn, aspect-fit.
+    /// The rect (in view points) where the picture is drawn: the renderer's
+    /// own rule (DisplaySizing.presentationRect) for the frame actually on
+    /// screen, a held one during a re-plug included, so touches always land
+    /// where the picture is.
     var displayRect: CGRect {
-        guard displaySize.width > 0, displaySize.height > 0 else { return bounds }
-        let scale = min(bounds.width / displaySize.width, bounds.height / displaySize.height)
-        let size = CGSize(width: displaySize.width * scale, height: displaySize.height * scale)
-        return CGRect(x: (bounds.width - size.width) / 2, y: (bounds.height - size.height) / 2, width: size.width, height: size.height)
+        let drawable = renderer.layer.drawableSize
+        let source = renderer.frameSize ?? displaySize
+        guard drawable.width > 0, drawable.height > 0, source.width > 0, source.height > 0 else { return bounds }
+        let r = DisplaySizing.presentationRect(source: PixelSize(source), target: PixelSize(drawable))
+        // Pixels (origin top-left) to points (origin bottom-left), per axis.
+        let sx = bounds.width / drawable.width, sy = bounds.height / drawable.height
+        return CGRect(x: CGFloat(r.x) * sx, y: (drawable.height - CGFloat(r.y + r.height)) * sy,
+                      width: CGFloat(r.width) * sx, height: CGFloat(r.height) * sy)
     }
 
     /// Converts a window location to display pixels (origin top-left).
@@ -105,6 +118,8 @@ final class DisplayView: NSView, @preconcurrency NSTextInputClient {
 
     override func mouseDown(with event: NSEvent) {
         window?.makeFirstResponder(self)
+        // The wheel's finger lets go before a click's touch.
+        wheel.interrupt()
         if keymap?.mouse(.left, down: true) == true { return }
         let p = displayPoint(event.locationInWindow)
         sendTouches(pointer.mouseDown(x: p.x, y: p.y))
@@ -133,8 +148,19 @@ final class DisplayView: NSView, @preconcurrency NSTextInputClient {
         if let button = MouseButton(buttonNumber: event.buttonNumber) { _ = keymap?.mouse(button, down: false) }
     }
 
+    override func updateTrackingAreas() {
+        super.updateTrackingAreas()
+        for area in trackingAreas { removeTrackingArea(area) }
+        addTrackingArea(NSTrackingArea(rect: .zero, options: [.mouseMoved, .activeInKeyWindow, .inVisibleRect], owner: self, userInfo: nil))
+    }
+
     override func mouseMoved(with event: NSEvent) {
-        // Pointer-locked aiming uses raw GCMouse deltas (KeymapController); plain hover is not sent.
+        // Hover is not a touch. A held anchor tap follows it (KeymapController);
+        // pointer-locked aiming uses raw GCMouse deltas instead.
+        let rect = displayRect
+        guard let keymap, rect.width > 0, rect.height > 0 else { return }
+        // Per axis: a stretched picture (up to 2%) scales each axis its own way.
+        _ = keymap.pointerMoved(dx: event.deltaX * displaySize.width / rect.width, dy: event.deltaY * displaySize.height / rect.height)
     }
 
     // MARK: Trackpad and wheel
@@ -142,21 +168,23 @@ final class DisplayView: NSView, @preconcurrency NSTextInputClient {
     override func scrollWheel(with event: NSEvent) {
         if keymap?.scroll(event.scrollingDeltaY) == true { return }
         let p = displayPoint(event.locationInWindow)
+        // The mouse wheel, and in Mouse Wheel mode the trackpad too, by the
+        // scroll mode (WheelScrolling.swift).
+        if wheel.handle(event, at: p, touchesBusy: pointer.isActive) { return }
         if event.hasPreciseScrollingDeltas {
             // Momentum events are dropped: Android flings on its own after the finger lifts.
             guard event.momentumPhase.isEmpty else { return }
-            let scale = Double(displaySize.width / max(displayRect.width, 1))
-            let dx = event.scrollingDeltaX * scale, dy = event.scrollingDeltaY * scale
+            let rect = displayRect
+            let dx = event.scrollingDeltaX * displaySize.width / max(rect.width, 1)
+            let dy = event.scrollingDeltaY * displaySize.height / max(rect.height, 1)
             if event.phase.contains(.began) {
+                wheel.interrupt()
                 sendTouches(pointer.scroll(phase: .began, x: p.x, y: p.y, dx: dx, dy: dy))
             } else if event.phase.contains(.changed) {
                 sendTouches(pointer.scroll(phase: .changed, x: p.x, y: p.y, dx: dx, dy: dy))
             } else if event.phase.contains(.ended) || event.phase.contains(.cancelled) {
                 sendTouches(pointer.scroll(phase: .ended, x: p.x, y: p.y, dx: 0, dy: 0))
             }
-        } else {
-            send?(.scroll(ScrollEvent(displayID: displayID, x: Float(p.x), y: Float(p.y),
-                                      horizontal: Float(-event.scrollingDeltaX), vertical: Float(event.scrollingDeltaY))))
         }
     }
 
@@ -164,6 +192,7 @@ final class DisplayView: NSView, @preconcurrency NSTextInputClient {
         let p = displayPoint(event.locationInWindow)
         if event.phase.contains(.began) {
             pinchTotal = 0
+            wheel.interrupt()
             sendTouches(pointer.pinch(phase: .began, centerX: p.x, centerY: p.y, magnification: 0))
         }
         pinchTotal += event.magnification
@@ -196,8 +225,19 @@ final class DisplayView: NSView, @preconcurrency NSTextInputClient {
         .home, .end, .pageUp, .pageDown, .f1, .f2, .f3, .f4, .f5, .f6, .f7, .f8, .f9, .f10, .f11, .f12,
     ]
 
-    /// Mac shortcuts with an Android Ctrl equivalent (copy, paste, …).
-    private static let commandShortcuts: Set<KeyName> = [.a, .c, .v, .x, .z, .y]
+    /// The Android presses for a Mac shortcut in this event (⌘C, ⌥←, ⌘⌫, …).
+    private func shortcut(_ key: KeyName, _ flags: NSEvent.ModifierFlags) -> [MacShortcuts.Press]? {
+        MacShortcuts.presses(for: key, command: flags.contains(.command), option: flags.contains(.option),
+                             shift: flags.contains(.shift), control: flags.contains(.control))
+    }
+
+    /// Sends a shortcut's presses (each pressed and released).
+    func send(_ presses: [MacShortcuts.Press]) {
+        for press in presses {
+            sendKey(press.keyCode, down: true, meta: press.metaState, repeatCount: 0)
+            sendKey(press.keyCode, down: false, meta: press.metaState, repeatCount: 0)
+        }
+    }
 
     override func keyDown(with event: NSEvent) {
         guard let key = KeyboardMapping.key(forMacKeyCode: event.keyCode) else {
@@ -210,12 +250,12 @@ final class DisplayView: NSView, @preconcurrency NSTextInputClient {
             if !event.isARepeat { sendBack() }
             return
         }
-        if flags.contains(.command) {
-            guard Self.commandShortcuts.contains(key), let code = KeyboardMapping.androidKeyCode(for: key) else { return }
-            sendKey(code, down: true, meta: 0x1000 | 0x2000, repeatCount: 0)
-            sendKey(code, down: false, meta: 0x1000 | 0x2000, repeatCount: 0)
+        if marked == nil, let presses = shortcut(key, flags) {
+            send(presses)
             return
         }
+        // Any other ⌘ combination belongs to the window (or to nothing).
+        if flags.contains(.command) { return }
         // While an input method is composing, every key belongs to it.
         if marked == nil, Self.functionalKeys.contains(key) || flags.contains(.control),
            let code = KeyboardMapping.androidKeyCode(for: key) {
@@ -243,14 +283,28 @@ final class DisplayView: NSView, @preconcurrency NSTextInputClient {
     }
 
     override func performKeyEquivalent(with event: NSEvent) -> Bool {
-        // Let Cmd+C / Cmd+V reach Android when this view has focus; other shortcuts go to the menu.
+        // ⌘ shortcuts with an Android meaning reach Android when this view has
+        // focus; the window's own (⌘W, ⌘Q, ⌘G, …) go to the menu.
         if window?.firstResponder === self, event.modifierFlags.contains(.command),
-           let key = KeyboardMapping.key(forMacKeyCode: event.keyCode), Self.commandShortcuts.contains(key),
-           !event.modifierFlags.contains(.shift) {
+           let key = KeyboardMapping.key(forMacKeyCode: event.keyCode), shortcut(key, event.modifierFlags) != nil {
             keyDown(with: event)
             return true
         }
         return super.performKeyEquivalent(with: event)
+    }
+
+    // MARK: Edit menu
+
+    @objc func undo(_ sender: Any?) { sendShortcut(.z) }
+    @objc func redo(_ sender: Any?) { sendShortcut(.z, shift: true) }
+    @objc func cut(_ sender: Any?) { sendShortcut(.x) }
+    @objc func copy(_ sender: Any?) { sendShortcut(.c) }
+    @objc func paste(_ sender: Any?) { sendShortcut(.v) }
+    @objc override func selectAll(_ sender: Any?) { sendShortcut(.a) }
+    @objc func performFindPanelAction(_ sender: Any?) { sendShortcut(.f) }
+
+    private func sendShortcut(_ key: KeyName, shift: Bool = false) {
+        if let presses = MacShortcuts.presses(for: key, command: true, option: false, shift: shift, control: false) { send(presses) }
     }
 
     private func sendKey(_ code: UInt32, down: Bool, meta: UInt32, repeatCount: UInt32) {

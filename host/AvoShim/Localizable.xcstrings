@@ -1,0 +1,46 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "Avo is not installed. Install Avo again, then reopen this app." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Avo tidak terinstal. Instal Avo lagi, lalu buka ulang aplikasi ini."
+          }
+        }
+      }
+    },
+    "Avo’s window host could not be loaded: %@" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Window host Avo tidak bisa dimuat: %@"
+          }
+        }
+      }
+    },
+    "This Android app cannot open" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aplikasi Android ini tidak bisa dibuka"
+          }
+        }
+      }
+    },
+    "This version of Avo is too old for this shortcut. Update Avo." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Versi Avo ini terlalu lama untuk pintasan ini. Perbarui Avo."
+          }
+        }
+      }
+    }
+  },
+  "version" : "1.0"
+}

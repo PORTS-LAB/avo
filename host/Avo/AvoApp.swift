@@ -7,18 +7,96 @@ struct AvoApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
 
     var body: some Scene {
-        Window("Avo", id: "control-panel") {
-            ContentView()
+        // The Library: Home, Games, Apps, Notifications and each app's page
+        // (LibraryWindow.swift), with the status pill below it.
+        Window("Avo", id: "library") {
+            LibraryView()
                 .environment(appDelegate.model)
-                .frame(minWidth: 820, minHeight: 540)
+                .environment(appDelegate.images)
+                .environment(appDelegate.setup)
+                .environment(appDelegate.library)
+                .environment(appDelegate.updater)
+                .frame(minWidth: 980, minHeight: 640)
         }
-        .defaultSize(width: 980, height: 660)
+        .windowStyle(.hiddenTitleBar)
+        .windowBackgroundDragBehavior(.enabled)
+        .defaultSize(width: 1200, height: 724)
         .commands {
+            // Avo › Check for Updates… (AppUpdater.swift).
+            CommandGroup(after: .appInfo) {
+                CheckForUpdatesCommand(updater: appDelegate.updater)
+            }
             CommandGroup(after: .newItem) {
                 Button("Install Android App…") { appDelegate.chooseAndInstall() }
                     .keyboardShortcut("o")
             }
+            CommandGroup(replacing: .appSettings) {
+                SettingsCommand()
+            }
+            CommandGroup(after: .help) {
+                Button("Setup Assistant…") { appDelegate.setup.show() }
+                ReportProblemCommand()
+            }
         }
+
+        // Settings, laid out like System Settings, in the Library's haze (SettingsWindow.swift).
+        Window("Avo Settings", id: SettingsWindow.id) {
+            SettingsWindow()
+                .environment(appDelegate.model)
+                .environment(appDelegate.images)
+                .environment(appDelegate.setup)
+                .environment(appDelegate.library)
+                .environment(appDelegate.updater)
+        }
+        .windowStyle(.hiddenTitleBar)
+        .windowBackgroundDragBehavior(.enabled)
+        .defaultSize(width: 960, height: 680)
+
+        // Help › Report a Problem… (ReportProblem.swift).
+        Window("Report a Problem", id: ReportProblemView.windowID) {
+            ReportProblemView()
+                .environment(appDelegate.model)
+        }
+        .windowResizability(.contentSize)
+        .restorationBehavior(.disabled)
+        .commandsRemoved()
+
+        // The Setup Assistant (SetupAssistant.swift): first launch, no
+        // Android image, or Help › Setup Assistant….
+        Window("Set Up Avo", id: SetupWindow.id) {
+            SetupWindow()
+                .environment(appDelegate.model)
+                .environment(appDelegate.images)
+                .environment(appDelegate.setup)
+                .environment(appDelegate.library)
+        }
+        .windowStyle(.hiddenTitleBar)
+        .windowResizability(.contentMinSize)
+        .defaultSize(width: SetupAssistantView.size.width, height: SetupAssistantView.size.height)
+        .defaultPosition(.center)
+        .restorationBehavior(.disabled)
+        // Not in the Window menu: the assistant opens it (Help › Setup Assistant…).
+        .commandsRemoved()
+    }
+}
+
+/// Avo › Settings… (⌘,): the Settings window.
+private struct SettingsCommand: View {
+    @Environment(\.openWindow) private var openWindow
+
+    var body: some View {
+        Button("Settings…") { openWindow(id: SettingsWindow.id) }
+            .keyboardShortcut(",")
+    }
+}
+
+/// Avo › Check for Updates…: dimmed while a check runs, and in a build without an update feed.
+private struct CheckForUpdatesCommand: View {
+    let updater: AppUpdater
+
+    var body: some View {
+        Button("Check for Updates…") { updater.checkForUpdates() }
+            .disabled(!updater.canCheckForUpdates)
     }
 }
 
@@ -26,12 +104,36 @@ struct AvoApp: App {
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
     let model = ControlPanelModel()
+    /// Android images and the Setup Assistant (SetupAssistant.swift).
+    let images = AndroidImageManager()
+    let setup = SetupAssistant()
+    /// Where the Library is, and the Settings pane links ask for.
+    let library = LibraryRouter()
+    /// Avo's own updates (Sparkle).
+    let updater = AppUpdater()
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        updater.model = model
         model.start()
+        // Another Android version with its own data: the daemon moves Android to it.
+        images.changeData = { [model] request in
+            try await model.changeStorage(request)
+        }
+        setup.presentIfNeeded(images: images)
     }
 
     func application(_ application: NSApplication, open urls: [URL]) {
+        // The menu bar item's Check for Updates….
+        if urls.contains(where: { ControlPanelLink.pane(in: $0) == ControlPanelLink.checkForUpdates }) {
+            NSApp.activate()
+            updater.checkForUpdates()
+        }
+        // An app window's Manage Fingerprints… (ControlPanelLink): that
+        // Settings pane (the Library opens the Settings window for it).
+        if let name = urls.lazy.compactMap(ControlPanelLink.pane(in:)).first, let pane = SettingsPane.named(name) {
+            library.requestedSettingsPane = pane
+            NSApp.activate()
+        }
         // One confirmation sheet at a time; extra files wait for the next drop.
         if let url = urls.first(where: { ControlPanelModel.packageExtensions.contains($0.pathExtension.lowercased()) }) {
             model.prepareInstall(url)
@@ -45,10 +147,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func chooseAndInstall() {
-        let panel = NSOpenPanel()
-        panel.allowedContentTypes = ["apk", "xapk", "apkm", "apks"].compactMap { .init(filenameExtension: $0) }
-        panel.prompt = String(localized: "Install")
-        guard panel.runModal() == .OK, let url = panel.url else { return }
-        model.prepareInstall(url)
+        model.chooseAndInstall()
     }
 }

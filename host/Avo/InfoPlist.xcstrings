@@ -1,0 +1,103 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "Android Package" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Paket Android"
+          }
+        }
+      }
+    },
+    "Android Package Bundle (APKM)" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bundel Paket Android (APKM)"
+          }
+        }
+      }
+    },
+    "Android Package Bundle (XAPK)" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bundel Paket Android (XAPK)"
+          }
+        }
+      }
+    },
+    "Android Split APK Set" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Set Split APK Android"
+          }
+        }
+      }
+    },
+    "NSHumanReadableCopyright" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Avo contributors. Apache License 2.0."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kontributor Avo. Lisensi Apache 2.0."
+          }
+        }
+      }
+    },
+    "NSMicrophoneUsageDescription" : {
+      "comment" : "Microphone permission prompt (macOS asks when an Android app first records).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Android apps that record, like voice notes and calls, hear this Mac's microphone while they record."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App Android yang merekam, seperti pesan suara dan panggilan, mendengar mikrofon Mac ini selama merekam."
+          }
+        }
+      }
+    },
+    "NSRemovableVolumesUsageDescription" : {
+      "comment" : "Removable volume permission prompt (macOS asks when Android's data is on an external drive).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Android's data can be kept on an external drive (Settings › Storage › Location). Avo reads and writes it there while Android runs."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Data Android dapat disimpan di drive eksternal (Pengaturan › Storage › Lokasi). Avo membaca dan menulisnya di sana selama Android berjalan."
+          }
+        }
+      }
+    }
+  },
+  "version" : "1.0"
+}

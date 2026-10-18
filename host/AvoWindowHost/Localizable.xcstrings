@@ -1,0 +1,5064 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "%@ %@ at %@" : {
+      "comment" : "Screenshot and screen recording file name: app name, date, time",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ %2$@ at %3$@"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ %2$@ pukul %3$@"
+          }
+        }
+      }
+    },
+    "%@ (Default)" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ (Default)"
+          }
+        }
+      }
+    },
+    "%@ cannot drive that." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ tidak bisa menggerakkan itu."
+          }
+        }
+      }
+    },
+    "%@ dp" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ dp"
+          }
+        }
+      }
+    },
+    "%@ heading %lld°" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ heading %2$lld°"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ ke arah %2$lld°"
+          }
+        }
+      }
+    },
+    "%@ is a direction of “%@”." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ is a direction of “%2$@”."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ adalah salah satu arah “%2$@”."
+          }
+        }
+      }
+    },
+    "%@ is already used by “%@”." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ is already used by “%2$@”."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ sudah dipakai oleh “%@”."
+          }
+        }
+      }
+    },
+    "%@ is asking for a fingerprint" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ meminta sidik jari"
+          }
+        }
+      }
+    },
+    "%@ is asking for a fingerprint. Choose a finger with the fingerprint button in the title bar." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ meminta sidik jari. Pilih jari lewat tombol sidik jari di bilah judul."
+          }
+        }
+      }
+    },
+    "%@ locks the mouse for the eye; choose another button." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ dipakai mata untuk mengunci mouse; pilih tombol lain."
+          }
+        }
+      }
+    },
+    "%@ locks the mouse for the eye; choose another key." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ dipakai mata untuk mengunci mouse; pilih tombol lain."
+          }
+        }
+      }
+    },
+    "%@ locks the mouse to aim with the eye, and frees it again." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ mengunci mouse untuk membidik dengan mata, dan melepasnya lagi."
+          }
+        }
+      }
+    },
+    "%@ ms (max %@)" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ ms (max %2$@)"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ ms (maks %@)"
+          }
+        }
+      }
+    },
+    "%@ of %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ of %2$@"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ dari %2$@"
+          }
+        }
+      }
+    },
+    "%@ turns the eye now. Drag its area over the part of the game that turns the camera." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sekarang %@ memutar mata. Seret areanya ke bagian game yang memutar kamera."
+          }
+        }
+      }
+    },
+    "%@ · %@ left" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ · %2$@ left"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ · %2$@ lagi"
+          }
+        }
+      }
+    },
+    "%@ · Arrived" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ · Sudah sampai"
+          }
+        }
+      }
+    },
+    "%@ · Paused" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ · Dijeda"
+          }
+        }
+      }
+    },
+    "%@ · Waits for Android" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ · Menunggu Android"
+          }
+        }
+      }
+    },
+    "%@ — not on this display" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ — tidak tersedia di layar ini"
+          }
+        }
+      }
+    },
+    "%@, changed for this app" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@, diubah untuk app ini"
+          }
+        }
+      }
+    },
+    "%@: %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@: %2$@"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@: %2$@"
+          }
+        }
+      }
+    },
+    "%@: drag it onto the game" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@: seret ke game"
+          }
+        }
+      }
+    },
+    "%@: select a control on the game first, or drag %@ onto the game." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@: select a control on the game first, or drag %2$@ onto the game."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@: pilih dulu kontrol di game, atau seret %2$@ ke game."
+          }
+        }
+      }
+    },
+    "%lld FPS" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld FPS"
+          }
+        }
+      }
+    },
+    "%lld dpi" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld dpi"
+          }
+        }
+      }
+    },
+    "%lld points" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld titik"
+          }
+        }
+      }
+    },
+    "%lld points, recorded over %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld points, recorded over %2$@"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld titik, direkam selama %2$@"
+          }
+        }
+      }
+    },
+    "%lld stops" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld titik singgah"
+          }
+        }
+      }
+    },
+    "%lld%% render scale" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "skala render %lld%%"
+          }
+        }
+      }
+    },
+    "%lld%% × %lld%% of the screen" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld%% × %2$lld%% of the screen"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld%% × %2$lld%% layar"
+          }
+        }
+      }
+    },
+    "(MetalFX failed)" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "(MetalFX gagal)"
+          }
+        }
+      }
+    },
+    "(low memory)" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "(memori rendah)"
+          }
+        }
+      }
+    },
+    "(preparing MetalFX…)" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "(menyiapkan MetalFX…)"
+          }
+        }
+      }
+    },
+    "(resizing)" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "(mengubah ukuran)"
+          }
+        }
+      }
+    },
+    "1 point" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 titik"
+          }
+        }
+      }
+    },
+    "1 stop. Click the map to add the next." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 titik singgah. Klik peta untuk menambah berikutnya."
+          }
+        }
+      }
+    },
+    "A PIN has digits only." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PIN hanya berisi angka."
+          }
+        }
+      }
+    },
+    "A chosen place" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tempat pilihan"
+          }
+        }
+      }
+    },
+    "A finger Android does not know: the app or lock screen does not recognize it." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jari yang tidak dikenal Android: aplikasi atau layar kunci tidak mengenalinya."
+          }
+        }
+      }
+    },
+    "A joystick follows a stick or the d-pad." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Joystick mengikuti stik atau d-pad."
+          }
+        }
+      }
+    },
+    "A light pulse when a button touches the screen" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Getaran ringan saat tombol menyentuh layar"
+          }
+        }
+      }
+    },
+    "A route" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sebuah rute"
+          }
+        }
+      }
+    },
+    "A stick drives a joystick or the eye. To use pressing it down (%@) here, press the stick down." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stik menggerakkan joystick atau mata. Untuk memakai tekanan stik (%@) di sini, tekan stiknya ke bawah."
+          }
+        }
+      }
+    },
+    "A stick drives a joystick or the eye; drop it on the game to place one." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stik menggerakkan joystick atau mata; lepaskan di game untuk menaruhnya."
+          }
+        }
+      }
+    },
+    "About %@" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tentang %@"
+          }
+        }
+      }
+    },
+    "Add Control" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tambah Kontrol"
+          }
+        }
+      }
+    },
+    "Add to Layout" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tambahkan ke Tata Letak"
+          }
+        }
+      }
+    },
+    "Aim Down Sights" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bidik (ADS)"
+          }
+        }
+      }
+    },
+    "Aim down sights" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bidik (ADS)"
+          }
+        }
+      }
+    },
+    "Anchor Tap" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ketuk Jangkar"
+          }
+        }
+      }
+    },
+    "Anchor tap" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ketuk jangkar"
+          }
+        }
+      }
+    },
+    "Anchor tap: while its key is held, the mouse moves the finger from here (emote wheels), never out of its area. Drag the dashed frame’s edges in to make the area smaller; ⌥⇧ + arrow keys resize it. Press its key." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ketuk jangkar: selama tombolnya ditahan, mouse menggeser jari dari titik ini (misalnya roda emoji), tanpa keluar dari areanya. Seret tepi bingkai putus-putus ke dalam untuk memperkecil area; ⌥⇧ + tombol panah mengubah ukurannya. Tekan tombolnya."
+          }
+        }
+      }
+    },
+    "Android" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Android"
+          }
+        }
+      }
+    },
+    "Android %@ → %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Android %1$@ → %2$@"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Android %@ → %@"
+          }
+        }
+      }
+    },
+    "Android Is At" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Android Berada di"
+          }
+        }
+      }
+    },
+    "Android added the fingerprint." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Android menambahkan sidik jari itu."
+          }
+        }
+      }
+    },
+    "Android added “%@”." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Android menambahkan “%@”."
+          }
+        }
+      }
+    },
+    "Android app %@, running in Avo." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aplikasi Android %@, berjalan di Avo."
+          }
+        }
+      }
+    },
+    "Android did not recognize that finger." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Android tidak mengenali jari itu."
+          }
+        }
+      }
+    },
+    "Android gets the phone’s screen, so apps lay out as on the phone." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Android mendapat layar ponsel, jadi tata letak aplikasi seperti di ponsel itu."
+          }
+        }
+      }
+    },
+    "Android has this finger already." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Android sudah punya jari ini."
+          }
+        }
+      }
+    },
+    "Android is locked" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Android terkunci"
+          }
+        }
+      }
+    },
+    "Android is not running" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Android tidak berjalan"
+          }
+        }
+      }
+    },
+    "Android isn’t running. The route goes on when it does." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Android tidak berjalan. Rute berlanjut saat Android berjalan."
+          }
+        }
+      }
+    },
+    "Android keeps one resolution, scaled to the window." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Android memakai satu resolusi tetap, diskalakan ke jendela."
+          }
+        }
+      }
+    },
+    "Android needs a screen lock for fingerprints" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Android perlu kunci layar untuk sidik jari"
+          }
+        }
+      }
+    },
+    "Android recognized “%@”." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Android mengenali “%@”."
+          }
+        }
+      }
+    },
+    "Android renders at the window’s size." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Android merender seukuran jendela."
+          }
+        }
+      }
+    },
+    "Android runs at %lld fps after it restarts." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Android berjalan di %lld fps setelah dimulai ulang."
+          }
+        }
+      }
+    },
+    "Android stopped." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Android berhenti."
+          }
+        }
+      }
+    },
+    "Android wants its PIN, pattern or password before a fingerprint." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Android meminta PIN, pola, atau sandinya sebelum sidik jari."
+          }
+        }
+      }
+    },
+    "Android’s Settings is adding a fingerprint: choose the finger to add" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Setelan Android sedang menambahkan sidik jari: pilih jari yang ingin ditambahkan"
+          }
+        }
+      }
+    },
+    "Another app is asking for a fingerprint" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aplikasi lain meminta sidik jari"
+          }
+        }
+      }
+    },
+    "App Settings" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pengaturan App"
+          }
+        }
+      }
+    },
+    "Apple Maps couldn’t find that place." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apple Maps tidak menemukan tempat itu."
+          }
+        }
+      }
+    },
+    "Apple Maps found no road there, so this part is a straight line." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apple Maps tidak menemukan jalan di sana, jadi bagian ini berupa garis lurus."
+          }
+        }
+      }
+    },
+    "Apple Maps’ directions between stops" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Petunjuk arah Apple Maps antartitik singgah"
+          }
+        }
+      }
+    },
+    "Apps" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aplikasi"
+          }
+        }
+      }
+    },
+    "As Recorded" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sesuai Rekaman"
+          }
+        }
+      }
+    },
+    "Asking Avo…" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Menanyakan Avo…"
+          }
+        }
+      }
+    },
+    "Aspect Ratio" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rasio Aspek"
+          }
+        }
+      }
+    },
+    "Aspect Ratio: %@ (the Phone’s)" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rasio Aspek: %@ (sesuai Ponsel)"
+          }
+        }
+      }
+    },
+    "Aspect ratio" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rasio aspek"
+          }
+        }
+      }
+    },
+    "At the times it was recorded" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sesuai waktu saat direkam"
+          }
+        }
+      }
+    },
+    "Automatic" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Otomatis"
+          }
+        }
+      }
+    },
+    "Avo passes it to Android and keeps it nowhere." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Avo meneruskannya ke Android dan tidak menyimpannya di mana pun."
+          }
+        }
+      }
+    },
+    "Avo’s background service restarted." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Layanan latar belakang Avo dimulai ulang."
+          }
+        }
+      }
+    },
+    "Back" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kembali"
+          }
+        }
+      }
+    },
+    "Back to Window" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kembali ke Jendela"
+          }
+        }
+      }
+    },
+    "Back to the Start" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kembali ke Awal"
+          }
+        }
+      }
+    },
+    "Balanced (%lld%%)" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Seimbang (%lld%%)"
+          }
+        }
+      }
+    },
+    "Bilinear" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bilinear"
+          }
+        }
+      }
+    },
+    "Bilinear ×%@" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bilinear ×%@"
+          }
+        }
+      }
+    },
+    "Bind to “%@”" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ikat ke “%@”"
+          }
+        }
+      }
+    },
+    "Button %@" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tombol %@"
+          }
+        }
+      }
+    },
+    "Buttons" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tombol"
+          }
+        }
+      }
+    },
+    "Cancel" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Batal"
+          }
+        }
+      }
+    },
+    "Cancel Fingerprint Request" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Batalkan Permintaan Sidik Jari"
+          }
+        }
+      }
+    },
+    "Changes apply right away." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Perubahan langsung berlaku."
+          }
+        }
+      }
+    },
+    "Choose" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pilih"
+          }
+        }
+      }
+    },
+    "Choose a phone in Avo’s Settings › Privacy & Security › Device profile." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pilih ponsel di Pengaturan Avo › Privasi & Keamanan › Profil perangkat."
+          }
+        }
+      }
+    },
+    "Choose the finger to add with the fingerprint button in the title bar." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pilih jari yang ingin ditambahkan lewat tombol sidik jari di bilah judul."
+          }
+        }
+      }
+    },
+    "Clear" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hapus"
+          }
+        }
+      }
+    },
+    "Click the map or search for a place, then move Android there." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Klik peta atau cari tempat, lalu pindahkan Android ke sana."
+          }
+        }
+      }
+    },
+    "Click the map to add stops, or import a GPX, KML or KMZ file." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Klik peta untuk menambah titik singgah, atau impor file GPX, KML, atau KMZ."
+          }
+        }
+      }
+    },
+    "Close" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tutup"
+          }
+        }
+      }
+    },
+    "Close Window" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tutup Jendela"
+          }
+        }
+      }
+    },
+    "Connect at least %lld dots." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hubungkan minimal %lld titik."
+          }
+        }
+      }
+    },
+    "Connect one over Bluetooth or USB" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sambungkan lewat Bluetooth atau USB"
+          }
+        }
+      }
+    },
+    "Connected" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tersambung"
+          }
+        }
+      }
+    },
+    "Connected · battery %lld%%" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tersambung · baterai %lld%%"
+          }
+        }
+      }
+    },
+    "Connected · charging" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tersambung · mengisi daya"
+          }
+        }
+      }
+    },
+    "Controller" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kontroler"
+          }
+        }
+      }
+    },
+    "Controller panel" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Panel kontroler"
+          }
+        }
+      }
+    },
+    "Controller to show" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kontroler yang ditampilkan"
+          }
+        }
+      }
+    },
+    "Controls" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kontrol"
+          }
+        }
+      }
+    },
+    "Coordinates" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Koordinat"
+          }
+        }
+      }
+    },
+    "Copy" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Salin"
+          }
+        }
+      }
+    },
+    "Could not record the screen: %@" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tidak bisa merekam layar: %@"
+          }
+        }
+      }
+    },
+    "Could not save the screenshot: %@" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tidak bisa menyimpan cuplikan layar: %@"
+          }
+        }
+      }
+    },
+    "Could not save: %@" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tidak bisa menyimpan: %@"
+          }
+        }
+      }
+    },
+    "Could not translate the screen: %@" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tidak dapat menerjemahkan layar: %@"
+          }
+        }
+      }
+    },
+    "Couldn't save the frame rate cap: %@" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tidak bisa menyimpan batas FPS: %@"
+          }
+        }
+      }
+    },
+    "Couldn't save the graphics settings: %@" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tidak bisa menyimpan pengaturan grafis: %@"
+          }
+        }
+      }
+    },
+    "Custom (%lld%%)" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kustom (%lld%%)"
+          }
+        }
+      }
+    },
+    "Custom Resolution" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Resolusi Kustom"
+          }
+        }
+      }
+    },
+    "Custom…" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kustom…"
+          }
+        }
+      }
+    },
+    "Cut" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Potong"
+          }
+        }
+      }
+    },
+    "Cycle" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sepeda"
+          }
+        }
+      }
+    },
+    "D-pad" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "D-pad"
+          }
+        }
+      }
+    },
+    "D-pad %@: %@. Next key sets %@." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "D-pad %1$@: %2$@. Next key sets %3$@."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "D-pad %@: %@. Tombol berikutnya untuk %@."
+          }
+        }
+      }
+    },
+    "D-pad (all four directions)" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "D-pad (keempat arah)"
+          }
+        }
+      }
+    },
+    "D-pad: press four keys in turn (%@ first), or click a direction to change one." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "D-pad: tekan empat tombol berurutan (%@ dulu), atau klik satu arah untuk menggantinya."
+          }
+        }
+      }
+    },
+    "Dead zone" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zona mati"
+          }
+        }
+      }
+    },
+    "Default Swipe Area (Right Side)" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Area Geser Bawaan (Sisi Kanan)"
+          }
+        }
+      }
+    },
+    "Default for All Apps" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Default untuk Semua App"
+          }
+        }
+      }
+    },
+    "Delete “%@”" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hapus “%@”"
+          }
+        }
+      }
+    },
+    "Deleted the preset “%@”. Cancel undoes it." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Preset “%@” dihapus. Batal akan mengurungkannya."
+          }
+        }
+      }
+    },
+    "Detailed" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lengkap"
+          }
+        }
+      }
+    },
+    "Display scaling ×%@" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Penskalaan layar ×%@"
+          }
+        }
+      }
+    },
+    "Done" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Selesai"
+          }
+        }
+      }
+    },
+    "Drag a button or stick onto the game to place a control there, or onto a control to bind it. With a control selected, press a button on the controller or click it here." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Seret tombol atau stik ke game untuk menaruh kontrol di sana, atau ke sebuah kontrol untuk mengikatnya. Saat kontrol dipilih, tekan tombolnya di kontroler atau klik di sini."
+          }
+        }
+      }
+    },
+    "Drag to move the panel" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Seret untuk memindahkan panel"
+          }
+        }
+      }
+    },
+    "Draw your Android pattern" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gambar pola Android Anda"
+          }
+        }
+      }
+    },
+    "Drive" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mobil"
+          }
+        }
+      }
+    },
+    "Drives %@. The dead zone keeps a worn stick’s drift out of the game; above 1× the joystick reaches its edge, and the eye turns, with less of a lean." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Menggerakkan %@. Zona mati menjaga drift stik yang aus agar tidak masuk ke game; di atas 1×, joystick mencapai tepinya, dan mata berputar, dengan dorongan yang lebih kecil."
+          }
+        }
+      }
+    },
+    "Drives nothing yet: drag it onto a joystick or the eye, or onto the game." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Belum menggerakkan apa pun: seret ke joystick atau mata, atau ke game."
+          }
+        }
+      }
+    },
+    "Edit" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edit"
+          }
+        }
+      }
+    },
+    "Edit Controller Mapping…" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edit Pemetaan Kontroler…"
+          }
+        }
+      }
+    },
+    "Edit Key Mapping…" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edit Pemetaan Tombol…"
+          }
+        }
+      }
+    },
+    "Edit This Route" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edit Rute Ini"
+          }
+        }
+      }
+    },
+    "Editor opacity" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opasitas editor"
+          }
+        }
+      }
+    },
+    "End" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Selesai"
+          }
+        }
+      }
+    },
+    "Enter Full Screen" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Masuk Layar Penuh"
+          }
+        }
+      }
+    },
+    "Enter your Android PIN" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Masukkan PIN Android Anda"
+          }
+        }
+      }
+    },
+    "Enter your Android password" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Masukkan sandi Android Anda"
+          }
+        }
+      }
+    },
+    "Every app" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Semua aplikasi"
+          }
+        }
+      }
+    },
+    "Every button and stick comes off its controls, and the sticks go back to their standard settings. Saved presets stay, and Cancel in the editor still undoes it." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Semua tombol dan stik dilepas dari kontrolnya, dan stik kembali ke pengaturan standar. Preset tersimpan tetap ada, dan Batal di editor masih bisa mengurungkannya."
+          }
+        }
+      }
+    },
+    "Every button and stick comes off its controls, the sticks go back to their standard settings, and the controls only the controller worked are removed (%lld). Saved presets stay, and Cancel in the editor still undoes it." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Semua tombol dan stik dilepas dari kontrolnya, stik kembali ke pengaturan standar, dan kontrol yang hanya dijalankan kontroler dihapus (%lld). Preset tersimpan tetap ada, dan Batal di editor masih bisa mengurungkannya."
+          }
+        }
+      }
+    },
+    "Every finger is in Android. Add another with Manage Fingerprints…" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Semua jari sudah ada di Android. Tambahkan jari lain lewat Kelola Sidik Jari…"
+          }
+        }
+      }
+    },
+    "Export…" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ekspor…"
+          }
+        }
+      }
+    },
+    "Eye" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mata"
+          }
+        }
+      }
+    },
+    "Eye (Camera)" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mata (Kamera)"
+          }
+        }
+      }
+    },
+    "Eye (Mouse Look)" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mata (Lihat dengan Mouse)"
+          }
+        }
+      }
+    },
+    "Eye · mouse look" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mata · lihat dengan mouse"
+          }
+        }
+      }
+    },
+    "Eye · stick look" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mata · lihat dengan stik"
+          }
+        }
+      }
+    },
+    "Eye: with the mouse locked, a finger swipes from the eye across its area and starts over at the edge (a taller area looks further up and down). Drag the area, its edges or the eye (⌥ + arrow keys move it, ⌥⇧ + arrow keys resize it). Press the key that locks and frees the mouse (for example F8)." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mata: selama mouse terkunci, jari menggeser dari mata di dalam areanya dan mulai lagi dari mata di tepinya (area yang lebih tinggi bisa melihat lebih jauh ke atas dan ke bawah). Seret area, tepinya, atau matanya (⌥ + tombol panah memindahkan, ⌥⇧ + tombol panah mengubah ukuran). Tekan tombol untuk mengunci dan melepas mouse (misalnya F8)."
+          }
+        }
+      }
+    },
+    "FPS Only" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "FPS Saja"
+          }
+        }
+      }
+    },
+    "FPS Shooter" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tembak-menembak FPS"
+          }
+        }
+      }
+    },
+    "File" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Arsip"
+          }
+        }
+      }
+    },
+    "Find" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cari"
+          }
+        }
+      }
+    },
+    "Finger area" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Area jari"
+          }
+        }
+      }
+    },
+    "Finger area: whole screen" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Area jari: seluruh layar"
+          }
+        }
+      }
+    },
+    "Fingerprint" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sidik Jari"
+          }
+        }
+      }
+    },
+    "Fixed" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tetap"
+          }
+        }
+      }
+    },
+    "Fixed Resolution" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Resolusi Tetap"
+          }
+        }
+      }
+    },
+    "Fold the Controller Panel" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lipat Panel Kontroler"
+          }
+        }
+      }
+    },
+    "Follow Android" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ikuti Android"
+          }
+        }
+      }
+    },
+    "Follow Window" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ikuti Jendela"
+          }
+        }
+      }
+    },
+    "Follow roads" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ikuti jalan"
+          }
+        }
+      }
+    },
+    "For pressing the stick down (%@):" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Untuk menekan stik ke bawah (%@):"
+          }
+        }
+      }
+    },
+    "Frame rate cap" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Batas FPS"
+          }
+        }
+      }
+    },
+    "Full (%lld%%)" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Penuh (%lld%%)"
+          }
+        }
+      }
+    },
+    "Full-Height Swipe Area" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Area Geser Setinggi Layar"
+          }
+        }
+      }
+    },
+    "Game Controls" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kontrol Game"
+          }
+        }
+      }
+    },
+    "Game Mode" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mode Game"
+          }
+        }
+      }
+    },
+    "Game Mode is on: the key mapping is active. ⌘G turns it off." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mode Game menyala: pemetaan tombol aktif. ⌘G mematikannya."
+          }
+        }
+      }
+    },
+    "Game Mode off: keys and clicks go to the app. ⌘G turns it on." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mode Game mati: tombol dan klik langsung ke app. ⌘G menyalakannya."
+          }
+        }
+      }
+    },
+    "Game Mode on: the key mapping is active. ⌘G turns it off." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mode Game menyala: pemetaan tombol aktif. ⌘G mematikannya."
+          }
+        }
+      }
+    },
+    "Game Settings" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pengaturan Game"
+          }
+        }
+      }
+    },
+    "Game Settings (key mapping)" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pengaturan Game (pemetaan tombol)"
+          }
+        }
+      }
+    },
+    "Games" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Game"
+          }
+        }
+      }
+    },
+    "Graphics" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Grafis"
+          }
+        }
+      }
+    },
+    "Graphics settings saved for %@. View ▸ Use Default Graphics Settings undoes this." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pengaturan grafis disimpan untuk %@. Tampilan ▸ Pakai Pengaturan Grafis Default membatalkannya."
+          }
+        }
+      }
+    },
+    "Hero" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hero"
+          }
+        }
+      }
+    },
+    "Hero: where your character stands on the screen. Move by mouse and smart cast aim from here towards the cursor." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hero: tempat karakter Anda berdiri di layar. Gerak dengan mouse dan smart cast membidik dari sini ke arah kursor."
+          }
+        }
+      }
+    },
+    "Hide %@" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sembunyikan %@"
+          }
+        }
+      }
+    },
+    "Hide Others" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sembunyikan Lainnya"
+          }
+        }
+      }
+    },
+    "Hide Performance HUD" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sembunyikan HUD Performa"
+          }
+        }
+      }
+    },
+    "Hide Translation" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sembunyikan Terjemahan"
+          }
+        }
+      }
+    },
+    "Hide Translation (⌘⇧T)" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sembunyikan Terjemahan (⌘⇧T)"
+          }
+        }
+      }
+    },
+    "Hide the Controller Panel" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sembunyikan Panel Kontroler"
+          }
+        }
+      }
+    },
+    "High (%lld%%)" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tinggi (%lld%%)"
+          }
+        }
+      }
+    },
+    "Hint visibility" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Visibilitas petunjuk"
+          }
+        }
+      }
+    },
+    "How clearly the key mapping shows on the game while you play" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Seberapa jelas pemetaan tombol tampil di game saat Anda bermain"
+          }
+        }
+      }
+    },
+    "Idle" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Idle"
+          }
+        }
+      }
+    },
+    "Import" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impor"
+          }
+        }
+      }
+    },
+    "Import a Route" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impor Rute"
+          }
+        }
+      }
+    },
+    "Imported “%@”. Press Done to use it." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "“%@” diimpor. Tekan Selesai untuk memakainya."
+          }
+        }
+      }
+    },
+    "Import…" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impor…"
+          }
+        }
+      }
+    },
+    "Insert the %@ template?" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sisipkan templat %@?"
+          }
+        }
+      }
+    },
+    "Inserted the %@ template. Its positions are a starting point: drag each control onto the game's own button." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Templat %@ disisipkan. Posisinya hanya titik awal: seret tiap kontrol ke tombol milik game."
+          }
+        }
+      }
+    },
+    "Joystick" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Joystick"
+          }
+        }
+      }
+    },
+    "Keep on Top" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Selalu di Atas"
+          }
+        }
+      }
+    },
+    "Key Mapping Visibility" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Visibilitas Pemetaan Tombol"
+          }
+        }
+      }
+    },
+    "Key mapping" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pemetaan tombol"
+          }
+        }
+      }
+    },
+    "Keys and clicks become touches" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tombol dan klik menjadi sentuhan"
+          }
+        }
+      }
+    },
+    "L-Click" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Klik-Kiri"
+          }
+        }
+      }
+    },
+    "Landscape" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lanskap"
+          }
+        }
+      }
+    },
+    "Left Click" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Klik Kiri"
+          }
+        }
+      }
+    },
+    "Left out: %lld (the layout already has an eye, or the D-pad keys are in use)." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tidak disertakan: %lld (tata letak sudah punya mata, atau tombol D-pad sudah dipakai)."
+          }
+        }
+      }
+    },
+    "Left out: %lld of its bindings, for controls that changed or are gone." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tidak disertakan: %lld ikatannya, untuk kontrol yang berubah atau sudah tidak ada."
+          }
+        }
+      }
+    },
+    "Left stick" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stik kiri"
+          }
+        }
+      }
+    },
+    "Let go to choose a control" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lepaskan untuk memilih kontrol"
+          }
+        }
+      }
+    },
+    "Let the Finger Use the Whole Screen" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jari Boleh ke Seluruh Layar"
+          }
+        }
+      }
+    },
+    "Live Translation" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Terjemahan Langsung"
+          }
+        }
+      }
+    },
+    "Location" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lokasi"
+          }
+        }
+      }
+    },
+    "Location…" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lokasi…"
+          }
+        }
+      }
+    },
+    "Locks Android; entering its PIN, pattern or password lets fingerprints work again." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mengunci Android; setelah PIN, pola, atau sandinya dimasukkan, sidik jari bisa dipakai lagi."
+          }
+        }
+      }
+    },
+    "Loop" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ulangi"
+          }
+        }
+      }
+    },
+    "Loops" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Berulang"
+          }
+        }
+      }
+    },
+    "Low (%lld%%)" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rendah (%lld%%)"
+          }
+        }
+      }
+    },
+    "Lower it to see the game through the editor while you place controls on its buttons" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Turunkan untuk melihat game di balik editor saat Anda menempatkan kontrol pada tombol-tombolnya"
+          }
+        }
+      }
+    },
+    "M-Click" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Klik-Tengah"
+          }
+        }
+      }
+    },
+    "MOBA" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "MOBA"
+          }
+        }
+      }
+    },
+    "Macro" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Makro"
+          }
+        }
+      }
+    },
+    "Manage Fingerprints…" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kelola Sidik Jari…"
+          }
+        }
+      }
+    },
+    "Map" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Peta"
+          }
+        }
+      }
+    },
+    "Match Window" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sesuai Jendela"
+          }
+        }
+      }
+    },
+    "Match window" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sesuai jendela"
+          }
+        }
+      }
+    },
+    "Medium (%lld%%)" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sedang (%lld%%)"
+          }
+        }
+      }
+    },
+    "MetalFX Spatial" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "MetalFX Spatial"
+          }
+        }
+      }
+    },
+    "MetalFX upscaling" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Upscaling MetalFX"
+          }
+        }
+      }
+    },
+    "MetalFX ×%@" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "MetalFX ×%@"
+          }
+        }
+      }
+    },
+    "Middle Click" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Klik Tengah"
+          }
+        }
+      }
+    },
+    "Minimize" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Minimalkan"
+          }
+        }
+      }
+    },
+    "More" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lainnya"
+          }
+        }
+      }
+    },
+    "Mouse Button 4" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tombol Mouse 4"
+          }
+        }
+      }
+    },
+    "Mouse Button 5" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tombol Mouse 5"
+          }
+        }
+      }
+    },
+    "Mouse Wheel" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Roda Mouse"
+          }
+        }
+      }
+    },
+    "Mouse free. Press %@ to aim with it." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mouse bebas. Tekan %@ untuk membidik dengannya."
+          }
+        }
+      }
+    },
+    "Mouse lock for the eye" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kunci mouse untuk mata"
+          }
+        }
+      }
+    },
+    "Mouse locked for aiming. Press %@ to free it." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mouse terkunci untuk membidik. Tekan %@ untuk melepasnya."
+          }
+        }
+      }
+    },
+    "Mouse wheel scrolling only, from the trackpad too" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hanya gulir roda mouse, juga dari trackpad"
+          }
+        }
+      }
+    },
+    "Mouse wheel scrolling, or swiping where the app ignores it" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gulir roda mouse, atau geser jika app mengabaikannya"
+          }
+        }
+      }
+    },
+    "Move Android Here" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pindahkan Android ke Sini"
+          }
+        }
+      }
+    },
+    "Move by Mouse" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gerak dengan Mouse"
+          }
+        }
+      }
+    },
+    "Move by Mouse (MOBA)" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gerak dengan Mouse (MOBA)"
+          }
+        }
+      }
+    },
+    "Move by mouse" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gerak dengan mouse"
+          }
+        }
+      }
+    },
+    "Move by mouse: while its button is held, the joystick is pushed towards the cursor, as seen from the hero marker. Right-click to pick a mouse button, or press a key." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gerak dengan mouse: selama tombolnya ditahan, joystick didorong ke arah kursor, dilihat dari penanda hero. Klik kanan untuk memilih tombol mouse, atau tekan sebuah tombol."
+          }
+        }
+      }
+    },
+    "My controller layout" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tata letak kontroler saya"
+          }
+        }
+      }
+    },
+    "My layout" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tata letak saya"
+          }
+        }
+      }
+    },
+    "Native (%lld%%)" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Asli (%lld%%)"
+          }
+        }
+      }
+    },
+    "Nearest Neighbor" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nearest Neighbor"
+          }
+        }
+      }
+    },
+    "Nearest ×%@" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nearest ×%@"
+          }
+        }
+      }
+    },
+    "New Route" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rute Baru"
+          }
+        }
+      }
+    },
+    "New Window" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jendela Baru"
+          }
+        }
+      }
+    },
+    "No controller connected" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tidak ada kontroler tersambung"
+          }
+        }
+      }
+    },
+    "No fingers registered" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Belum ada jari yang terdaftar"
+          }
+        }
+      }
+    },
+    "No location yet. Android gets this Mac’s location while it runs, once macOS knows it." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Belum ada lokasi. Android mendapat lokasi Mac ini selama berjalan, setelah macOS mengetahuinya."
+          }
+        }
+      }
+    },
+    "No phone is chosen in Avo’s Settings › Privacy & Security, so Android follows the window." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Belum ada ponsel yang dipilih di Pengaturan Avo › Privasi & Keamanan, jadi Android mengikuti jendela."
+          }
+        }
+      }
+    },
+    "Not a keymap profile: %@" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bukan profil keymap: %@"
+          }
+        }
+      }
+    },
+    "Not in Android" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Belum di Android"
+          }
+        }
+      }
+    },
+    "Nothing in Android is asking for a fingerprint right now." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Saat ini tidak ada yang meminta sidik jari di Android."
+          }
+        }
+      }
+    },
+    "Nothing was recorded." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tidak ada yang terekam."
+          }
+        }
+      }
+    },
+    "Off" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nonaktif"
+          }
+        }
+      }
+    },
+    "On" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aktif"
+          }
+        }
+      }
+    },
+    "Opacity" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opasitas"
+          }
+        }
+      }
+    },
+    "Open Location…" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Buka Lokasi…"
+          }
+        }
+      }
+    },
+    "Orientation" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Orientasi"
+          }
+        }
+      }
+    },
+    "PIN" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PIN"
+          }
+        }
+      }
+    },
+    "Pace" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Laju"
+          }
+        }
+      }
+    },
+    "Password" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sandi"
+          }
+        }
+      }
+    },
+    "Paste" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tempel"
+          }
+        }
+      }
+    },
+    "Pattern" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pola"
+          }
+        }
+      }
+    },
+    "Pause" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jeda"
+          }
+        }
+      }
+    },
+    "Performance (%lld%%)" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Performa (%lld%%)"
+          }
+        }
+      }
+    },
+    "Performance HUD" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "HUD Performa"
+          }
+        }
+      }
+    },
+    "Performance HUD on. ⌥⌘P hides it." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "HUD performa menyala. ⌥⌘P menyembunyikannya."
+          }
+        }
+      }
+    },
+    "Performance HUD, %lld frames per second" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Performance HUD, %lld frame per second"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Performance HUD, %lld frames per second"
+                }
+              }
+            }
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "HUD Performa, %lld frame per detik"
+          }
+        }
+      }
+    },
+    "Phone" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ponsel"
+          }
+        }
+      }
+    },
+    "Phone’s Screen" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Layar Ponsel"
+          }
+        }
+      }
+    },
+    "Phone’s Screen (%@)" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Layar Ponsel (%@)"
+          }
+        }
+      }
+    },
+    "Picture in Picture" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gambar dalam Gambar"
+          }
+        }
+      }
+    },
+    "Pixels on the short side (an even number from %@ to %@):" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Pixels on the short side (an even number from %1$@ to %2$@):"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Piksel di sisi pendek (bilangan genap %1$@–%2$@):"
+          }
+        }
+      }
+    },
+    "Place" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tempat"
+          }
+        }
+      }
+    },
+    "Place for %@:" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Taruh untuk %@:"
+          }
+        }
+      }
+    },
+    "Placed “%@” for %@. Drag it onto the game’s own button." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Placed “%1$@” for %2$@. Drag it onto the game’s own button."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "“%1$@” ditaruh untuk %2$@. Seret ke tombol milik game."
+          }
+        }
+      }
+    },
+    "Platformer" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Platformer"
+          }
+        }
+      }
+    },
+    "Play Again" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Putar Lagi"
+          }
+        }
+      }
+    },
+    "Play Route" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Putar Rute"
+          }
+        }
+      }
+    },
+    "Plays once" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sekali jalan"
+          }
+        }
+      }
+    },
+    "Portrait" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Potret"
+          }
+        }
+      }
+    },
+    "Preparing text recognition. The first time can take a minute…" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Menyiapkan pengenalan teks. Pertama kali bisa memakan waktu sekitar satu menit…"
+          }
+        }
+      }
+    },
+    "Presets" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Preset"
+          }
+        }
+      }
+    },
+    "Presets are kept with this game’s key mapping; Done saves them. A name already in use replaces that preset." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Preset disimpan bersama pemetaan tombol game ini; Selesai akan menyimpannya. Nama yang sudah dipakai akan menggantikan preset itu."
+          }
+        }
+      }
+    },
+    "Press the key for “%@”, or right-click for a mouse button." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tekan tombol untuk “%@”, atau klik kanan untuk tombol mouse."
+          }
+        }
+      }
+    },
+    "Press the key or controller button for “%@”, or right-click for a mouse button." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tekan tombol keyboard atau tombol kontroler untuk “%@”, atau klik kanan untuk tombol mouse."
+          }
+        }
+      }
+    },
+    "Profile" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Profil"
+          }
+        }
+      }
+    },
+    "Progress" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kemajuan"
+          }
+        }
+      }
+    },
+    "Puts each control on the button games of that kind use, going by its name and key." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Menaruh tiap kontrol di tombol yang biasa dipakai game jenis itu, berdasarkan nama dan tombolnya."
+          }
+        }
+      }
+    },
+    "Quality (%lld%%)" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kualitas (%lld%%)"
+          }
+        }
+      }
+    },
+    "Quick Settings" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pengaturan Cepat"
+          }
+        }
+      }
+    },
+    "Quit %@" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keluar dari %@"
+          }
+        }
+      }
+    },
+    "R-Click" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Klik-Kanan"
+          }
+        }
+      }
+    },
+    "Racing" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Balapan"
+          }
+        }
+      }
+    },
+    "Ready-made for this game’s controls" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Siap pakai untuk kontrol game ini"
+          }
+        }
+      }
+    },
+    "Record Android’s Sound" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rekam Suara Android"
+          }
+        }
+      }
+    },
+    "Record Screen" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rekam Layar"
+          }
+        }
+      }
+    },
+    "Recording %@" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Merekam %@"
+          }
+        }
+      }
+    },
+    "Recording saved to %@." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rekaman disimpan di %@."
+          }
+        }
+      }
+    },
+    "Recording the screen. ⌘⇧R stops it." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Merekam layar. ⌘⇧R menghentikannya."
+          }
+        }
+      }
+    },
+    "Redo" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ulangi"
+          }
+        }
+      }
+    },
+    "Register a finger in Avo first: choose Manage Fingerprints… with the fingerprint button in the title bar." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Daftarkan jari di Avo dulu: pilih Kelola Sidik Jari… lewat tombol sidik jari di bilah judul."
+          }
+        }
+      }
+    },
+    "Remove" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hapus"
+          }
+        }
+      }
+    },
+    "Remove All Controls" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hapus Semua Kontrol"
+          }
+        }
+      }
+    },
+    "Removed “%@”." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "“%@” dihapus."
+          }
+        }
+      }
+    },
+    "Render Scale" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Skala Render"
+          }
+        }
+      }
+    },
+    "Render scale" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Skala render"
+          }
+        }
+      }
+    },
+    "Repeat" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ulang"
+          }
+        }
+      }
+    },
+    "Repeat Tap" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ketuk Berulang"
+          }
+        }
+      }
+    },
+    "Replace Layout" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ganti Tata Letak"
+          }
+        }
+      }
+    },
+    "Reset" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Atur Ulang"
+          }
+        }
+      }
+    },
+    "Reset Controller Mapping…" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Atur Ulang Pemetaan Kontroler…"
+          }
+        }
+      }
+    },
+    "Reset the controller mapping?" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Atur ulang pemetaan kontroler?"
+          }
+        }
+      }
+    },
+    "Resolution" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Resolusi"
+          }
+        }
+      }
+    },
+    "Resume" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lanjutkan"
+          }
+        }
+      }
+    },
+    "Reverse" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Balik Arah"
+          }
+        }
+      }
+    },
+    "Right Click" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Klik Kanan"
+          }
+        }
+      }
+    },
+    "Right stick" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stik kanan"
+          }
+        }
+      }
+    },
+    "Rotate" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Putar"
+          }
+        }
+      }
+    },
+    "Route" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rute"
+          }
+        }
+      }
+    },
+    "Route: %@" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rute: %@"
+          }
+        }
+      }
+    },
+    "Run" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lari"
+          }
+        }
+      }
+    },
+    "Satellite" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Satelit"
+          }
+        }
+      }
+    },
+    "Save Preset" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Simpan Preset"
+          }
+        }
+      }
+    },
+    "Save as Preset…" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Simpan sebagai Preset…"
+          }
+        }
+      }
+    },
+    "Save the controller layout as a preset" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Simpan tata letak kontroler sebagai preset"
+          }
+        }
+      }
+    },
+    "Save the controller layout as it is, to come back to it or to switch between layouts." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Simpan tata letak kontroler apa adanya, untuk kembali ke sana atau berganti antar tata letak."
+          }
+        }
+      }
+    },
+    "Saved for this game" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tersimpan untuk game ini"
+          }
+        }
+      }
+    },
+    "Saved the preset “%@”." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Preset “%@” disimpan."
+          }
+        }
+      }
+    },
+    "Scaling %@ ms" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Penskalaan %@ ms"
+          }
+        }
+      }
+    },
+    "Scaling Filter" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Filter Penskalaan"
+          }
+        }
+      }
+    },
+    "Screen" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Layar"
+          }
+        }
+      }
+    },
+    "Screenshot and Screen Recording" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cuplikan dan Rekaman Layar"
+          }
+        }
+      }
+    },
+    "Screenshot saved to %@." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cuplikan layar disimpan di %@."
+          }
+        }
+      }
+    },
+    "Scrolling" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gulir"
+          }
+        }
+      }
+    },
+    "Search" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cari"
+          }
+        }
+      }
+    },
+    "Search for a place or coordinates" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cari tempat atau koordinat"
+          }
+        }
+      }
+    },
+    "Select All" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pilih Semua"
+          }
+        }
+      }
+    },
+    "Select an object, then press the key for it. Drag to move (or ⌥ + arrow keys), ↘ to resize, × to remove. Right-click for mouse buttons." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pilih objek, lalu tekan tombol untuknya. Seret untuk memindah (atau ⌥ + tombol panah), ↘ untuk mengubah ukuran, × untuk menghapus. Klik kanan untuk tombol mouse."
+          }
+        }
+      }
+    },
+    "Selected place" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tempat terpilih"
+          }
+        }
+      }
+    },
+    "Sensitivity" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sensitivitas"
+          }
+        }
+      }
+    },
+    "Sharing this Mac’s location is off in Settings › Privacy & Security, so Android will have no location." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Berbagi lokasi Mac ini nonaktif di Pengaturan › Privasi & Keamanan, jadi Android tidak akan punya lokasi."
+          }
+        }
+      }
+    },
+    "Sharing this Mac’s location is off in Settings › Privacy & Security." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Berbagi lokasi Mac ini nonaktif di Pengaturan › Privasi & Keamanan."
+          }
+        }
+      }
+    },
+    "Sharpness" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ketajaman"
+          }
+        }
+      }
+    },
+    "Sharpness %lld%%" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ketajaman %lld%%"
+          }
+        }
+      }
+    },
+    "Sharpness Off" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ketajaman Mati"
+          }
+        }
+      }
+    },
+    "Shooter" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tembak-menembak"
+          }
+        }
+      }
+    },
+    "Show All" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tampilkan Semua"
+          }
+        }
+      }
+    },
+    "Show Key Mapping on Game" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tampilkan Pemetaan Tombol di Game"
+          }
+        }
+      }
+    },
+    "Show Performance HUD" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tampilkan HUD Performa"
+          }
+        }
+      }
+    },
+    "Show Recordings in Finder" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tampilkan Rekaman di Finder"
+          }
+        }
+      }
+    },
+    "Show Route" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tampilkan Rute"
+          }
+        }
+      }
+    },
+    "Show Screenshots in Finder" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tampilkan Cuplikan Layar di Finder"
+          }
+        }
+      }
+    },
+    "Show in Finder" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tampilkan di Finder"
+          }
+        }
+      }
+    },
+    "Show key hints" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tampilkan petunjuk tombol"
+          }
+        }
+      }
+    },
+    "Show on Map" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tampilkan di Peta"
+          }
+        }
+      }
+    },
+    "Show on game" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tampilkan di game"
+          }
+        }
+      }
+    },
+    "Show the Controller Panel’s Settings" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tampilkan Pengaturan Panel Kontroler"
+          }
+        }
+      }
+    },
+    "Show the controller, to map its buttons and sticks" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tampilkan kontroler, untuk memetakan tombol dan stiknya"
+          }
+        }
+      }
+    },
+    "Shrunk ×%@" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diperkecil ×%@"
+          }
+        }
+      }
+    },
+    "Skipped %lld" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Terlewat %lld"
+          }
+        }
+      }
+    },
+    "Smart Cast" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Smart Cast"
+          }
+        }
+      }
+    },
+    "Smart Cast (MOBA)" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Smart Cast (MOBA)"
+          }
+        }
+      }
+    },
+    "Smart cast" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Smart cast"
+          }
+        }
+      }
+    },
+    "Smart cast: its key drags the skill towards the cursor, as seen from the hero marker, and letting go casts. ↘ sets how far it drags. Press its key." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Smart cast: tombolnya menyeret skill ke arah kursor, dilihat dari penanda hero, dan skill dilepaskan saat tombol dilepas. ↘ mengatur seberapa jauh seretannya. Tekan tombolnya."
+          }
+        }
+      }
+    },
+    "Speed" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kecepatan"
+          }
+        }
+      }
+    },
+    "Standard Stick Settings" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pengaturan Stik Standar"
+          }
+        }
+      }
+    },
+    "Start" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mulai"
+          }
+        }
+      }
+    },
+    "Start over at the end" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mulai lagi setelah sampai di akhir"
+          }
+        }
+      }
+    },
+    "Starting %@…" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Memulai %@…"
+          }
+        }
+      }
+    },
+    "Starting layouts: move each control onto the game's button afterwards" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tata letak awal: setelah itu, pindahkan tiap kontrol ke tombol game"
+          }
+        }
+      }
+    },
+    "Stays put" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tetap di tempat"
+          }
+        }
+      }
+    },
+    "Stick" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stik"
+          }
+        }
+      }
+    },
+    "Sticks" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stik"
+          }
+        }
+      }
+    },
+    "Still without a key: %lld, because your controls already use theirs. Select each “?” and press a key." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Belum punya tombol: %lld, karena tombolnya sudah dipakai kontrol Anda. Pilih tiap “?” lalu tekan sebuah tombol."
+          }
+        }
+      }
+    },
+    "Stop Recording" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hentikan Perekaman"
+          }
+        }
+      }
+    },
+    "Swipe" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Geser"
+          }
+        }
+      }
+    },
+    "Swipe area" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Area geser"
+          }
+        }
+      }
+    },
+    "Swiping like a finger, from the mouse wheel too" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Geser seperti jari, juga dari roda mouse"
+          }
+        }
+      }
+    },
+    "Swiping now: this app ignores mouse wheel scrolling" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kini menggeser: app ini mengabaikan gulir roda mouse"
+          }
+        }
+      }
+    },
+    "Switching to %@…" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Beralih ke %@…"
+          }
+        }
+      }
+    },
+    "System Language (%@)" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bahasa Sistem (%@)"
+          }
+        }
+      }
+    },
+    "Take Screenshot" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ambil Cuplikan Layar"
+          }
+        }
+      }
+    },
+    "Tap" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ketuk"
+          }
+        }
+      }
+    },
+    "Templates" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Templat"
+          }
+        }
+      }
+    },
+    "The controller is laid out as in %@ games: %lld controls. Cancel undoes it." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "The controller is laid out as in %1$@ games: %2$lld controls. Cancel undoes it."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kontroler ditata seperti di game %1$@: %2$lld kontrol. Batal akan mengurungkannya."
+          }
+        }
+      }
+    },
+    "The controller mapping is reset." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pemetaan kontroler sudah diatur ulang."
+          }
+        }
+      }
+    },
+    "The d-pad pushes a joystick; drop it on the game to place one." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "D-pad mendorong joystick; lepaskan di game untuk menaruhnya."
+          }
+        }
+      }
+    },
+    "The d-pad pushes “%@” too." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "D-pad juga mendorong “%@”."
+          }
+        }
+      }
+    },
+    "The eye follows a stick: drop one on it." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mata mengikuti stik: lepaskan stik di atasnya."
+          }
+        }
+      }
+    },
+    "The file could not be written." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "File tidak bisa ditulis."
+          }
+        }
+      }
+    },
+    "The languages for this translation aren’t downloaded. Download them in System Settings › General › Language & Region › Translation Languages." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bahasa untuk terjemahan ini belum diunduh. Unduh di Pengaturan Sistem › Umum › Bahasa & Wilayah › Bahasa Terjemahan."
+          }
+        }
+      }
+    },
+    "The lock screen is asking for a fingerprint" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Layar kunci meminta sidik jari"
+          }
+        }
+      }
+    },
+    "The recording stopped early and is saved in %@ up to that point. %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "The recording stopped early and is saved in %1$@ up to that point. %2$@"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Perekaman berhenti lebih awal dan disimpan di %1$@ sampai titik itu. %2$@"
+          }
+        }
+      }
+    },
+    "The screen turned, so the recording stopped. It is saved in %@." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Layar berputar, jadi perekaman berhenti. Rekaman disimpan di %@."
+          }
+        }
+      }
+    },
+    "The text on screen is already in %@." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Teks di layar sudah dalam bahasa %@."
+          }
+        }
+      }
+    },
+    "The text on screen is already in %@. To translate it into another language, choose one under Translate Into." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Teks di layar sudah dalam bahasa %@. Untuk menerjemahkannya ke bahasa lain, pilih salah satu di Terjemahkan ke."
+          }
+        }
+      }
+    },
+    "The wheel works with Tap and Swipe only." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Roda mouse hanya bisa untuk Ketuk dan Geser."
+          }
+        }
+      }
+    },
+    "There is no text on screen to translate." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tidak ada teks di layar untuk diterjemahkan."
+          }
+        }
+      }
+    },
+    "There is nothing on screen to capture yet." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Belum ada tampilan di layar untuk diambil."
+          }
+        }
+      }
+    },
+    "There is one eye per layout; this is it." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Satu tata letak hanya punya satu mata; ini dia."
+          }
+        }
+      }
+    },
+    "This Android has no fingerprint sensor Avo can use" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Android ini tidak punya sensor sidik jari yang bisa dipakai Avo"
+          }
+        }
+      }
+    },
+    "This Mac" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mac Ini"
+          }
+        }
+      }
+    },
+    "This Mac’s location" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lokasi Mac ini"
+          }
+        }
+      }
+    },
+    "This app" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aplikasi ini"
+          }
+        }
+      }
+    },
+    "This app has a key mapping: ⌘G turns on Game Mode." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App ini punya pemetaan tombol: ⌘G menyalakan Mode Game."
+          }
+        }
+      }
+    },
+    "This controller cannot vibrate" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kontroler ini tidak bisa bergetar"
+          }
+        }
+      }
+    },
+    "This layout already has controls. Add the template's controls next to them (keys you already use stay with your controls), or replace the layout with the template. Its positions are only a starting point, and Cancel in the editor still undoes everything." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tata letak ini sudah berisi kontrol. Tambahkan kontrol templat di sampingnya (tombol yang sudah Anda pakai tetap pada kontrol Anda), atau ganti tata letak dengan templat. Posisinya hanya titik awal, dan Batal di editor tetap membatalkan semuanya."
+          }
+        }
+      }
+    },
+    "This layout has controls from a newer version of Avo (%@). They are not shown here, and saving leaves them out." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tata letak ini berisi kontrol dari versi Avo yang lebih baru (%@). Kontrol itu tidak ditampilkan di sini dan tidak ikut disimpan."
+          }
+        }
+      }
+    },
+    "This profile has problems." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Profil ini bermasalah."
+          }
+        }
+      }
+    },
+    "This window" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jendela ini"
+          }
+        }
+      }
+    },
+    "Too many tries. Enter Android’s screen lock to use fingerprints again." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Terlalu banyak percobaan. Masukkan kunci layar Android agar sidik jari bisa dipakai lagi."
+          }
+        }
+      }
+    },
+    "Too many tries. Try again in about 30 seconds." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Terlalu banyak percobaan. Coba lagi sekitar 30 detik lagi."
+          }
+        }
+      }
+    },
+    "Too many tries: Android takes no fingerprints for now." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Terlalu banyak percobaan: untuk sementara Android tidak menerima sidik jari."
+          }
+        }
+      }
+    },
+    "Touch Down at the Area’s Centre" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sentuh di Tengah Area"
+          }
+        }
+      }
+    },
+    "Touched the fingerprint sensor." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sensor sidik jari sudah disentuh."
+          }
+        }
+      }
+    },
+    "Translate Into" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Terjemahkan ke"
+          }
+        }
+      }
+    },
+    "Translate Screen" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Terjemahkan Layar"
+          }
+        }
+      }
+    },
+    "Translate Screen (⌘⇧T)" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Terjemahkan Layar (⌘⇧T)"
+          }
+        }
+      }
+    },
+    "Translate into" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Terjemahkan ke"
+          }
+        }
+      }
+    },
+    "Translate screen" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Terjemahkan layar"
+          }
+        }
+      }
+    },
+    "Translated into %@. Esc or ⌘⇧T hides it." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diterjemahkan ke bahasa %@. Esc atau ⌘⇧T menyembunyikannya."
+          }
+        }
+      }
+    },
+    "Translated into %@. ⌘⇧T hides it." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diterjemahkan ke bahasa %@. ⌘⇧T menyembunyikannya."
+          }
+        }
+      }
+    },
+    "Translating into %@ as the screen changes. Esc or ⌘⇧T stops." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Menerjemahkan ke bahasa %@ setiap kali layar berubah. Esc atau ⌘⇧T menghentikannya."
+          }
+        }
+      }
+    },
+    "Translating into %@ as the screen changes. ⌘⇧T stops." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Menerjemahkan ke bahasa %@ setiap kali layar berubah. ⌘⇧T menghentikannya."
+          }
+        }
+      }
+    },
+    "Translating the screen…" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Menerjemahkan layar…"
+          }
+        }
+      }
+    },
+    "Translation" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Terjemahan"
+          }
+        }
+      }
+    },
+    "Translation is not available on this Mac." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Terjemahan tidak tersedia di Mac ini."
+          }
+        }
+      }
+    },
+    "Type the numbers of the dots, 1 to 9 from left to right and top to bottom, then press Return." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ketik nomor titik-titiknya, 1 sampai 9 dari kiri ke kanan dan dari atas ke bawah, lalu tekan Return."
+          }
+        }
+      }
+    },
+    "Ultra Quality (%lld%%)" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kualitas Ultra (%lld%%)"
+          }
+        }
+      }
+    },
+    "Undo" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Urungkan"
+          }
+        }
+      }
+    },
+    "Undo Last Stop" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Urungkan Titik Singgah Terakhir"
+          }
+        }
+      }
+    },
+    "Unlock" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Buka Kunci"
+          }
+        }
+      }
+    },
+    "Unlock Android with its PIN, pattern or password first." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Buka kunci Android dengan PIN, pola, atau sandinya dulu."
+          }
+        }
+      }
+    },
+    "Unlock it to open %@. One unlock opens all your Android apps." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Buka kuncinya untuk membuka %@. Sekali buka kunci berlaku untuk semua aplikasi Android Anda."
+          }
+        }
+      }
+    },
+    "Unlocking…" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Membuka kunci…"
+          }
+        }
+      }
+    },
+    "Unregistered Finger" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jari Tak Terdaftar"
+          }
+        }
+      }
+    },
+    "Use" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pakai"
+          }
+        }
+      }
+    },
+    "Use Default Graphics Settings" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pakai Pengaturan Grafis Default"
+          }
+        }
+      }
+    },
+    "Use Game Settings" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pakai Pengaturan Game"
+          }
+        }
+      }
+    },
+    "Use My Mac’s Location" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pakai Lokasi Mac Saya"
+          }
+        }
+      }
+    },
+    "Use Screen Lock Instead…" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pakai Kunci Layar Saja…"
+          }
+        }
+      }
+    },
+    "Using the preset “%@”." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Memakai preset “%@”."
+          }
+        }
+      }
+    },
+    "Vibrate on press" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Getar saat ditekan"
+          }
+        }
+      }
+    },
+    "View" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tampilan"
+          }
+        }
+      }
+    },
+    "Waiting for Android…" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Menunggu Android…"
+          }
+        }
+      }
+    },
+    "Walk" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jalan Kaki"
+          }
+        }
+      }
+    },
+    "Wheel Down" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Roda Turun"
+          }
+        }
+      }
+    },
+    "Wheel Up" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Roda Naik"
+          }
+        }
+      }
+    },
+    "Wheel↑" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Roda↑"
+          }
+        }
+      }
+    },
+    "Wheel↓" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Roda↓"
+          }
+        }
+      }
+    },
+    "Where Android’s GPS says it is. Every app gets the same location." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Posisi menurut GPS Android. Semua aplikasi mendapat lokasi yang sama."
+          }
+        }
+      }
+    },
+    "Window" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jendela"
+          }
+        }
+      }
+    },
+    "Wrong PIN. Try again." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PIN salah. Coba lagi."
+          }
+        }
+      }
+    },
+    "Wrong password. Try again." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sandi salah. Coba lagi."
+          }
+        }
+      }
+    },
+    "Wrong pattern. Try again." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pola salah. Coba lagi."
+          }
+        }
+      }
+    },
+    "down" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "bawah"
+          }
+        }
+      }
+    },
+    "left" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "kiri"
+          }
+        }
+      }
+    },
+    "macOS can’t translate this text into %@." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "macOS tidak dapat menerjemahkan teks ini ke bahasa %@."
+          }
+        }
+      }
+    },
+    "macOS keeps the Home button for itself" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "macOS memakai tombol Home untuk dirinya sendiri"
+          }
+        }
+      }
+    },
+    "not connected" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "tidak tersambung"
+          }
+        }
+      }
+    },
+    "right" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "kanan"
+          }
+        }
+      }
+    },
+    "the d-pad" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "d-pad"
+          }
+        }
+      }
+    },
+    "the left stick" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "stik kiri"
+          }
+        }
+      }
+    },
+    "the right stick" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "stik kanan"
+          }
+        }
+      }
+    },
+    "the window’s resolution" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "resolusi jendela"
+          }
+        }
+      }
+    },
+    "up" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "atas"
+          }
+        }
+      }
+    },
+    "“%@” follows %@." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "“%1$@” follows %2$@."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "“%1$@” mengikuti %2$@."
+          }
+        }
+      }
+    },
+    "“%@” responds to %@." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "“%1$@” responds to %2$@."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "“%@” merespons %@."
+          }
+        }
+      }
+    }
+  },
+  "version" : "1.0"
+}

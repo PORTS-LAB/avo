@@ -18,21 +18,21 @@ private let info = Bundle.main.infoDictionary ?? [:]
 
 @MainActor private func fail(_ message: String) -> Never {
     let alert = NSAlert()
-    alert.messageText = "This Android app cannot open"
+    alert.messageText = String(localized: "This Android app cannot open")
     alert.informativeText = message
     alert.runModal()
     exit(1)
 }
 
 guard let avo = hostApplication() else {
-    fail("Avo is not installed. Install Avo again, then reopen this app.")
+    fail(String(localized: "Avo is not installed. Install Avo again, then reopen this app."))
 }
 let framework = avo.appending(path: "Contents/Frameworks/AvoWindowHost.framework/AvoWindowHost")
 guard let handle = dlopen(framework.path, RTLD_NOW | RTLD_LOCAL) else {
-    fail("Avo's window host could not be loaded: \(String(cString: dlerror()))")
+    fail(String(localized: "Avo’s window host could not be loaded: \(String(cString: dlerror()))"))
 }
 guard let symbol = dlsym(handle, "AvoShimMain") else {
-    fail("This version of Avo is too old for this shortcut. Update Avo.")
+    fail(String(localized: "This version of Avo is too old for this shortcut. Update Avo."))
 }
 typealias ShimMain = @convention(c) (Int32, UnsafeMutablePointer<UnsafeMutablePointer<CChar>?>) -> Int32
 let main = unsafeBitCast(symbol, to: ShimMain.self)

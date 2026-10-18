@@ -10,6 +10,13 @@ MARKETING_VERSION = 0.1.0
 CURRENT_PROJECT_VERSION = 1
 
 MACOSX_DEPLOYMENT_TARGET = 15.0
+
+// Localization: English source text, Indonesian translations in String
+// Catalogs (Localizable.xcstrings per target, AvoKit/Sources/AvoKit/Resources
+// for the package). The compiler records every localizable string it sees
+// (.stringsdata) so scripts/sync-strings.sh can update the catalogs.
+SWIFT_EMIT_LOC_STRINGS = YES
+LOCALIZATION_PREFERS_STRING_CATALOGS = YES
 ARCHS = arm64
 SWIFT_VERSION = 6.0
 SWIFT_STRICT_CONCURRENCY = complete

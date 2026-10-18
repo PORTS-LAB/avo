@@ -1,8 +1,10 @@
 import AppKit
+import AvoKeymap
 import AvoKit
 import AvoPackages
 import Observation
 import os
+import Security
 import ServiceManagement
 
 /// State of the Control Panel, fed by the Runtime Daemon over XPC.
@@ -27,15 +29,74 @@ final class ControlPanelModel {
     }
 
     private(set) var daemonState: DaemonState = .connecting
-    private(set) var status = VMStatus.stopped
+    /// The Runtime Daemon's version, from its hello (Report a Problem).
+    private(set) var daemonVersion: String?
+    private(set) var status = VMStatus.stopped {
+        didSet {
+            screenLockSeen(after: oldValue)
+            if daemonUpdatePending, !status.state.holdsAndroid { finishDaemonUpdate() }
+        }
+    }
+    /// The daemon that runs is another build than the one in this Avo.app
+    /// (Avo was updated while Android ran): Android keeps running on it, and
+    /// it restarts on this build once Android stops (Settings › About offers
+    /// to restart Android; AppUpdater.swift).
+    private(set) var daemonUpdatePending = false
+    /// The agent's plist changed with the update and launchd still holds the old one.
+    private var daemonAgentOutdated = false
+    /// Android stopped for the update starts again on the new daemon.
+    private var startAndroidAfterDaemonUpdate = false
+    /// The unlock sheet (ScreenLockViews.swift): it opens by itself when
+    /// Android reports it started locked; Cancel leaves the banner's Unlock….
+    var unlockSheetShown = false
     private(set) var apps: [AppRecord] = []
+    /// What each running app is doing (open, minimized, background).
+    private(set) var activity: [String: AppActivity] = [:]
     private(set) var icons: [String: NSImage] = [:]
+    /// Android's recent notifications, newest first.
+    private(set) var notifications: [AndroidNotification] = []
+    /// Whether macOS shows Avo's notifications (System Settings › Notifications);
+    /// nil until the daemon says (MacNotificationsViews.swift).
+    private(set) var macNotifications: MacNotificationPermission?
+    /// Request Permission waits for the daemon's reply.
+    private(set) var requestingNotificationPermission = false
+    /// Bumped by each request, so an older look does not undo its answer.
+    @ObservationIgnored private var notificationPermissionGeneration = 0
     private(set) var snapshot: ConfigurationSnapshot?
     private(set) var configIssues: [ConfigIssue] = []
     var pendingInstall: PendingInstall?
     var lastError: String?
+    /// Settings › System › Google apps: what Android has (nil until asked).
+    private(set) var googleApps: GoogleAppsStatus?
+    /// The install running now, or how the last one ended.
+    private(set) var googleAppsProgress: GoogleAppsProgress?
+    /// A "Check Again" (or a poll) is asking Android.
+    private(set) var isRefreshingGoogleApps = false
+    private var refreshGoogleAppsAgain = false
+    /// Android said verified boot is off (it stays off, also after Reset
+    /// Android), kept while Android is stopped and cannot be asked.
+    private(set) var verityKnownOff = false
+    /// Which Android has the Google apps on Android's storage (the daemon's
+    /// `GoogleAppsRecord`, beside the data disk); read with each refresh.
+    private(set) var googleAppsRecord: GoogleAppsRecord?
+    /// The Control Panel's own first step, copying the package into the
+    /// cache, before the daemon has the request.
+    private var googleAppsCopy: (id: UUID, task: Task<Void, Never>)?
+    /// Installed apps with a usable key mapping, which makes them games for
+    /// Settings › Graphics (the same rule app windows use).
+    private(set) var keyMappedPackages: Set<String> = []
+    /// Settings › Fingerprints (FingerprintsPane.swift): Android's fingers, nil until asked.
+    var fingerprints: FingerprintStatus?
+    /// A fingerprint change is on its way to Android.
+    var fingerprintsBusy = false
+    /// How much each app was used, by package (the Library's statistics).
+    private(set) var usage: [String: AppUsage] = [:]
+    /// Library › System Status (SystemStatusView.swift), fed while it shows.
+    let systemStatus = SystemStatusModel()
 
     private var client: DaemonClient?
+    /// The daemon connection, for the panes' own calls (FingerprintsPane.swift).
+    var daemonClient: DaemonClient? { client }
     private var eventTask: Task<Void, Never>?
     private let logger = Logger(subsystem: AvoIdentifiers.logSubsystem, category: "ControlPanel")
     private static let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "dev"
@@ -44,22 +105,92 @@ final class ControlPanelModel {
     var host: HostInfo { snapshot?.host ?? HostInfo.current() }
     var profiles: [DeviceProfile] { snapshot?.profiles ?? [] }
     var pendingRestart: Bool { snapshot?.pendingRestart ?? false }
+    /// Android's storage (Settings › Storage); nil from an older daemon.
+    var dataDisk: DataDiskStatus? { snapshot?.dataDisk }
+    /// The engine's GPU shader cache (Settings › Storage), nil until asked.
+    private(set) var gpuCache: GPUCacheStatus?
+    /// Where Android's data is (Settings › Storage › Location); nil from an older daemon.
+    private(set) var storageLocation: StorageLocationStatus? {
+        // Each Android version's data, to offer again when versions change (AndroidDataMemory).
+        didSet { if let storageLocation { AndroidDataMemory.note(storageLocation) } }
+    }
+    /// A change of where Android's data is, as the daemon reports it.
+    private(set) var storageProgress: StorageChangeProgress?
+    /// A Google apps install runs (Reset and Save Snapshot wait).
+    var isInstallingGoogleApps: Bool { googleAppsProgress.map { !$0.isDone } ?? false }
+    /// It is changing Android, which Avo restarts by itself meanwhile:
+    /// stopping, restarting or resetting Android has to wait.
+    var googleAppsChangingAndroid: Bool { googleAppsProgress?.changesAndroid ?? false }
+    /// Google apps are in Android: it lists them, or (while Android is
+    /// stopped and cannot be asked) the installer set the mode, which only
+    /// it and Reset Android change.
+    var googleAppsInstalled: Bool { googleApps?.installed == true || config?.gms == .bringYourOwn }
 
     // MARK: Connection
 
     func start() {
-        registerDaemon()
-        connect()
+        // Development: run the daemon with launchctl instead (see host/README.md).
+        if ProcessInfo.processInfo.arguments.contains("-AvoSkipDaemonRegistration") {
+            connect()
+            return
+        }
+        // Left by a hand setup from before Avo installed its daemon itself: only the launch argument counts.
+        UserDefaults.standard.removeObject(forKey: "AvoSkipDaemonRegistration")
+        if DaemonAgent.usesLoginItems {
+            registerDaemon()
+            connect()
+            return
+        }
+        // Any other signature: a LaunchAgent of Avo's own (DaemonAgent says why).
+        Task { @MainActor [weak self] in
+            await self?.unregisterLoginItem()
+            let outdated = await DaemonAgent.install()
+            self?.daemonAgentOutdated = outdated
+            self?.connect()
+        }
     }
 
-    /// Registers the LaunchAgent that hosts the Runtime Daemon (spec: "LaunchAgent").
-    private func registerDaemon() {
-        // Development: run the daemon with launchctl instead (see host/README.md).
-        if UserDefaults.standard.bool(forKey: "AvoSkipDaemonRegistration") { return }
+    /// A Login Item from an earlier Avo would hold the daemon's Mach service.
+    private func unregisterLoginItem() async {
         let service = SMAppService.agent(plistName: "\(AvoIdentifiers.daemonLabel).plist")
+        guard service.status != .notRegistered, service.status != .notFound else { return }
+        do {
+            try await service.unregister()
+        } catch {
+            logger.notice("former Login Item not removed: \(error.localizedDescription, privacy: .public)")
+        }
+    }
+
+    /// Registers the Login Item that hosts the Runtime Daemon (spec: "LaunchAgent"), for a Developer ID Avo.
+    private func registerDaemon() {
+        let service = SMAppService.agent(plistName: "\(AvoIdentifiers.daemonLabel).plist")
+        // launchd starts only the daemon whose code it saw at registration (its launch constraint
+        // names that cdhash): an updated Avo registers again, or its new daemon would never start.
+        let code = Self.daemonCodeHash()
+        if service.status == .enabled, let code, UserDefaults.standard.string(forKey: Self.registeredDaemonKey) != code {
+            logger.notice("the daemon changed since it was registered: registering it again")
+            Task { @MainActor [weak self] in
+                do {
+                    try await service.unregister()
+                } catch {
+                    self?.logger.error("LaunchAgent unregistration failed: \(error.localizedDescription, privacy: .public)")
+                }
+                // Gone for good before it comes back, so launchd takes the new code's constraint.
+                for _ in 0..<30 where service.status != .notRegistered {
+                    try? await Task.sleep(for: .milliseconds(100))
+                }
+                self?.register(service, code: code)
+                self?.connect()
+            }
+            return
+        }
+        register(service, code: code)
+    }
+
+    private func register(_ service: SMAppService, code: String?) {
         switch service.status {
         case .enabled:
-            return
+            break
         case .requiresApproval:
             daemonState = .needsApproval
         default:
@@ -70,6 +201,20 @@ final class ControlPanelModel {
                 if service.status == .requiresApproval { daemonState = .needsApproval }
             }
         }
+        if service.status == .enabled, let code { UserDefaults.standard.set(code, forKey: Self.registeredDaemonKey) }
+    }
+
+    private static let registeredDaemonKey = "AvoRegisteredDaemonCode"
+
+    /// The cdhash of the daemon inside this Avo.app (what launchd's launch constraint checks).
+    private static func daemonCodeHash() -> String? {
+        let daemon = Bundle.main.bundleURL.appending(path: "Contents/Library/Helpers/AvoDaemon.app")
+        var code: SecStaticCode?
+        guard SecStaticCodeCreateWithPath(daemon as CFURL, [], &code) == errSecSuccess, let code else { return nil }
+        var information: CFDictionary?
+        guard SecCodeCopySigningInformation(code, SecCSFlags(rawValue: kSecCSSigningInformation), &information) == errSecSuccess,
+              let unique = (information as? [String: Any])?[kSecCodeInfoUnique as String] as? Data else { return nil }
+        return unique.map { String(format: "%02x", $0) }.joined()
     }
 
     func openLoginItemsSettings() {
@@ -85,12 +230,19 @@ final class ControlPanelModel {
             do {
                 let hello = try await client.hello()
                 self?.daemonState = .connected
+                self?.daemonVersion = hello.daemonVersion
+                self?.checkDaemonBuild(hello)
                 self?.status = hello.status
+                self?.systemStatus.connected(client)
                 await self?.refresh()
             } catch {
-                if self?.daemonState != .needsApproval {
-                    self?.daemonState = .unavailable(error.localizedDescription)
-                }
+                guard let self, daemonState != .needsApproval else { return }
+                daemonState = .unavailable(Self.isOutdated && error as? AvoError == .unauthorizedCaller
+                    ? String(localized: "Avo was updated while it was open. Quit Avo and open it again.")
+                    : error.localizedDescription)
+                // The daemon may still be starting (or restarting): keep trying.
+                try? await Task.sleep(for: .seconds(5))
+                if !Task.isCancelled, case .unavailable = daemonState { connect() }
                 return
             }
             for await event in client.events {
@@ -98,18 +250,109 @@ final class ControlPanelModel {
             }
             // The daemon went away (update, crash): try again shortly.
             self?.daemonState = .connecting
+            // An install it was running ended with it (the one this panel
+            // started also fails its call, which says so).
+            if let progress = self?.googleAppsProgress, !progress.isDone { self?.googleAppsProgress = nil }
             try? await Task.sleep(for: .seconds(2))
             self?.connect()
         }
     }
 
+    // MARK: After an update
+
+    /// What this Avo.app's daemon says in its hello (AppUpdate.daemonVersion).
+    private static var expectedDaemonVersion: String {
+        AppUpdate.daemonVersion(short: version, build: Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String,
+                                code: daemonCodeHash())
+    }
+
+    /// A daemon left from the build before an update (or with a plist the
+    /// update changed) restarts on this build at once while Android holds
+    /// nothing; while Android runs it stays, and restarts once Android stops.
+    private func checkDaemonBuild(_ hello: DaemonHello) {
+        // Development (a daemon run by hand) and Login Items keep their own ways.
+        guard !ProcessInfo.processInfo.arguments.contains("-AvoSkipDaemonRegistration"), !DaemonAgent.usesLoginItems else { return }
+        let decision = AppUpdate.daemonDecision(running: hello.daemonVersion, expected: Self.expectedDaemonVersion,
+                                                androidRunning: hello.status.state.holdsAndroid)
+        // This build's daemon, and launchd holds this build's plist: nothing to do.
+        if decision == .current, !daemonAgentOutdated {
+            daemonUpdatePending = false
+            if startAndroidAfterDaemonUpdate {
+                startAndroidAfterDaemonUpdate = false
+                Task { try? await client?.startVM() }
+            }
+            return
+        }
+        daemonUpdatePending = true
+        if hello.status.state.holdsAndroid {
+            logger.notice("the daemon is \(hello.daemonVersion, privacy: .public): it restarts on this build once Android stops")
+        } else {
+            finishDaemonUpdate()
+        }
+    }
+
+    /// Restarts the daemon on this build (Android holds nothing now); the connection comes back by itself.
+    private func finishDaemonUpdate() {
+        guard daemonUpdatePending else { return }
+        daemonUpdatePending = false
+        let plistChanged = daemonAgentOutdated
+        daemonAgentOutdated = false
+        Task { await DaemonAgent.reload(plistChanged: plistChanged) }
+    }
+
+    /// Settings › About's Restart Android: Android stops as with Stop
+    /// Android, the daemon restarts on this build, and Android starts again on it.
+    func restartAndroidForUpdate() {
+        guard daemonUpdatePending, let client else { return }
+        startAndroidAfterDaemonUpdate = true
+        Task {
+            do {
+                try await client.stopVM()
+            } catch {
+                startAndroidAfterDaemonUpdate = false
+                lastError = error.localizedDescription
+            }
+        }
+    }
+
+    /// Stops Android so an update installs cleanly (AppUpdater's Stop
+    /// Android and Install): true once Android holds nothing, within a minute.
+    func stopAndroidForUpdate() async -> Bool {
+        guard let client else { return false }
+        do {
+            try await client.stopVM()
+        } catch {
+            lastError = error.localizedDescription
+            return false
+        }
+        for _ in 0..<120 where status.state.holdsAndroid {
+            try? await Task.sleep(for: .milliseconds(500))
+        }
+        return !status.state.holdsAndroid
+    }
+
+    /// This process runs code its app bundle no longer has (Avo was updated
+    /// or rebuilt underneath it); the daemon may then refuse it.
+    private static var isOutdated: Bool {
+        var me: SecCode?
+        guard SecCodeCopySelf([], &me) == errSecSuccess, let me else { return false }
+        return SecCodeCheckValidity(me, [], nil) != errSecSuccess
+    }
+
     func refresh() async {
         guard let client else { return }
+        // Apart, so a daemon from before usage statistics (which never
+        // answers the call) holds nothing else up.
+        Task {
+            if let list = try? await client.appUsage() { usage = Dictionary(list.map { ($0.package, $0) }, uniquingKeysWith: { $1 }) }
+        }
         do {
             async let snapshot = client.configuration()
             async let apps = client.apps()
             self.snapshot = try await snapshot
+            storageLocation = self.snapshot?.storageLocation
             self.apps = try await apps
+            refreshKeyMappings()
             for app in self.apps { await loadIcon(app.package) }
         } catch {
             lastError = error.localizedDescription
@@ -118,9 +361,12 @@ final class ControlPanelModel {
 
     private func handle(_ event: DaemonEvent) {
         switch event {
+        case .appActivity(let activity):
+            self.activity = activity
         case .vmStatus(let status):
             self.status = status
-            if status.state == .running || status.state == .stopped {
+            if status.state != .running && !status.isPaused { activity = [:] }
+            if status.state == .running || status.state == .stopped || status.state == .failed {
                 Task { await refreshConfiguration() }
             }
         case .appInstalled(let record):
@@ -128,6 +374,7 @@ final class ControlPanelModel {
             apps.append(record)
             apps.sort { $0.displayName.localizedStandardCompare($1.displayName) == .orderedAscending }
             Task { await loadIcon(record.package, force: true) }
+            refreshKeyMappings()
         case .appRemoved(let package):
             apps.removeAll { $0.package == package }
             icons[package] = nil
@@ -138,13 +385,36 @@ final class ControlPanelModel {
             pendingInstall = pending
         case .configurationChanged(let config):
             snapshot?.config = config
+        case .notifications(let list):
+            notifications = list
+        case .macNotifications(let permission):
+            notificationPermissionGeneration += 1
+            macNotifications = permission
+        case .googleAppsProgress(let progress):
+            if googleAppsCopy?.id == progress.id { googleAppsCopy = nil }
+            googleAppsProgress = progress
+            if progress.isDone { Task { await refreshGoogleApps() } }
+        case .fingerprints(let status):
+            fingerprints = status
+        case .appUsage(let list):
+            usage = Dictionary(list.map { ($0.package, $0) }, uniquingKeysWith: { $1 })
+        case .storageLocation(let location):
+            storageLocation = location
+            Task { await refreshConfiguration() }
+        case .storageProgress(let progress):
+            storageProgress = progress
+        case .systemActivity(let activity):
+            systemStatus.receive(activity)
         default:
             break
         }
     }
 
     private func refreshConfiguration() async {
-        if let snapshot = try? await client?.configuration() { self.snapshot = snapshot }
+        if let snapshot = try? await client?.configuration() {
+            self.snapshot = snapshot
+            if let location = snapshot.storageLocation { storageLocation = location }
+        }
     }
 
     private func loadIcon(_ package: String, force: Bool = false) async {
@@ -155,10 +425,126 @@ final class ControlPanelModel {
     // MARK: VM
 
     func startVM() { perform { try await $0.startVM() } }
-    func stopVM() { perform { try await $0.stopVM() } }
-    func restartVM() { perform { try await $0.restartVM() } }
-    func takeSnapshot() { perform { try await $0.takeSnapshot() } }
-    func resetAndroid() { perform { try await $0.resetAndroid() } }
+    func stopVM() { performUnlessInstalling { try await $0.stopVM() } }
+    func restartVM() { performUnlessInstalling { try await $0.restartVM() } }
+    func retryGPU() { performUnlessInstalling { try await $0.retryGPU() } }
+    func takeSnapshot() { performUnlessInstalling { try await $0.takeSnapshot() } }
+
+    func resetAndroid() {
+        guard !googleAppsChangingAndroid else {
+            lastError = Self.googleAppsBusyMessage
+            return
+        }
+        // Google apps go with the data disk: an old result no longer holds.
+        if let progress = googleAppsProgress, progress.isDone { googleAppsProgress = nil }
+        stopCopyingGoogleApps()
+        perform { try await $0.resetAndroid() }
+    }
+
+    /// Settings › Storage › Change Size: erases Android's data (as Reset
+    /// Android does), then sets the size the next start creates its storage
+    /// with. Android's storage cannot change size while it holds data
+    /// (DataDiskStatus says why).
+    func eraseAndResizeStorage(to gb: Int) {
+        guard !googleAppsChangingAndroid else {
+            lastError = Self.googleAppsBusyMessage
+            return
+        }
+        if let progress = googleAppsProgress, progress.isDone { googleAppsProgress = nil }
+        stopCopyingGoogleApps()
+        guard let client else { return }
+        Task {
+            do {
+                try await client.resetAndroid()
+                var config = try await client.configuration().config
+                config.dataDiskGiB = gb
+                let result = try await client.updateConfiguration(config)
+                configIssues = result.issues
+                if let issue = result.issues.first(where: { $0.severity == .error }) { lastError = issue.message }
+            } catch {
+                lastError = error.localizedDescription
+            }
+            await refreshConfiguration()
+        }
+    }
+
+    /// The GPU shader cache's size (Settings › Storage).
+    func refreshGPUCache() async {
+        gpuCache = try? await client?.gpuCacheStatus()
+    }
+
+    func clearGPUCache() {
+        guard let client else { return }
+        Task {
+            do {
+                gpuCache = try await client.clearGPUCache()
+            } catch {
+                lastError = error.localizedDescription
+            }
+        }
+    }
+
+    // MARK: Where Android's data is (Settings › Storage › Location)
+
+    /// What the daemon finds in a folder the user chose (nil: Avo's own
+    /// storage). On a removable volume macOS may ask first whether Avo may.
+    func inspectStorage(_ path: String?) async throws -> StorageCandidate {
+        try await requireClient().inspectStorageLocation(path)
+    }
+
+    /// Returns once Android's data is in its new place; progress arrives meanwhile.
+    func changeStorage(_ request: StorageChangeRequest) async throws {
+        storageProgress = StorageChangeProgress(id: request.id, phase: .checking)
+        defer { Task { await refreshConfiguration() } }
+        try await requireClient().changeStorageLocation(request)
+    }
+
+    func cancelStorageChange() { perform { try await $0.cancelStorageChange() } }
+
+    /// Asks the daemon where Android's data is now (after System Settings
+    /// changed Avo's access, or a drive was connected).
+    func refreshStorageLocation() async {
+        if let location = try? await client?.storageLocation() { storageLocation = location }
+    }
+
+    func removeInternalStorageCopy() {
+        guard let client else { return }
+        Task {
+            do {
+                try await client.removeInternalStorageCopy()
+            } catch {
+                lastError = error.localizedDescription
+            }
+            await refreshConfiguration()
+        }
+    }
+
+    // MARK: The shared folder (Settings › Storage › Shared Folder)
+
+    var sharedFolder: SharedFolderStatus? { snapshot?.sharedFolder }
+
+    /// What the daemon finds in a folder the user chose to share.
+    func inspectSharedFolder(_ path: String) async throws -> SharedFolderStatus {
+        try await requireClient().inspectSharedFolder(path)
+    }
+
+    /// Asks again (after System Settings changed Avo's access, or a drive was connected).
+    func refreshSharedFolder() async {
+        await refreshConfiguration()
+    }
+
+    static var googleAppsBusyMessage: String {
+        String(localized: "Google apps are being installed, and Avo restarts Android by itself meanwhile. Wait until the install finishes.")
+    }
+
+    /// The daemon refuses too; this says so without asking it.
+    private func performUnlessInstalling(_ action: @escaping @Sendable (DaemonClient) async throws -> Void) {
+        guard !googleAppsChangingAndroid else {
+            lastError = Self.googleAppsBusyMessage
+            return
+        }
+        perform(action)
+    }
 
     private func perform(_ action: @escaping @Sendable (DaemonClient) async throws -> Void) {
         guard let client else { return }
@@ -199,14 +585,124 @@ final class ControlPanelModel {
         configIssues.first { $0.field == field }
     }
 
+    // MARK: Graphics (Settings › Graphics, an app's Graphics Settings)
+
+    /// Sets (nil removes) one app's graphics override. Overrides never travel
+    /// with `update`: the daemon keeps its own, so a window's View menu and
+    /// this panel cannot undo each other's changes.
+    func setAppGraphics(_ override: AppGraphicsOverride?, for package: String) {
+        guard var config = snapshot?.config, let client else { return }
+        let stored = (override?.isEmpty ?? true) ? nil : override
+        guard config.graphicsOverrides[package] != stored else { return }
+        let previous = config.graphicsOverrides[package]
+        config.graphicsOverrides[package] = stored
+        snapshot?.config = config
+        Task {
+            do {
+                let result = try await client.setAppGraphics(stored, for: package)
+                configIssues = result.issues
+                if result.issues.contains(where: { $0.severity == .error }) {
+                    snapshot?.config.graphicsOverrides[package] = previous
+                }
+                await refreshConfiguration()
+            } catch {
+                lastError = error.localizedDescription
+                snapshot?.config.graphicsOverrides[package] = previous
+            }
+        }
+    }
+
+    /// Whether `package` counts as a game when it chose no profile.
+    func hasKeyMapping(_ package: String) -> Bool {
+        keyMappedPackages.contains(package)
+    }
+
+    /// Looks for usable key mappings (the user's, else the bundled one) off
+    /// the main actor: each check reads and validates a JSON file.
+    func refreshKeyMappings() {
+        let packages = apps.map(\.package)
+        let bundled = Bundle.main.resourceURL?.appending(path: "profiles/keymaps", directoryHint: .isDirectory)
+        keyMappingGeneration += 1
+        let generation = keyMappingGeneration
+        Task {
+            let found = await Task.detached(priority: .utility) {
+                Set(packages.filter { KeymapProfile.usable(for: $0, bundledDirectory: bundled) != nil })
+            }.value
+            // An older scan (of a shorter app list) finishing last must not win.
+            guard generation == keyMappingGeneration, found != keyMappedPackages else { return }
+            keyMappedPackages = found
+        }
+    }
+
+    @ObservationIgnored private var keyMappingGeneration = 0
+
+    /// The settings `package`'s windows use now.
+    func graphics(for package: String) -> ResolvedGraphics? {
+        config?.graphics(for: package, hasKeyMapping: hasKeyMapping(package))
+    }
+
     // MARK: Apps
 
     func open(_ app: AppRecord) {
         guard let shim = app.shortcuts.shimPath else {
-            lastError = "\(app.displayName) has no shortcut yet. Use “Recreate Shortcuts” in Settings › System."
+            lastError = String(localized: "\(app.displayName) has no shortcut yet. Use “Recreate Shortcuts” in Settings › General.")
             return
         }
         NSWorkspace.shared.openApplication(at: URL(filePath: shim), configuration: NSWorkspace.OpenConfiguration())
+    }
+
+    // MARK: Notifications
+
+    /// Opens its app; Android drops it when the app says opening does (the
+    /// daemon's list follows).
+    func open(_ notification: AndroidNotification) { perform { try await $0.openNotification(notification.key) } }
+
+    /// Gone here at once; the daemon dismisses them in Notification Center
+    /// and Android too, as a swipe on a phone.
+    func dismiss(_ dismissed: [AndroidNotification]) {
+        let keys = Set(dismissed.map(\.key))
+        notifications.removeAll { keys.contains($0.key) }
+        perform { try await $0.dismissNotifications(Array(keys)) }
+    }
+
+    func clearNotifications() {
+        notifications = []
+        perform { try await $0.clearNotifications() }
+    }
+
+    /// System Settings › Notifications › Avo (the daemon posts them).
+    func openNotificationSettings() {
+        let url = URL(string: "x-apple.systempreferences:com.apple.Notifications-Settings.extension?id=\(AvoIdentifiers.daemonBundleID)")!
+        NSWorkspace.shared.open(url)
+    }
+
+    /// Request Permission: the daemon, which posts the notifications, asks
+    /// macOS; its alert appears while macOS has no answer yet, and the
+    /// user's answer arrives as an event.
+    func requestNotificationPermission() {
+        guard let client, !requestingNotificationPermission else { return }
+        requestingNotificationPermission = true
+        notificationPermissionGeneration += 1
+        Task {
+            defer { requestingNotificationPermission = false }
+            do {
+                let permission = try await client.requestNotificationPermission()
+                notificationPermissionGeneration += 1
+                macNotifications = permission
+            } catch {
+                lastError = error.localizedDescription
+            }
+        }
+    }
+
+    /// Asks the daemon again: System Settings tells nobody when the user
+    /// changes Avo's notifications there.
+    func refreshNotificationPermission() async {
+        guard let client, !requestingNotificationPermission else { return }
+        let generation = notificationPermissionGeneration
+        guard let permission = try? await client.notificationPermission(),
+              generation == notificationPermissionGeneration, permission != macNotifications else { return }
+        macNotifications = permission
     }
 
     func uninstall(_ app: AppRecord) { perform { try await $0.uninstall(app.package) } }
@@ -231,9 +727,18 @@ final class ControlPanelModel {
     static let packageExtensions: Set<String> = ["apk", "xapk", "apkm", "apks"]
 
     /// Shows the confirmation sheet for a package file (double-click, drop, File › Install).
+    /// Asks for a package file and installs it (toolbar, menu, Apps pane).
+    func chooseAndInstall() {
+        let panel = NSOpenPanel()
+        panel.allowedContentTypes = Self.packageExtensions.compactMap { .init(filenameExtension: $0) }
+        panel.prompt = String(localized: "Install")
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        prepareInstall(url)
+    }
+
     func prepareInstall(_ url: URL) {
         guard Self.packageExtensions.contains(url.pathExtension.lowercased()) else {
-            lastError = "\(url.lastPathComponent) is not an Android package."
+            lastError = String(localized: "\(url.lastPathComponent) is not an Android package.")
             return
         }
         var pending = PendingInstall(url: url)
@@ -268,5 +773,159 @@ final class ControlPanelModel {
 
     func dismissInstall() {
         pendingInstall = nil
+    }
+
+    // MARK: Google apps (Settings › System, spec: Strategi GMS)
+
+    func refreshGoogleApps() async {
+        googleAppsRecord = GoogleAppsRecord.load(AvoPaths())
+        guard let client else { return }
+        // One question at a time (each runs several commands in Android);
+        // one asked meanwhile follows it.
+        guard !isRefreshingGoogleApps else {
+            refreshGoogleAppsAgain = true
+            return
+        }
+        isRefreshingGoogleApps = true
+        defer { isRefreshingGoogleApps = false }
+        repeat {
+            refreshGoogleAppsAgain = false
+            guard let status = try? await client.googleAppsStatus() else { return }
+            googleApps = status
+            if let off = status.verityDisabled { verityKnownOff = off }
+            // The daemon notes it once Android lists them.
+            googleAppsRecord = GoogleAppsRecord.load(AvoPaths())
+            if let progress = status.progress {
+                // An answer from before the install ended does not bring it back.
+                if !(googleAppsProgress?.id == progress.id && googleAppsProgress?.isDone == true) { googleAppsProgress = progress }
+            } else if googleAppsProgress?.phase == .finished, status.installed == false {
+                // Installed once, gone now (Reset Android). A failure stays shown.
+                googleAppsProgress = nil
+            }
+        } while refreshGoogleAppsAgain
+    }
+
+    /// A MindTheGapps .zip, or the folder it unzips to, for `line` (the
+    /// package line that fits Android, when known).
+    func chooseGoogleAppsPackage(for line: GoogleAppsLine?) -> URL? {
+        let panel = NSOpenPanel()
+        panel.canChooseFiles = true
+        panel.canChooseDirectories = true
+        panel.allowedContentTypes = [.zip, .folder]
+        panel.prompt = String(localized: "Choose")
+        if let line {
+            panel.message = String(localized: "Choose \(line.name) for Android \(line.android): the .zip, or the folder it unzips to.")
+        } else {
+            panel.message = String(localized: "Choose the MindTheGapps package for this Android’s version: the .zip, or the folder it unzips to.")
+        }
+        return panel.runModal() == .OK ? panel.url : nil
+    }
+
+    /// The daemon does not read Downloads or Documents itself (privacy
+    /// prompts): the package is copied into Avo's cache first, which APFS
+    /// does as a clone, and the daemon removes the copy when done.
+    func installGoogleApps(from url: URL) {
+        let id = UUID()
+        googleAppsProgress = GoogleAppsProgress(id: id, phase: .preparing)
+        let task = Task {
+            do {
+                let copy = try await Self.copyIntoCache(url)
+                // Stopped meanwhile: the copy (which cannot be interrupted)
+                // goes, and the daemon never hears of it.
+                guard !Task.isCancelled, googleAppsCopy?.id == id else {
+                    try? FileManager.default.removeItem(at: copy.deletingLastPathComponent())
+                    return
+                }
+                googleAppsCopy = nil
+                try await requireClient().installGoogleApps(GoogleAppsInstallRequest(id: id, source: .local(path: copy.path)))
+            } catch {
+                googleAppsFailed(id, error)
+            }
+        }
+        googleAppsCopy = (id, task)
+    }
+
+    func downloadGoogleApps(from link: String) {
+        let id = UUID()
+        googleAppsProgress = GoogleAppsProgress(id: id, phase: .preparing)
+        Task {
+            do {
+                try await requireClient().installGoogleApps(GoogleAppsInstallRequest(id: id, source: .github(url: link)))
+            } catch {
+                googleAppsFailed(id, error)
+            }
+        }
+    }
+
+    /// Stop: before the daemon has the request it is the Control Panel's
+    /// own copy that stops; otherwise the daemon stops the install (also
+    /// one whose request is still on its way).
+    func cancelGoogleApps() {
+        guard let progress = googleAppsProgress, !progress.isDone else { return }
+        if googleAppsCopy?.id == progress.id {
+            stopCopyingGoogleApps()
+            return
+        }
+        let id = progress.id
+        perform { try await $0.cancelGoogleApps(id: id) }
+    }
+
+    private func stopCopyingGoogleApps() {
+        guard let copy = googleAppsCopy else { return }
+        copy.task.cancel()
+        googleAppsCopy = nil
+        googleAppsProgress = GoogleAppsProgress(id: copy.id, phase: .cancelled,
+                                                message: String(localized: "Install stopped. Android was not changed."))
+    }
+
+    private func requireClient() throws -> DaemonClient {
+        guard let client else { throw AvoError.daemonUnreachable(String(localized: "not connected")) }
+        return client
+    }
+
+    /// The daemon reports its own failures as progress; this covers the
+    /// rest (copying the package, the connection).
+    private func googleAppsFailed(_ id: UUID, _ error: any Error) {
+        if googleAppsCopy?.id == id { googleAppsCopy = nil }
+        guard googleAppsProgress?.id != id || googleAppsProgress?.isDone != true else { return }
+        googleAppsProgress = GoogleAppsProgress(id: id, phase: .failed, message: error.localizedDescription)
+    }
+
+    private nonisolated static func copyIntoCache(_ url: URL) async throws -> URL {
+        try await Task.detached(priority: .userInitiated) {
+            let accessing = url.startAccessingSecurityScopedResource()
+            defer { if accessing { url.stopAccessingSecurityScopedResource() } }
+            let folder = AvoPaths().googleAppsCache.appending(path: UUID().uuidString, directoryHint: .isDirectory)
+            try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+            let copy = folder.appending(path: url.lastPathComponent)
+            do {
+                try FileManager.default.copyItem(at: url, to: copy)
+            } catch {
+                try? FileManager.default.removeItem(at: folder)
+                throw error
+            }
+            return copy
+        }.value
+    }
+}
+
+// MARK: - Screen lock (Android started with a screen lock: VMStatus.screenLock)
+
+extension ControlPanelModel {
+    /// Android's screen lock while it keeps Android locked (nil while not running).
+    var screenLock: AndroidScreenLock? { status.state == .running ? status.screenLock : nil }
+
+    /// Opens the unlock sheet as Android reports a lock (after a start, or
+    /// when this panel connects to a locked Android), closes it once unlocked.
+    fileprivate func screenLockSeen(after old: VMStatus) {
+        let wasLocked = old.state == .running && old.screenLock != nil
+        if screenLock != nil, !wasLocked { unlockSheetShown = true }
+        if screenLock == nil { unlockSheetShown = false }
+    }
+
+    /// Passes the credential to Android (`DaemonClient.unlockAndroid`); returns
+    /// once Android is unlocked. The credential is not kept.
+    func unlockAndroid(credential: String) async throws {
+        try await requireClient().unlockAndroid(credential: credential)
     }
 }

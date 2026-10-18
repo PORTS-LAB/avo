@@ -7,6 +7,7 @@ struct AppsView: View {
     @Environment(ControlPanelModel.self) private var model
     @State private var search = ""
     @State private var inspected: AppRecord?
+    @State private var graphicsApp: AppRecord?
     @State private var confirmUninstall: AppRecord?
 
     private var filtered: [AppRecord] {
@@ -37,7 +38,10 @@ struct AppsView: View {
         .sheet(item: $inspected) { app in
             AppInfoSheet(app: app)
         }
-        .confirmationDialog(confirmUninstall.map { "Uninstall \($0.displayName)?" } ?? "",
+        .sheet(item: $graphicsApp) { app in
+            AppGraphicsSheet(app: app)
+        }
+        .confirmationDialog(confirmUninstall.map { String(localized: "Uninstall \($0.displayName)?") } ?? "",
                             isPresented: Binding(get: { confirmUninstall != nil }, set: { if !$0 { confirmUninstall = nil } }),
                             titleVisibility: .visible) {
             Button("Uninstall", role: .destructive) {
@@ -51,17 +55,24 @@ struct AppsView: View {
     @ViewBuilder private func menu(for app: AppRecord) -> some View {
         Button("Open") { model.open(app) }
         Button("App Info…") { inspected = app }
+        Button("Graphics Settings…") { graphicsApp = app }
         Divider()
         Button("Force Stop") { model.forceStop(app) }
         if let shim = app.shortcuts.shimPath {
             Button("Show in Finder") { NSWorkspace.shared.activateFileViewerSelecting([URL(filePath: shim)]) }
         }
-        Divider()
-        Button("Uninstall…", role: .destructive) { confirmUninstall = app }
+        // A system app (the Play Store, the Google app) cannot be
+        // uninstalled: `pm uninstall` fails or only removes its update.
+        // Reset Android removes Google apps.
+        if !app.systemApp {
+            Divider()
+            Button("Uninstall…", role: .destructive) { confirmUninstall = app }
+        }
     }
 }
 
 private struct AppTile: View {
+    @Environment(ControlPanelModel.self) private var model
     let app: AppRecord
     let icon: NSImage?
 
@@ -88,6 +99,7 @@ private struct AppTile: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
+            ActivityBadge(activity: model.activity[app.package])
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 8)
@@ -96,14 +108,52 @@ private struct AppTile: View {
     }
 }
 
+/// Under each app: open, minimized, in the background, or nothing when it
+/// does not run (like the dot under running apps in the Dock).
+private struct ActivityBadge: View {
+    let activity: AppActivity?
+
+    var body: some View {
+        HStack(spacing: 4) {
+            Circle()
+                .fill(color)
+                .frame(width: 6, height: 6)
+            label.font(.caption2)
+        }
+        .foregroundStyle(.secondary)
+        .opacity(activity == nil ? 0 : 1)
+        .accessibilityHidden(activity == nil)
+    }
+
+    private var color: Color {
+        switch activity {
+        case .open?: .green
+        case .minimized?: .orange
+        case .background?: .secondary
+        case nil: .clear
+        }
+    }
+
+    private var label: Text {
+        switch activity {
+        case .open?: Text("Window open")
+        case .minimized?: Text("Minimized")
+        case .background?: Text("In background")
+        case nil: Text(verbatim: " ")
+        }
+    }
+}
+
 private struct EmptyAppsView: View {
+    @Environment(ControlPanelModel.self) private var model
+
     var body: some View {
         ContentUnavailableView {
             Label("No Android apps yet", systemImage: "square.grid.2x2")
         } description: {
             Text("Double-click an .apk file in Finder, or drop it here. Apps you install from F-Droid or Aurora Store inside Android show up here too.")
         } actions: {
-            Button("Install App…") { (NSApp.delegate as? AppDelegate)?.chooseAndInstall() }
+            Button("Install App…") { model.chooseAndInstall() }
         }
     }
 }
@@ -116,6 +166,7 @@ struct AppInfoSheet: View {
     @State private var permissions: [AppPermission] = []
     @State private var loading = true
     @State private var confirmClear = false
+    @State private var showGraphics = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -137,6 +188,15 @@ struct AppInfoSheet: View {
                 }
                 if let date = app.updatedAt {
                     GridRow { Text("Updated").foregroundStyle(.secondary); Text(date, style: .date) }
+                }
+                if let graphics = model.graphics(for: app.package) {
+                    GridRow {
+                        Text("Graphics").foregroundStyle(.secondary)
+                        HStack(spacing: 8) {
+                            Text(graphics.summary)
+                            Button("Change…") { showGraphics = true }.controlSize(.small)
+                        }
+                    }
                 }
             }
             .font(.callout)
@@ -174,8 +234,14 @@ struct AppInfoSheet: View {
         .padding(24)
         .frame(width: 440)
         .task {
+            // The Graphics row says "automatic" from the key mappings, which
+            // a window's key-mapping editor may have changed since.
+            model.refreshKeyMappings()
             permissions = await model.permissions(for: app)
             loading = false
+        }
+        .sheet(isPresented: $showGraphics) {
+            AppGraphicsSheet(app: app)
         }
         .confirmationDialog("Clear all data of \(app.displayName)?", isPresented: $confirmClear, titleVisibility: .visible) {
             Button("Clear Data", role: .destructive) { model.deleteData(app) }

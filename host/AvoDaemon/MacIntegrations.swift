@@ -7,27 +7,70 @@ import UserNotifications
 
 /// Android notifications in Notification Center; clicking one opens the app's
 /// window (spec: "meng-klik notifikasi akan membuka jendela aplikasinya").
+///
+/// macOS checks who posts by looking the bundle identifier up in Launch
+/// Services, which leaves out apps in temporary folders (`TemporaryFolder`):
+/// while the only Avo.app it knows is in /tmp, Avo is refused without being
+/// asked or listed in System Settings, however it was launched or signed.
+/// Any copy outside one (/Applications/Avo.app) is enough.
 final class UserNotificationPresenter: NSObject, NotificationPresenter, UNUserNotificationCenterDelegate, @unchecked Sendable {
     private let center = UNUserNotificationCenter.current()
     private let lock = NSLock()
     private var onOpen: (@Sendable (String, String) -> Void)?
-    private var authorized: Bool?
+    private var onPermission: (@Sendable (MacNotificationPermission) -> Void)?
+    private var onDismiss: (@Sendable (String) -> Void)?
+    /// Android notifications ask to hear when the user closes them, which
+    /// dismisses them in Android too.
+    private static let category = "android"
+    /// Requests whose alert still waits for the user's answer.
+    private var pendingRequests = 0
+    /// What macOS said when it refused to ask, until the next request.
+    private var refusal: MacNotificationPermission?
+    private var notShownLogged = false
+    /// Avo.app, whose folder decides whether macOS lets it ask.
+    private let avoApp: URL
     private let iconDirectory = FileManager.default.temporaryDirectory.appending(path: "avo-notification-icons")
+    private let logger = Logger(subsystem: AvoIdentifiers.logSubsystem, category: "Notifications")
+
+    /// `avoApp`: Avo.app/Contents/Library/Helpers/AvoDaemon.app → Avo.app.
+    init(avoApp: URL = Bundle.main.bundleURL.deletingLastPathComponent().deletingLastPathComponent()
+        .deletingLastPathComponent().deletingLastPathComponent()) {
+        self.avoApp = avoApp
+        super.init()
+    }
 
     func start(onOpen: @escaping @Sendable (String, String) -> Void) {
         lock.withLock { self.onOpen = onOpen }
         center.delegate = self
+        center.setNotificationCategories([UNNotificationCategory(identifier: Self.category, actions: [], intentIdentifiers: [],
+                                                                 options: [.customDismissAction])])
+        // Asks right away rather than at the first Android notification:
+        // until Avo has asked once, macOS does not list it in System
+        // Settings › Notifications, so there would be nothing to turn on.
+        // Request Permission in the Control Panel asks again.
+        Task { _ = await requestPermission() }
+    }
+
+    func observePermission(_ onChange: @escaping @Sendable (MacNotificationPermission) -> Void) {
+        lock.withLock { onPermission = onChange }
+    }
+
+    func observeDismissals(_ onDismiss: @escaping @Sendable (String) -> Void) {
+        lock.withLock { self.onDismiss = onDismiss }
     }
 
     func post(_ notification: Avo_V1_Notification, appName: String, icon: Data?) {
         guard !notification.ongoing else { return } // progress bars and media sessions stay in Android
         Task {
-            guard await ensureAuthorized() else { return }
+            // Asking here would bring macOS's alert back with every Android
+            // notification; the start and Request Permission ask.
+            guard await shown() else { return }
             let content = UNMutableNotificationContent()
             content.title = notification.title.isEmpty ? appName : notification.title
             content.subtitle = notification.title.isEmpty ? "" : appName
             content.body = notification.body
             content.threadIdentifier = notification.package
+            content.categoryIdentifier = Self.category
             content.userInfo = ["package": notification.package, "key": notification.key]
             if !notification.silent { content.sound = .default }
             if let attachment = attachment(icon: notification.largeIconPng.isEmpty ? icon : notification.largeIconPng,
@@ -35,7 +78,12 @@ final class UserNotificationPresenter: NSObject, NotificationPresenter, UNUserNo
                 content.attachments = [attachment]
             }
             let request = UNNotificationRequest(identifier: notification.key, content: content, trigger: nil)
-            try? await center.add(request)
+            do {
+                try await center.add(request)
+                logger.notice("notification from \(notification.package, privacy: .public) shown")
+            } catch {
+                logger.error("notification from \(notification.package, privacy: .public) not shown: \(error.localizedDescription, privacy: .public)")
+            }
         }
     }
 
@@ -43,11 +91,81 @@ final class UserNotificationPresenter: NSObject, NotificationPresenter, UNUserNo
         center.removeDeliveredNotifications(withIdentifiers: [key])
     }
 
-    private func ensureAuthorized() async -> Bool {
-        if let authorized = lock.withLock({ authorized }) { return authorized }
-        let granted = (try? await center.requestAuthorization(options: [.alert, .sound, .badge])) ?? false
-        lock.withLock { authorized = granted }
-        return granted
+    /// Asked every time: the user can allow Avo in System Settings at any point.
+    func permission() async -> MacNotificationPermission {
+        let status = await center.notificationSettings().authorizationStatus
+        return lock.withLock { () -> MacNotificationPermission in
+            switch status {
+            case .authorized, .provisional, .ephemeral:
+                return .allowed
+            case .denied:
+                return MacNotificationPermission(state: .denied)
+            default:
+                return refusal ?? MacNotificationPermission(state: .notDetermined, asking: pendingRequests > 0)
+            }
+        }
+    }
+
+    func requestPermission() async -> MacNotificationPermission {
+        let before = await permission()
+        // macOS asks only while it has no answer; after Don't Allow only
+        // System Settings changes it.
+        guard before.state == .notDetermined || before.state == .unavailable else { return before }
+        let answered = Flag()
+        Task {
+            await authorize()
+            answered.set()
+        }
+        // macOS answers at once when it refuses to ask; otherwise its alert
+        // waits for the user, and the answer goes to `onPermission`.
+        await answered.wait(upTo: .seconds(1))
+        return await permission()
+    }
+
+    private func authorize() async {
+        lock.withLock {
+            pendingRequests += 1
+            refusal = nil
+        }
+        do {
+            let granted = try await center.requestAuthorization(options: [.alert, .sound, .badge])
+            lock.withLock { pendingRequests -= 1 }
+            logger.notice("notification permission \(granted ? "allowed" : "not allowed (System Settings › Notifications)", privacy: .public)")
+        } catch {
+            let undecided = await center.notificationSettings().authorizationStatus == .notDetermined
+            let reason = refused(error)
+            lock.withLock {
+                pendingRequests -= 1
+                if undecided { refusal = reason }
+            }
+        }
+        let now = await permission()
+        lock.withLock { onPermission }?(now)
+    }
+
+    /// macOS refused to ask (UNError.notificationsNotAllowed): it does not
+    /// know this copy of Avo, which an app in a temporary folder never is.
+    private func refused(_ error: any Error) -> MacNotificationPermission {
+        let me = Bundle.main.bundleURL.resolvingSymlinksInPath()
+        let known = NSWorkspace.shared.urlsForApplications(withBundleIdentifier: Bundle.main.bundleIdentifier ?? AvoIdentifiers.daemonBundleID)
+            .contains { $0.resolvingSymlinksInPath() == me }
+        let temporary = TemporaryFolder.contains(avoApp)
+        logger.error("""
+            macOS did not ask for notification permission: \(error.localizedDescription, privacy: .public) \
+            (Launch Services \(known ? "lists" : "does not list", privacy: .public) \(me.path, privacy: .public)\
+            \(temporary ? "; Avo runs from a temporary folder, which macOS ignores" : "", privacy: .public))
+            """)
+        return MacNotificationPermission(state: .unavailable, temporaryFolder: temporary ? avoApp.path : nil,
+                                         refusal: error.localizedDescription)
+    }
+
+    /// Whether macOS shows Avo's notifications now.
+    private func shown() async -> Bool {
+        if await permission().isAllowed { return true }
+        if lock.withLock({ () -> Bool in defer { notShownLogged = true }; return !notShownLogged }) {
+            logger.notice("Android notifications stay in Avo's list: macOS does not show Avo's notifications (Control Panel › Notifications)")
+        }
+        return false
     }
 
     private func attachment(icon: Data?, package: String) -> UNNotificationAttachment? {
@@ -61,12 +179,31 @@ final class UserNotificationPresenter: NSObject, NotificationPresenter, UNUserNo
     func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse) async {
         let info = response.notification.request.content.userInfo
         guard let package = info["package"] as? String, let key = info["key"] as? String else { return }
-        lock.withLock { onOpen }?(package, key)
+        if response.actionIdentifier == UNNotificationDismissActionIdentifier {
+            lock.withLock { onDismiss }?(key)
+        } else {
+            lock.withLock { onOpen }?(package, key)
+        }
     }
 
     func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification) async
         -> UNNotificationPresentationOptions {
         [.banner, .sound, .list]
+    }
+}
+
+/// Set once; `wait` returns when it is, or after a while.
+private final class Flag: @unchecked Sendable {
+    private let lock = NSLock()
+    private var isSet = false
+
+    func set() { lock.withLock { isSet = true } }
+
+    func wait(upTo timeout: Duration) async {
+        let deadline = ContinuousClock.now + timeout
+        while ContinuousClock.now < deadline, !lock.withLock({ isSet }) {
+            try? await Task.sleep(for: .milliseconds(20))
+        }
     }
 }
 
@@ -100,6 +237,19 @@ final class PasteboardBridge: ClipboardBridge, @unchecked Sendable {
             pasteboard.setString(text, forType: .string)
             lock.withLock { lastChangeCount = pasteboard.changeCount }
         }
+    }
+
+    func takeChange() -> String? {
+        let look = { [self] () -> String? in
+            let pasteboard = NSPasteboard.general
+            let count = pasteboard.changeCount
+            let changed = lock.withLock { () -> Bool in
+                defer { lastChangeCount = count }
+                return count != lastChangeCount
+            }
+            return changed ? pasteboard.string(forType: .string).flatMap { $0.isEmpty ? nil : $0 } : nil
+        }
+        return Thread.isMainThread ? look() : DispatchQueue.main.sync(execute: look)
     }
 }
 

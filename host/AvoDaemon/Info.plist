@@ -6,6 +6,11 @@
 	<string>en</string>
 	<key>CFBundleDisplayName</key>
 	<string>Avo</string>
+	<key>CFBundleLocalizations</key>
+	<array>
+		<string>en</string>
+		<string>id</string>
+	</array>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIconName</key>
@@ -26,6 +31,16 @@
 	<string>$(MACOSX_DEPLOYMENT_TARGET)</string>
 	<key>LSUIElement</key>
 	<true/>
+	<key>NSLocationUsageDescription</key>
+	<string>Android apps ask for GPS; Avo answers with where this Mac is. Turn it off in Avo › Settings › System.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Android apps ask for GPS; Avo answers with where this Mac is. Turn it off in Avo › Settings › System.</string>
+	<!-- Android's data on an external drive: the daemon (Avo.app is held
+	     responsible) reads and writes it, and macOS asks once. -->
+	<key>NSRemovableVolumesUsageDescription</key>
+	<string>Android's data can be kept on an external drive (Settings › Storage › Location). Avo reads and writes it there while Android runs.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Android apps that record, like voice notes and calls, hear this Mac's microphone while they record.</string>
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
 </dict>

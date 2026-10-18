@@ -1,0 +1,217 @@
+import AppKit
+import SwiftUI
+
+/// Colours taken from an app's icon, for its game page and its cards in the
+/// Library: a small k-means over the icon's pixels in OKLab (a perceptual
+/// colour space), then the most vivid cluster that covers enough of the
+/// icon, set to a lightness that glows on the dark page. Icons without a
+/// vivid colour get Avo's green.
+struct IconPalette: Equatable, Sendable {
+    /// The glow and the page's small capitals ("GAME · GOOGLE PLAY").
+    var accent: UInt32
+    /// The accent, darker: the second glow, low in the hero.
+    var deep: UInt32
+
+    /// Avo's own green, for apps without an icon (or a grey one).
+    static let avo = IconPalette(accent: 0xBCDC8F, deep: 0x4F6B2E)
+
+    /// Where the dark base gradient ends: its green, warmed by the accent.
+    func baseEnd(from base: UInt32, amount: Double) -> UInt32 {
+        OKLab.mix(base, accent, amount)
+    }
+
+    // MARK: Extraction
+
+    /// The palette of `image`; nil for one without enough opaque pixels.
+    static func extract(from image: NSImage) -> IconPalette? {
+        guard let pixels = samples(of: image), pixels.count >= 16 else { return nil }
+        let clusters = kMeans(pixels, k: 5)
+        let total = Double(pixels.count)
+        // The most vivid colour that is more than a speck: vividness counts
+        // more than area (orange letters on an olive tile are the accent),
+        // and near black or white makes a poor glow.
+        let scored = clusters.filter { Double($0.count) / total >= 0.015 }.map { cluster -> (OKLab, Double) in
+            let lab = cluster.center
+            var score = lab.chroma * lab.chroma * pow(Double(cluster.count) / total, 0.4)
+            if lab.l < 0.35 { score *= 0.5 }
+            if lab.l < 0.2 || lab.l > 0.96 { score *= 0.3 }
+            return (lab, score)
+        }
+        guard let best = scored.max(by: { $0.1 < $1.1 }), best.0.chroma >= 0.035 else { return .avo }
+        let hue = best.0.hue
+        let chroma = min(max(best.0.chroma, 0.07), 0.16)
+        let lightness = min(max(best.0.l, 0.72), 0.84)
+        let accent = OKLab(lightness: lightness, chroma: chroma, hue: hue)
+        let deep = OKLab(lightness: lightness * 0.6, chroma: chroma * 0.75, hue: hue)
+        return IconPalette(accent: accent.rgb, deep: deep.rgb)
+    }
+
+    /// The icon at 40 × 40, its opaque pixels in OKLab.
+    private static func samples(of image: NSImage) -> [OKLab]? {
+        let side = 40
+        guard let space = CGColorSpace(name: CGColorSpace.sRGB),
+              let context = CGContext(data: nil, width: side, height: side, bitsPerComponent: 8, bytesPerRow: side * 4, space: space,
+                                      bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else { return nil }
+        var rect = CGRect(x: 0, y: 0, width: side, height: side)
+        guard let cgImage = image.cgImage(forProposedRect: &rect, context: nil, hints: nil) else { return nil }
+        context.interpolationQuality = .medium
+        context.draw(cgImage, in: rect)
+        guard let data = context.data else { return nil }
+        let bytes = data.bindMemory(to: UInt8.self, capacity: side * side * 4)
+        var pixels: [OKLab] = []
+        pixels.reserveCapacity(side * side)
+        for index in 0..<(side * side) {
+            let alpha = Double(bytes[index * 4 + 3]) / 255
+            guard alpha >= 0.8 else { continue }
+            let r = Double(bytes[index * 4]) / 255 / alpha
+            let g = Double(bytes[index * 4 + 1]) / 255 / alpha
+            let b = Double(bytes[index * 4 + 2]) / 255 / alpha
+            pixels.append(OKLab(r: min(r, 1), g: min(g, 1), b: min(b, 1)))
+        }
+        return pixels
+    }
+
+    struct Cluster {
+        var center: OKLab
+        var count: Int
+    }
+
+    /// Lloyd's k-means with farthest-point seeding (deterministic).
+    static func kMeans(_ pixels: [OKLab], k: Int, iterations: Int = 10) -> [Cluster] {
+        guard !pixels.isEmpty else { return [] }
+        var centers: [OKLab] = []
+        // Seed: the pixel nearest the mean, then each time the pixel farthest from the seeds.
+        let mean = OKLab.mean(pixels)
+        centers.append(pixels.min { $0.distance(to: mean) < $1.distance(to: mean) }!)
+        while centers.count < min(k, pixels.count) {
+            let next = pixels.max { a, b in
+                centers.map { a.distance(to: $0) }.min()! < centers.map { b.distance(to: $0) }.min()!
+            }!
+            if centers.contains(next) { break }
+            centers.append(next)
+        }
+        var assignment = [Int](repeating: 0, count: pixels.count)
+        for _ in 0..<iterations {
+            var changed = false
+            for (index, pixel) in pixels.enumerated() {
+                var nearest = 0
+                var best = Double.infinity
+                for (c, center) in centers.enumerated() {
+                    let d = pixel.distance(to: center)
+                    if d < best { best = d; nearest = c }
+                }
+                if assignment[index] != nearest { assignment[index] = nearest; changed = true }
+            }
+            for c in centers.indices {
+                let members = pixels.indices.filter { assignment[$0] == c }.map { pixels[$0] }
+                if !members.isEmpty { centers[c] = OKLab.mean(members) }
+            }
+            if !changed { break }
+        }
+        return centers.indices.map { c in Cluster(center: centers[c], count: assignment.filter { $0 == c }.count) }
+    }
+}
+
+/// Palettes per app, worked out once per icon image.
+@MainActor
+final class IconPaletteCache {
+    static let shared = IconPaletteCache()
+    private var entries: [String: (image: ObjectIdentifier, palette: IconPalette)] = [:]
+
+    func palette(for package: String, icon: NSImage?) -> IconPalette {
+        guard let icon else { return .avo }
+        if let entry = entries[package], entry.image == ObjectIdentifier(icon) { return entry.palette }
+        let palette = IconPalette.extract(from: icon) ?? .avo
+        entries[package] = (ObjectIdentifier(icon), palette)
+        return palette
+    }
+}
+
+// MARK: - OKLab
+
+/// Björn Ottosson's OKLab: distances match how different colours look.
+struct OKLab: Equatable, Sendable {
+    var l: Double
+    var a: Double
+    var b: Double
+
+    init(l: Double, a: Double, b: Double) {
+        self.l = l
+        self.a = a
+        self.b = b
+    }
+
+    init(lightness: Double, chroma: Double, hue: Double) {
+        self.init(l: lightness, a: chroma * cos(hue), b: chroma * sin(hue))
+    }
+
+    /// From sRGB components (0…1).
+    init(r: Double, g: Double, b: Double) {
+        func linear(_ c: Double) -> Double { c <= 0.04045 ? c / 12.92 : pow((c + 0.055) / 1.055, 2.4) }
+        let (lr, lg, lb) = (linear(r), linear(g), linear(b))
+        let l = cbrt(0.4122214708 * lr + 0.5363325363 * lg + 0.0514459929 * lb)
+        let m = cbrt(0.2119034982 * lr + 0.6806995451 * lg + 0.1073969566 * lb)
+        let s = cbrt(0.0883024619 * lr + 0.2817188376 * lg + 0.6299787005 * lb)
+        self.init(l: 0.2104542553 * l + 0.7936177850 * m - 0.0040720468 * s,
+                  a: 1.9779984951 * l - 2.4285922050 * m + 0.4505937099 * s,
+                  b: 0.0259040371 * l + 0.7827717662 * m - 0.8086757660 * s)
+    }
+
+    init(rgb: UInt32) {
+        self.init(r: Double((rgb >> 16) & 0xFF) / 255, g: Double((rgb >> 8) & 0xFF) / 255, b: Double(rgb & 0xFF) / 255)
+    }
+
+    var chroma: Double { (a * a + b * b).squareRoot() }
+    var hue: Double { atan2(b, a) }
+
+    func distance(to other: OKLab) -> Double {
+        let (dl, da, db) = (l - other.l, a - other.a, b - other.b)
+        return dl * dl + da * da + db * db
+    }
+
+    static func mean(_ colors: [OKLab]) -> OKLab {
+        let n = Double(colors.count)
+        return OKLab(l: colors.reduce(0) { $0 + $1.l } / n, a: colors.reduce(0) { $0 + $1.a } / n, b: colors.reduce(0) { $0 + $1.b } / n)
+    }
+
+    /// sRGB, with the chroma lowered until the colour fits.
+    var rgb: UInt32 {
+        var color = self
+        for _ in 0..<24 {
+            if let rgb = color.rgbIfInGamut { return rgb }
+            color = OKLab(lightness: color.l, chroma: color.chroma * 0.9, hue: color.hue)
+        }
+        return color.clampedRGB
+    }
+
+    private var linearRGB: (Double, Double, Double) {
+        let l1 = pow(l + 0.3963377774 * a + 0.2158037573 * b, 3)
+        let m1 = pow(l - 0.1055613458 * a - 0.0638541728 * b, 3)
+        let s1 = pow(l - 0.0894841775 * a - 1.2914855480 * b, 3)
+        return (4.0767416621 * l1 - 3.3077115913 * m1 + 0.2309699292 * s1,
+                -1.2684380046 * l1 + 2.6097574011 * m1 - 0.3413193965 * s1,
+                -0.0041960863 * l1 - 0.7034186147 * m1 + 1.7076147010 * s1)
+    }
+
+    private var rgbIfInGamut: UInt32? {
+        let (r, g, b) = linearRGB
+        guard [r, g, b].allSatisfy({ $0 >= -0.0005 && $0 <= 1.0005 }) else { return nil }
+        return clampedRGB
+    }
+
+    private var clampedRGB: UInt32 {
+        func encode(_ c: Double) -> UInt32 {
+            let c = min(max(c, 0), 1)
+            let s = c <= 0.0031308 ? 12.92 * c : 1.055 * pow(c, 1 / 2.4) - 0.055
+            return UInt32((s * 255).rounded())
+        }
+        let (r, g, b) = linearRGB
+        return encode(r) << 16 | encode(g) << 8 | encode(b)
+    }
+
+    /// `from` moved `amount` of the way to `to`, in OKLab.
+    static func mix(_ from: UInt32, _ to: UInt32, _ amount: Double) -> UInt32 {
+        let a = OKLab(rgb: from), b = OKLab(rgb: to)
+        return OKLab(l: a.l + (b.l - a.l) * amount, a: a.a + (b.a - a.a) * amount, b: a.b + (b.b - a.b) * amount).rgb
+    }
+}

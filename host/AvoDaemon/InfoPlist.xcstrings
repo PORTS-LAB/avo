@@ -1,0 +1,112 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "CFBundleDisplayName" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Avo"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Avo"
+          }
+        }
+      }
+    },
+    "CFBundleName" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Avo"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Avo"
+          }
+        }
+      }
+    },
+    "NSLocationUsageDescription" : {
+      "comment" : "Location permission prompt (macOS asks once).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Android apps ask for GPS; Avo answers with where this Mac is. Turn it off in Avo › Settings › System."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App Android meminta GPS; Avo menjawab dengan lokasi Mac ini. Matikan di Avo › Pengaturan › Sistem."
+          }
+        }
+      }
+    },
+    "NSLocationWhenInUseUsageDescription" : {
+      "comment" : "Location permission prompt (macOS asks once).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Android apps ask for GPS; Avo answers with where this Mac is. Turn it off in Avo › Settings › System."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App Android meminta GPS; Avo menjawab dengan lokasi Mac ini. Matikan di Avo › Pengaturan › Sistem."
+          }
+        }
+      }
+    },
+    "NSMicrophoneUsageDescription" : {
+      "comment" : "Microphone permission prompt (macOS asks when an Android app first records).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Android apps that record, like voice notes and calls, hear this Mac's microphone while they record."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App Android yang merekam, seperti pesan suara dan panggilan, mendengar mikrofon Mac ini selama merekam."
+          }
+        }
+      }
+    },
+    "NSRemovableVolumesUsageDescription" : {
+      "comment" : "Removable volume permission prompt (macOS asks when Android's data is on an external drive).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Android's data can be kept on an external drive (Settings › Storage › Location). Avo reads and writes it there while Android runs."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Data Android dapat disimpan di drive eksternal (Pengaturan › Storage › Lokasi). Avo membaca dan menulisnya di sana selama Android berjalan."
+          }
+        }
+      }
+    }
+  },
+  "version" : "1.0"
+}

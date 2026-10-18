@@ -78,18 +78,22 @@ struct InstallSheet: View {
                     }
                 }
                 if summary.parts.count > 1 || !summary.obbFiles.isEmpty {
-                    Text(bundleNote)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                    VStack(alignment: .leading, spacing: 3) {
+                        if summary.parts.count > 1 {
+                            Text("\(summary.format.rawValue.uppercased()) bundle with \(summary.parts.count) APKs.")
+                        }
+                        if !summary.obbFiles.isEmpty {
+                            Text("Installing also copies \(summary.obbFiles.count) game data files (OBB) to Android/obb.")
+                        }
+                        if !summary.skippedSplits.isEmpty {
+                            Text("Parts for other devices are left out: \(summary.skippedSplits.joined(separator: ", ")).")
+                        }
+                    }
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
                 }
             }
-        }
-
-        private var bundleNote: String {
-            var parts = ["\(summary.format.rawValue.uppercased()) bundle: \(summary.parts.count) APKs"]
-            if !summary.obbFiles.isEmpty { parts.append("\(summary.obbFiles.count) OBB file(s) copied to Android/obb") }
-            if !summary.skippedSplits.isEmpty { parts.append("skipped \(summary.skippedSplits.joined(separator: ", "))") }
-            return parts.joined(separator: " · ")
         }
     }
 

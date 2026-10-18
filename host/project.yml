@@ -11,11 +11,12 @@
 #     Contents/Library/Shim/AvoShim.app       App Shim template, copied per Android app
 #     Contents/Frameworks/AvoWindowHost.framework   Window Host, loaded by every shim
 #     Contents/Resources/profiles/            device and keymap profiles
-#     Contents/MacOS/crosvm                   Engine VM (crosvm-hvf, see engine/)
+#     Contents/MacOS/avo-vmm                  Engine VM (engine/hvf/vmm, Rust)
 
 name: Avo
 options:
   bundleIdPrefix: dev.avo
+  developmentLanguage: en
   deploymentTarget:
     macOS: "15.0"
   createIntermediateGroups: true
@@ -33,6 +34,13 @@ settings:
 packages:
   AvoKit:
     path: AvoKit
+  # Avo's own updates (Avo/AppUpdater.swift, docs/releasing.md): EdDSA-signed
+  # archives from the appcast at SUFeedURL. Its tools (generate_keys,
+  # sign_update, generate_appcast) land in the derived data's
+  # SourcePackages/artifacts/sparkle/Sparkle/bin.
+  Sparkle:
+    url: https://github.com/sparkle-project/Sparkle
+    exactVersion: 2.10.0
 
 targets:
   Avo:
@@ -55,6 +63,12 @@ targets:
         product: AvoHostKit
         embed: true
         codeSign: true
+      # Only the Control Panel updates Avo; the daemon restarts on the new
+      # build by itself (AvoDaemon/AppUpdateWatcher.swift). Xcode embeds and
+      # signs the binary framework by itself (embed: true would copy a
+      # "Sparkle-product" that does not exist).
+      - package: Sparkle
+        embed: false
       - target: AvoDaemon
         embed: true
         codeSign: true
@@ -85,6 +99,45 @@ targets:
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AvoSkin
         ENABLE_PREVIEWS: YES
         LD_RUNPATH_SEARCH_PATHS: "$(inherited) @executable_path/../Frameworks"
+        # The avo-vmm phase runs cargo on engine/ (outside the sandbox's view).
+        ENABLE_USER_SCRIPT_SANDBOXING: NO
+    postBuildScripts:
+      # Avo.app/Contents/MacOS/avo-vmm: the VM engine (engine/hvf/vmm, Rust),
+      # signed with the hypervisor entitlement.
+      - name: Build avo-vmm
+        basedOnDependencyAnalysis: false
+        script: |
+          set -euo pipefail
+          CARGO="${CARGO:-$HOME/.cargo/bin/cargo}"
+          ENGINE="$SRCROOT/../engine/hvf"
+          OUT="$TARGET_BUILD_DIR/$EXECUTABLE_FOLDER_PATH/avo-vmm"
+          if [ ! -x "$CARGO" ]; then
+            echo "warning: cargo not found; Avo.app is built without avo-vmm (install Rust: https://rustup.rs)"
+            exit 0
+          fi
+          "$CARGO" build --release --quiet --manifest-path "$ENGINE/Cargo.toml" -p avo-vmm --target-dir "$DERIVED_FILE_DIR/cargo"
+          # Nothing to do when neither the engine nor its entitlements changed:
+          # Avo.app stays sealed.
+          INSTALLED="$DERIVED_FILE_DIR/avo-vmm.installed"
+          if [ -f "$OUT" ] && cmp -s "$DERIVED_FILE_DIR/cargo/release/avo-vmm" "$INSTALLED" \
+             && [ ! "$ENGINE/hypervisor.entitlements" -nt "$INSTALLED" ]; then
+            exit 0
+          fi
+          STAGED="$DERIVED_FILE_DIR/avo-vmm"
+          cp "$DERIVED_FILE_DIR/cargo/release/avo-vmm" "$STAGED"
+          codesign --force --sign "${EXPANDED_CODE_SIGN_IDENTITY:--}" --options runtime \
+            --entitlements "$ENGINE/hypervisor.entitlements" "$STAGED"
+          # Replace, never overwrite: macOS kills a running VM whose signed
+          # executable pages change underneath it.
+          mv -f "$STAGED" "$OUT"
+          cp "$DERIVED_FILE_DIR/cargo/release/avo-vmm" "$INSTALLED"
+          # Xcode does not sign the app again when only this file changed:
+          # seal the bundle over the new engine (keeping its entitlements),
+          # or every Avo process fails code signature checks.
+          if codesign --display "$TARGET_BUILD_DIR/$WRAPPER_NAME" >/dev/null 2>&1; then
+            codesign --force --sign "${EXPANDED_CODE_SIGN_IDENTITY:--}" \
+              --preserve-metadata=identifier,entitlements,requirements,flags,runtime "$TARGET_BUILD_DIR/$WRAPPER_NAME"
+          fi
 
   AvoDaemon:
     type: application
@@ -94,6 +147,10 @@ targets:
       # Same icon and menu bar template image as the Control Panel.
       - path: Avo/Assets.xcassets
       - path: Avo/AppIcon.icon
+      # The menu bar's panel (MenuBarPanel.swift) wears the Library's haze:
+      # its theme and typefaces. HazeTheme.swift must stay free of Avo-only types.
+      - path: Avo/HazeTheme.swift
+      - path: Avo/Fonts
     dependencies:
       - package: AvoKit
         product: AvoHostKit
@@ -107,8 +164,9 @@ targets:
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         ENABLE_DEBUG_DYLIB: NO
         SKIP_INSTALL: YES
-        # AvoHostKit.framework lives in Avo.app/Contents/Frameworks.
-        LD_RUNPATH_SEARCH_PATHS: "$(inherited) @executable_path/../../../../Frameworks"
+        # AvoHostKit.framework lives in Avo.app/Contents/Frameworks, five levels up from
+        # Avo.app/Contents/Library/Helpers/AvoDaemon.app/Contents/MacOS.
+        LD_RUNPATH_SEARCH_PATHS: "$(inherited) @executable_path/../../../../../Frameworks"
 
   AvoWindowHost:
     type: framework
@@ -119,7 +177,10 @@ targets:
         product: AvoHostKit
         embed: false
       - sdk: Metal.framework
+      - sdk: MetalFX.framework
       - sdk: GameController.framework
+      # Controller vibration (GamepadHub.pulse).
+      - sdk: CoreHaptics.framework
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: $(AVO_BUNDLE_ID_PREFIX).WindowHost

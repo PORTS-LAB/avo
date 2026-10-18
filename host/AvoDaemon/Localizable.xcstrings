@@ -1,0 +1,543 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "%lld open windows" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld open window"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld open windows"
+                }
+              }
+            }
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld jendela terbuka"
+          }
+        }
+      }
+    },
+    "Android image not installed" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Image Android belum terpasang"
+          }
+        }
+      }
+    },
+    "Android is paused" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Android dijeda"
+          }
+        }
+      }
+    },
+    "Android is pausing…" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Android sedang dijeda…"
+          }
+        }
+      }
+    },
+    "Android is running" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Android berjalan"
+          }
+        }
+      }
+    },
+    "Android is running · %lld open windows" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Android is running · %lld open window"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Android is running · %lld open windows"
+                }
+              }
+            }
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Android berjalan · %lld jendela terbuka"
+          }
+        }
+      }
+    },
+    "Android is starting…" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Android sedang dimulai…"
+          }
+        }
+      }
+    },
+    "Android is stopped" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Android berhenti"
+          }
+        }
+      }
+    },
+    "Android is stopping…" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Android sedang dihentikan…"
+          }
+        }
+      }
+    },
+    "Android is suspended" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Android ditangguhkan"
+          }
+        }
+      }
+    },
+    "Android stopped with an error" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Android berhenti karena kesalahan"
+          }
+        }
+      }
+    },
+    "Android stopped: %@" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Android berhenti: %@"
+          }
+        }
+      }
+    },
+    "Apps" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aplikasi"
+          }
+        }
+      }
+    },
+    "Avo · Android is paused" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Avo · Android dijeda"
+          }
+        }
+      }
+    },
+    "CPU" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "CPU"
+          }
+        }
+      }
+    },
+    "Check for Updates…" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Periksa Pembaruan…"
+          }
+        }
+      }
+    },
+    "Collapsed" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diciutkan"
+          }
+        }
+      }
+    },
+    "Decrease" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kurangi"
+          }
+        }
+      }
+    },
+    "Expanded" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diperluas"
+          }
+        }
+      }
+    },
+    "In the background" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Di latar belakang"
+          }
+        }
+      }
+    },
+    "Increase" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tambah"
+          }
+        }
+      }
+    },
+    "Installing Google apps…" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Menginstal aplikasi Google…"
+          }
+        }
+      }
+    },
+    "Keep Installing" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lanjutkan Instalasi"
+          }
+        }
+      }
+    },
+    "Memory" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Memori"
+          }
+        }
+      }
+    },
+    "Minimized" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diminimalkan"
+          }
+        }
+      }
+    },
+    "Off" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nonaktif"
+          }
+        }
+      }
+    },
+    "On" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aktif"
+          }
+        }
+      }
+    },
+    "Open" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Terbuka"
+          }
+        }
+      }
+    },
+    "Open Avo" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Buka Avo"
+          }
+        }
+      }
+    },
+    "Open Control Panel…" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Buka Control Panel…"
+          }
+        }
+      }
+    },
+    "Opening an app resumes it." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Membuka aplikasi akan melanjutkannya."
+          }
+        }
+      }
+    },
+    "Pause" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jeda"
+          }
+        }
+      }
+    },
+    "Pause Android" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jeda Android"
+          }
+        }
+      }
+    },
+    "Pause Android: it keeps its place and uses no CPU until you open an app." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jeda Android: Android tetap di posisinya dan tidak memakai CPU sampai Anda membuka aplikasi."
+          }
+        }
+      }
+    },
+    "Paused to save energy. Opening an app resumes it." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dijeda untuk menghemat energi. Membuka aplikasi akan melanjutkannya."
+          }
+        }
+      }
+    },
+    "Quit Anyway" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tetap Keluar"
+          }
+        }
+      }
+    },
+    "Quit Avo" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keluar dari Avo"
+          }
+        }
+      }
+    },
+    "Recent" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Terakhir dipakai"
+          }
+        }
+      }
+    },
+    "Restart Android to Finish Updating Avo" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mulai Ulang Android untuk Menyelesaikan Pembaruan Avo"
+          }
+        }
+      }
+    },
+    "Resume" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lanjutkan"
+          }
+        }
+      }
+    },
+    "Resume Android" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lanjutkan Android"
+          }
+        }
+      }
+    },
+    "Running" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Berjalan"
+          }
+        }
+      }
+    },
+    "Software" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Software"
+          }
+        }
+      }
+    },
+    "Start" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jalankan"
+          }
+        }
+      }
+    },
+    "Start Android" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jalankan Android"
+          }
+        }
+      }
+    },
+    "Stop" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hentikan"
+          }
+        }
+      }
+    },
+    "Stop Android" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hentikan Android"
+          }
+        }
+      }
+    },
+    "Stop Android. Open apps close." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hentikan Android. Aplikasi yang terbuka akan ditutup."
+          }
+        }
+      }
+    },
+    "Stop Anyway" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tetap Hentikan"
+          }
+        }
+      }
+    },
+    "Stopping Android now interrupts the install. If Google apps were already being copied into Android, Avo finishes or undoes the install the next time Android starts; otherwise, install them again." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Menghentikan Android sekarang akan menyela instalasi. Jika aplikasi Google sudah mulai disalin ke Android, Avo akan menyelesaikan atau membatalkan instalasi saat Android dijalankan lagi; jika belum, instal ulang aplikasi Google."
+          }
+        }
+      }
+    }
+  },
+  "version" : "1.0"
+}

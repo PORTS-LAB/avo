@@ -3,17 +3,18 @@ import SwiftUI
 import UniformTypeIdentifiers
 
 enum Pane: String, CaseIterable, Identifiable {
-    case apps, performance, storage, graphics, display, system
+    case apps, notifications, performance, storage, graphics, fingerprints, system
 
     var id: String { rawValue }
 
     var title: LocalizedStringKey {
         switch self {
         case .apps: "Apps"
+        case .notifications: "Notifications"
         case .performance: "Performance"
         case .storage: "Storage"
         case .graphics: "Graphics"
-        case .display: "Display"
+        case .fingerprints: "Fingerprints"
         case .system: "System"
         }
     }
@@ -21,10 +22,11 @@ enum Pane: String, CaseIterable, Identifiable {
     var symbol: String {
         switch self {
         case .apps: "square.grid.2x2"
+        case .notifications: "bell"
         case .performance: "speedometer"
         case .storage: "internaldrive"
         case .graphics: "cpu"
-        case .display: "macwindow"
+        case .fingerprints: "touchid"
         case .system: "gearshape.2"
         }
     }
@@ -32,7 +34,9 @@ enum Pane: String, CaseIterable, Identifiable {
 
 struct ContentView: View {
     @Environment(ControlPanelModel.self) private var model
-    @State private var pane: Pane = .apps
+    @Environment(SetupAssistant.self) private var setup
+    /// Reopens on the last pane (also settable with `-AvoSelectedPane <pane>`).
+    @AppStorage("AvoSelectedPane") private var pane: Pane = .apps
     @State private var dropTargeted = false
 
     var body: some View {
@@ -41,9 +45,12 @@ struct ContentView: View {
             List(selection: $pane) {
                 Section {
                     Label(Pane.apps.title, systemImage: Pane.apps.symbol).tag(Pane.apps)
+                    Label(Pane.notifications.title, systemImage: Pane.notifications.symbol)
+                        .badge(model.notifications.count)
+                        .tag(Pane.notifications)
                 }
                 Section("Settings") {
-                    ForEach(Pane.allCases.dropFirst()) { pane in
+                    ForEach(Pane.allCases.dropFirst(2)) { pane in
                         Label(pane.title, systemImage: pane.symbol).tag(pane)
                     }
                 }
@@ -53,10 +60,20 @@ struct ContentView: View {
         } detail: {
             VStack(spacing: 0) {
                 DaemonBanner()
+                SetupBanner()
+                ScreenLockBanner()
                 if model.pendingRestart && pane != .apps {
                     RestartBanner()
                 }
+                GPUFallbackBanner()
                 detail
+                    // Fills the column, so the banners above stay at the top
+                    // when a pane's content (an empty state) is shorter than
+                    // the window; otherwise the stack is centered and the
+                    // banners float in the middle.
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    // Each pane starts scrolled to the top.
+                    .id(pane)
             }
             .navigationTitle(pane.title)
         }
@@ -64,9 +81,10 @@ struct ContentView: View {
             ToolbarItemGroup(placement: .primaryAction) {
                 VMControlButton()
                 Button {
-                    (NSApp.delegate as? AppDelegate)?.chooseAndInstall()
+                    model.chooseAndInstall()
                 } label: {
-                    Label("Install App", systemImage: "plus")
+                    Label("Install App", systemImage: "square.and.arrow.down")
+                        .labelStyle(.titleAndIcon)
                 }
                 .help("Install an .apk, .xapk, .apkm or .apks file")
             }
@@ -80,6 +98,9 @@ struct ContentView: View {
         .sheet(item: $model.pendingInstall) { _ in
             InstallSheet()
         }
+        .sheet(isPresented: Binding(get: { setup.isPresented }, set: { setup.isPresented = $0 })) {
+            SetupAssistantView()
+        }
         .alert("Something went wrong", isPresented: Binding(get: { model.lastError != nil }, set: { if !$0 { model.lastError = nil } })) {
             Button("OK", role: .cancel) {}
         } message: {
@@ -90,10 +111,11 @@ struct ContentView: View {
     @ViewBuilder private var detail: some View {
         switch pane {
         case .apps: AppsView()
+        case .notifications: NotificationsPane()
         case .performance: PerformancePane()
         case .storage: StoragePane()
         case .graphics: GraphicsPane()
-        case .display: DisplayPane()
+        case .fingerprints: FingerprintsPane()
         case .system: SystemPane()
         }
     }
@@ -135,14 +157,14 @@ private struct DaemonBanner: View {
         case .connected:
             EmptyView()
         case .connecting:
-            Banner(symbol: "hourglass", tint: .secondary, text: "Connecting to Avo's background service…")
+            Banner(symbol: "hourglass", tint: .secondary, text: "Connecting to Avo’s background service…")
         case .needsApproval:
             Banner(symbol: "exclamationmark.shield", tint: .orange,
-                   text: "Allow Avo in System Settings › General › Login Items so Android can run in the background.") {
-                Button("Open Login Items") { model.openLoginItemsSettings() }
+                   text: "Allow Avo in System Settings › General › Login Items & Extensions so Android can run in the background.") {
+                Button("Open System Settings") { model.openLoginItemsSettings() }
             }
         case .unavailable(let reason):
-            Banner(symbol: "bolt.horizontal.circle", tint: .red, text: "Avo's background service is not running. \(reason)") {
+            Banner(symbol: "bolt.horizontal.circle", tint: .red, text: "Avo’s background service is not running. \(reason)") {
                 Button("Retry") { model.connect() }
             }
         }
@@ -155,7 +177,10 @@ private struct RestartBanner: View {
     var body: some View {
         Banner(symbol: "arrow.clockwise.circle", tint: .accentColor,
                text: "Some changes apply after Android restarts. Your apps and data are kept.") {
+            // A Google apps install restarts Android itself meanwhile.
             Button("Restart Android") { model.restartVM() }
+                .disabled(model.googleAppsChangingAndroid)
+                .help(model.googleAppsChangingAndroid ? Text("Available again when the Google apps install finishes.") : Text(verbatim: ""))
         }
     }
 }
@@ -176,8 +201,12 @@ struct Banner<Actions: View>: View {
     var body: some View {
         HStack(spacing: 10) {
             Image(systemName: symbol).foregroundStyle(tint).font(.title3)
-            Text(text).fixedSize(horizontal: false, vertical: true)
-            Spacer(minLength: 12)
+            // No fixedSize here: measured at zero width for the window's
+            // minimum size, it made the banner (and the window content)
+            // taller than the screen.
+            Text(text)
+                .lineLimit(3)
+                .frame(maxWidth: .infinity, alignment: .leading)
             actions
         }
         .padding(.horizontal, 16)

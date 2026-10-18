@@ -21,7 +21,9 @@ public func AvoShimMain(_ argc: Int32, _ argv: UnsafeMutablePointer<UnsafeMutabl
         let delegate = ShimAppDelegate(package: package, label: label, notificationKey: notificationKey)
         ShimAppDelegate.retained = delegate
         app.delegate = delegate
-        app.setActivationPolicy(.regular)
+        // No setActivationPolicy(.regular): the bundle is a regular app
+        // already, and the call brings it to the front even when it was
+        // opened in the background (a notification, `open -g`).
         app.run()
     }
     return 0
@@ -30,7 +32,7 @@ public func AvoShimMain(_ argc: Int32, _ argv: UnsafeMutablePointer<UnsafeMutabl
 /// One App Shim process = one Android app in the Dock (spec §4). Each window
 /// of the app is an Android VirtualDisplay.
 @MainActor
-final class ShimAppDelegate: NSObject, NSApplicationDelegate {
+final class ShimAppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
     static var retained: ShimAppDelegate?
 
     let package: String
@@ -39,7 +41,19 @@ final class ShimAppDelegate: NSObject, NSApplicationDelegate {
     private let frames = FrameRouter()
     private var client: DaemonClient?
     private(set) var config = VMConfig()
+    /// The device profiles (they never change while the daemon runs): the
+    /// chosen one's screen is what "Phone's screen" gives Android.
+    private(set) var profiles: [DeviceProfile] = []
     private var windows: [AndroidWindowController] = []
+    /// Android ended the app (its last window closed from the guest).
+    private var appEnded = false
+    /// Events for displays whose window is still waiting for `openDisplay`
+    /// to return: the guest reports a display ready before the call ends.
+    private var earlyEvents: [UInt32: [DaemonEvent]] = [:]
+    /// Android's status as the daemon last said (see "Screen lock").
+    private(set) var androidStatus = VMStatus.stopped
+    /// Where the engine keeps what Android plays: recordings take their sound from it.
+    private(set) var audioTap: AudioTapLocation?
     private let logger = Logger(subsystem: AvoIdentifiers.logSubsystem, category: "Shim")
 
     init(package: String, label: String, notificationKey: String?) {
@@ -50,18 +64,28 @@ final class ShimAppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         buildMenu()
+        // Translate Screen's text recognition, ready before it is asked for (off the main thread, low priority).
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2) { ScreenTextReader.warmUp() }
         let version = Bundle(for: ShimAppDelegate.self).object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "dev"
         let client = DaemonClient(role: .shim(package: package), version: "avo-shim \(version)", frameReceiver: frames)
         self.client = client
         Task {
             do {
-                _ = try await client.hello()
-                if let snapshot = try? await client.configuration() { config = snapshot.config }
+                androidStatus = try await client.hello().status
+                if let snapshot = try? await client.configuration() {
+                    config = snapshot.config
+                    profiles = snapshot.profiles
+                }
+                ShimFingerprints.shared.connect(client)
+                LocationModel.shared.connect(client)
                 openWindow(notificationKey: pendingNotificationKey)
                 pendingNotificationKey = nil
                 for await event in client.events { handle(event) }
-                // The daemon restarted: our displays are gone.
-                for window in windows { window.showProblem("Avo’s background service restarted.") }
+                // The daemon restarted: our displays are gone (a recording keeps what it has).
+                for window in windows {
+                    window.stopRecording()
+                    window.showProblem(String(localized: "Avo’s background service restarted.", bundle: .windowHost))
+                }
             } catch {
                 logger.error("cannot reach the daemon: \(error.localizedDescription, privacy: .public)")
                 let window = openWindow(notificationKey: nil, connect: false)
@@ -79,29 +103,138 @@ final class ShimAppDelegate: NSObject, NSApplicationDelegate {
         return controller
     }
 
-    func windowClosed(_ controller: AndroidWindowController) {
+    /// Closing a window sends the app to the background, as Home does on a
+    /// phone: the shim stays in the Dock and reopens it where it was. Only
+    /// when Android ended the app (Back on its first screen) does it leave.
+    func windowClosed(_ controller: AndroidWindowController, byGuest: Bool) {
         windows.removeAll { $0 === controller }
-        if windows.isEmpty { NSApp.terminate(nil) }
+        if windows.isEmpty && byGuest {
+            appEnded = true
+            NSApp.terminate(nil)
+        }
     }
 
     private func handle(_ event: DaemonEvent) {
+        if case .vmStatus(let status) = event { androidStatusChanged(status) }
         switch event {
-        case .displayReady(let id):
-            window(for: id)?.displayReady()
-        case .displayClosed(let id):
-            // The Android task finished (e.g. the app called finish()).
-            window(for: id)?.closeFromGuest()
-        case let .displayTitle(id, title):
-            window(for: id)?.window?.subtitle = title
-        case let .orientationRequest(id, orientation):
-            window(for: id)?.applyOrientation(orientation)
+        case .displayReady(let id), .displayClosed(let id), .displayTitle(let id, _), .orientationRequest(let id, _):
+            if let window = window(for: id) {
+                deliver(event, to: window)
+            } else {
+                earlyEvents[id, default: []].append(event)
+            }
         case .vmStatus(let status) where status.state == .failed || status.state == .stopped:
-            for window in windows { window.showProblem(status.detail ?? "Android stopped.") }
+            for window in windows {
+                window.stopRecording()
+                window.showProblem(status.detail ?? String(localized: "Android stopped.", bundle: .windowHost))
+            }
         case .configurationChanged(let config):
+            let old = self.config
             self.config = config
+            for window in windows { window.configurationChanged(from: old, immediate: false) }
+        case .appStopped(let stopped) where stopped == package:
+            // Force stopped in the Control Panel: Android already ended it.
+            appEnded = true
+            NSApp.terminate(nil)
+        case .fingerprints(let status):
+            // The windows' fingerprint menus (FingerprintMenu.swift).
+            ShimFingerprints.shared.update(status)
+        case .audioTap(let location):
+            audioTap = location
+        case .location(let status):
+            // The Location panel and Quick Settings (LocationPanel.swift).
+            LocationModel.shared.update(status)
         default:
             break
         }
+    }
+
+    private func deliver(_ event: DaemonEvent, to window: AndroidWindowController) {
+        switch event {
+        case .displayReady:
+            window.displayReady()
+        case .displayClosed:
+            // The Android task finished (e.g. the app called finish()).
+            window.closeFromGuest()
+        case let .displayTitle(_, title):
+            window.window?.subtitle = title
+        case let .orientationRequest(_, orientation):
+            window.applyOrientation(orientation)
+        default:
+            break
+        }
+    }
+
+    /// Sets (nil removes) this app's own graphics settings from a window's
+    /// View menu or Quick Settings. Every window adjusts right away; the daemon then saves it
+    /// and broadcasts it back, which changes nothing more. When saving fails
+    /// the windows go back to what the daemon has.
+    func applyLocalOverride(_ override: AppGraphicsOverride?) {
+        let old = config
+        config.graphicsOverrides[package] = override
+        guard config != old else { return }
+        for window in windows { window.configurationChanged(from: old, immediate: true) }
+        guard let client else { return }
+        let package = package
+        save(failure: { String(localized: "Couldn't save the graphics settings: \($0)", bundle: .windowHost) }) {
+            try await client.setAppGraphics(override, for: package)
+        }
+    }
+
+    /// Sets Android's frame rate cap, for every app, from a window's Quick
+    /// Settings: the same way as an override above. A cap that needs
+    /// Android at another display rate says it waits for a restart.
+    func applyFrameRateLimit(_ fps: Int) {
+        let old = config
+        config.fpsLimit = fps
+        guard config != old else { return }
+        for window in windows { window.configurationChanged(from: old, immediate: true) }
+        guard let client else { return }
+        save(failure: { String(localized: "Couldn't save the frame rate cap: \($0)", bundle: .windowHost) }) { [weak self] in
+            let result = try await client.setFrameRateLimit(fps)
+            if result.effect == .restartRequired, let self {
+                let target = windows.first { $0.window?.isKeyWindow == true } ?? windows.first
+                target?.showNotice(String(localized: "Android runs at \(fps) fps after it restarts.", bundle: .windowHost))
+            }
+            return result
+        }
+    }
+
+    /// Has the daemon save a change the windows show already. When it
+    /// cannot, says why and goes back to what the daemon has.
+    private func save(failure: @escaping (String) -> String, _ call: @escaping () async throws -> ConfigUpdateResult) {
+        Task {
+            let problem: String?
+            do {
+                problem = try await call().issues.first { $0.severity == .error }?.message
+            } catch {
+                problem = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+            }
+            guard let problem else { return }
+            logger.error("cannot save settings: \(problem, privacy: .public)")
+            let target = windows.first { $0.window?.isKeyWindow == true } ?? windows.first
+            target?.showNotice(failure(problem))
+            guard let snapshot = try? await client?.configuration() else { return }
+            let before = config
+            config = snapshot.config
+            profiles = snapshot.profiles
+            for window in windows { window.configurationChanged(from: before, immediate: true) }
+        }
+    }
+
+    /// The device profile chosen in the Control Panel; its screen sizes
+    /// windows in the phone's-screen mode (nil for Avo's own identity).
+    var deviceProfile: DeviceProfile? { profiles.first { $0.id == config.deviceProfileID } }
+    var deviceDisplay: DeviceProfile.Display? { config.deviceDisplay(in: profiles) }
+
+    /// Keep on Top changed in one window: every window of the app follows.
+    func windowModesChanged() {
+        for window in windows { window.applyWindowLevel() }
+    }
+
+    /// Called by a window once `openDisplay` returned its display id.
+    func displayAttached(_ window: AndroidWindowController, displayID: UInt32) {
+        for event in earlyEvents.removeValue(forKey: displayID) ?? [] { deliver(event, to: window) }
     }
 
     private func window(for displayID: UInt32) -> AndroidWindowController? {
@@ -111,14 +244,41 @@ final class ShimAppDelegate: NSObject, NSApplicationDelegate {
     // MARK: App behaviour
 
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        // The Dock icon brings windows back from Picture in Picture.
+        let pictures = windows.filter(\.isInPictureInPicture)
+        if !pictures.isEmpty {
+            for window in pictures { window.togglePictureInPicture() }
+            return true
+        }
         if !flag { openWindow(notificationKey: nil) }
         return true
     }
 
-    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { true }
+    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { false }
 
-    func applicationWillTerminate(_ notification: Notification) {
+    /// Quit (⌘Q, Dock › Quit) closes the app completely, like swiping it
+    /// away on a phone: its windows and its Android process.
+    func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        // Detaching also stops screen recordings; their movie files are finished before the app quits.
         for window in windows { window.detach() }
+        let client = appEnded ? nil : self.client
+        guard client != nil || ScreenRecorder.anyUnfinished else { return .terminateNow }
+        Task {
+            // Never hold up quitting for long.
+            if let client { try? await withTimeout(.seconds(2)) { try await client.forceStop(self.package) } }
+            await ScreenRecorder.waitForUnfinished(timeout: 10)
+            NSApp.reply(toApplicationShouldTerminate: true)
+        }
+        return .terminateLater
+    }
+
+    private func withTimeout(_ limit: Duration, _ work: @escaping @Sendable () async throws -> Void) async throws {
+        try await withThrowingTaskGroup(of: Void.self) { group in
+            group.addTask { try await work() }
+            group.addTask { try await Task.sleep(for: limit) }
+            try await group.next()
+            group.cancelAll()
+        }
     }
 
     /// Files dropped on the app's Dock icon are shared with it (spec: drag and drop).
@@ -131,37 +291,106 @@ final class ShimAppDelegate: NSObject, NSApplicationDelegate {
         let main = NSMenu()
         let appItem = NSMenuItem()
         let appMenu = NSMenu()
-        appMenu.addItem(withTitle: "About \(label)", action: #selector(showAbout), keyEquivalent: "").target = self
+        appMenu.addItem(withTitle: String(localized: "About \(label)", bundle: .windowHost), action: #selector(showAbout), keyEquivalent: "").target = self
         appMenu.addItem(.separator())
-        appMenu.addItem(withTitle: "Hide \(label)", action: #selector(NSApplication.hide(_:)), keyEquivalent: "h")
-        appMenu.addItem(withTitle: "Quit \(label)", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
+        appMenu.addItem(withTitle: String(localized: "Hide \(label)", bundle: .windowHost), action: #selector(NSApplication.hide(_:)), keyEquivalent: "h")
+        appMenu.addItem(withTitle: String(localized: "Hide Others", bundle: .windowHost), action: #selector(NSApplication.hideOtherApplications(_:)), keyEquivalent: "h")
+            .keyEquivalentModifierMask = [.command, .option]
+        appMenu.addItem(withTitle: String(localized: "Show All", bundle: .windowHost), action: #selector(NSApplication.unhideAllApplications(_:)), keyEquivalent: "")
+        appMenu.addItem(.separator())
+        appMenu.addItem(withTitle: String(localized: "Quit \(label)", bundle: .windowHost), action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         appItem.submenu = appMenu
         main.addItem(appItem)
 
         let fileItem = NSMenuItem()
-        let fileMenu = NSMenu(title: "File")
-        fileMenu.addItem(withTitle: "New Window", action: #selector(newWindow), keyEquivalent: "n").target = self
-        fileMenu.addItem(withTitle: "Close Window", action: #selector(NSWindow.performClose(_:)), keyEquivalent: "w")
+        let fileMenu = NSMenu(title: String(localized: "File", bundle: .windowHost))
+        fileMenu.addItem(withTitle: String(localized: "New Window", bundle: .windowHost), action: #selector(newWindow), keyEquivalent: "n").target = self
+        fileMenu.addItem(withTitle: String(localized: "Close Window", bundle: .windowHost), action: #selector(NSWindow.performClose(_:)), keyEquivalent: "w")
+        // ⌘⇧S and ⌘⇧R stay with the window (MacShortcuts.windowShiftKeys); ⌘S is the app's.
+        fileMenu.addItem(.separator())
+        fileMenu.addItem(withTitle: String(localized: "Take Screenshot", bundle: .windowHost), action: #selector(AndroidWindowController.takeScreenshot),
+                         keyEquivalent: "s").keyEquivalentModifierMask = [.command, .shift]
+        fileMenu.addItem(withTitle: String(localized: "Record Screen", bundle: .windowHost), action: #selector(AndroidWindowController.toggleRecording),
+                         keyEquivalent: "r").keyEquivalentModifierMask = [.command, .shift]
+        fileMenu.addItem(withTitle: String(localized: "Record Android’s Sound", bundle: .windowHost),
+                         action: #selector(AndroidWindowController.toggleRecordAndroidSound), keyEquivalent: "")
         fileItem.submenu = fileMenu
         main.addItem(fileItem)
 
+        // The usual Edit menu: Android gets Ctrl+Z, Ctrl+X, Ctrl+C, … (DisplayView).
+        let editItem = NSMenuItem()
+        let editMenu = NSMenu(title: String(localized: "Edit", bundle: .windowHost))
+        editMenu.addItem(withTitle: String(localized: "Undo", bundle: .windowHost), action: #selector(DisplayView.undo(_:)), keyEquivalent: "z")
+        editMenu.addItem(withTitle: String(localized: "Redo", bundle: .windowHost), action: #selector(DisplayView.redo(_:)), keyEquivalent: "z")
+            .keyEquivalentModifierMask = [.command, .shift]
+        editMenu.addItem(.separator())
+        editMenu.addItem(withTitle: String(localized: "Cut", bundle: .windowHost), action: #selector(DisplayView.cut(_:)), keyEquivalent: "x")
+        editMenu.addItem(withTitle: String(localized: "Copy", bundle: .windowHost), action: #selector(DisplayView.copy(_:)), keyEquivalent: "c")
+        editMenu.addItem(withTitle: String(localized: "Paste", bundle: .windowHost), action: #selector(DisplayView.paste(_:)), keyEquivalent: "v")
+        editMenu.addItem(withTitle: String(localized: "Select All", bundle: .windowHost), action: #selector(DisplayView.selectAll(_:)), keyEquivalent: "a")
+        editMenu.addItem(.separator())
+        editMenu.addItem(withTitle: String(localized: "Find", bundle: .windowHost), action: #selector(DisplayView.performFindPanelAction(_:)), keyEquivalent: "f")
+        editItem.submenu = editMenu
+        main.addItem(editItem)
+
+        // Translate Screen (⌘⇧T) and Translate Into, then resolution,
+        // scaling and the performance HUD (GraphicsMenu).
+        let viewItem = ScreenTranslationMenu.shared.makeViewMenuItem()
+        if let viewMenu = viewItem.submenu {
+            GraphicsMenu.shared.addItems(to: viewMenu)
+            // Next to Enter Full Screen, the window's other ways to show.
+            viewMenu.addItem(withTitle: String(localized: "Keep on Top", bundle: .windowHost),
+                             action: #selector(AndroidWindowController.toggleKeepOnTop), keyEquivalent: "")
+            viewMenu.addItem(withTitle: String(localized: "Picture in Picture", bundle: .windowHost),
+                             action: #selector(AndroidWindowController.togglePictureInPicture), keyEquivalent: "")
+        }
+        main.addItem(viewItem)
+
         let gameItem = NSMenuItem()
-        let gameMenu = NSMenu(title: "Controls")
-        let editor = gameMenu.addItem(withTitle: "Edit Key Mapping…", action: #selector(AndroidWindowController.toggleKeymapEditor),
+        let gameMenu = NSMenu(title: String(localized: "Controls", bundle: .windowHost))
+        let editor = gameMenu.addItem(withTitle: String(localized: "Edit Key Mapping…", bundle: .windowHost), action: #selector(AndroidWindowController.toggleKeymapEditor),
                                       keyEquivalent: "k")
         editor.keyEquivalentModifierMask = [.command, .shift]
-        gameMenu.addItem(withTitle: "Back", action: #selector(AndroidWindowController.sendBack), keyEquivalent: "[")
+        gameMenu.addItem(withTitle: String(localized: "Edit Controller Mapping…", bundle: .windowHost),
+                         action: #selector(AndroidWindowController.editControllerMapping), keyEquivalent: "")
+        gameMenu.addItem(withTitle: String(localized: "Game Mode", bundle: .windowHost), action: #selector(AndroidWindowController.toggleGameMode),
+                         keyEquivalent: "g")
+        gameMenu.addItem(withTitle: String(localized: "Show Key Mapping on Game", bundle: .windowHost), action: #selector(toggleKeymapHints(_:)),
+                         keyEquivalent: "").target = self
+        gameMenu.addItem(KeymapHintsMenu.shared.makeItem())
+        // How the mouse wheel scrolls this app (WheelScrolling.swift).
+        gameMenu.addItem(.separator())
+        gameMenu.addItem(ScrollModeMenu.shared.makeItem())
+        gameMenu.addItem(withTitle: String(localized: "Back", bundle: .windowHost), action: #selector(AndroidWindowController.sendBack), keyEquivalent: "[")
+        // Where Android's GPS says it is (LocationPanel.swift).
+        gameMenu.addItem(.separator())
+        gameMenu.addItem(withTitle: String(localized: "Location…", bundle: .windowHost), action: #selector(showLocation),
+                         keyEquivalent: "l").keyEquivalentModifierMask = [.command, .option]
+        gameMenu.items.last?.target = self
         gameItem.submenu = gameMenu
         main.addItem(gameItem)
 
         let windowItem = NSMenuItem()
-        let windowMenu = NSMenu(title: "Window")
-        windowMenu.addItem(withTitle: "Minimize", action: #selector(NSWindow.performMiniaturize(_:)), keyEquivalent: "m")
-        windowMenu.addItem(withTitle: "Rotate", action: #selector(AndroidWindowController.rotateWindow), keyEquivalent: "r")
+        let windowMenu = NSMenu(title: String(localized: "Window", bundle: .windowHost))
+        windowMenu.addItem(withTitle: String(localized: "Minimize", bundle: .windowHost), action: #selector(NSWindow.performMiniaturize(_:)), keyEquivalent: "m")
+        windowMenu.addItem(withTitle: String(localized: "Rotate", bundle: .windowHost), action: #selector(AndroidWindowController.rotateWindow), keyEquivalent: "r")
         windowItem.submenu = windowMenu
         main.addItem(windowItem)
         NSApp.windowsMenu = windowMenu
         NSApp.mainMenu = main
+    }
+
+    @objc private func toggleKeymapHints(_ sender: NSMenuItem) {
+        KeymapHints.visible.toggle()
+    }
+
+    func validateMenuItem(_ item: NSMenuItem) -> Bool {
+        if item.action == #selector(toggleKeymapHints(_:)) { item.state = KeymapHints.visible ? .on : .off }
+        return true
+    }
+
+    @objc private func showLocation() {
+        LocationPanel.shared.show()
     }
 
     @objc private func newWindow() {
@@ -171,7 +400,27 @@ final class ShimAppDelegate: NSObject, NSApplicationDelegate {
     @objc private func showAbout() {
         NSApp.orderFrontStandardAboutPanel(options: [
             .applicationName: label,
-            .credits: NSAttributedString(string: "Android app \(package), running in Avo."),
+            .credits: NSAttributedString(string: String(localized: "Android app \(package), running in Avo.", bundle: .windowHost)),
         ])
+    }
+}
+
+// MARK: - Screen lock (Android locked: VMStatus.screenLock)
+
+extension ShimAppDelegate {
+    /// Android's screen lock while it keeps Android locked: windows show a
+    /// lock in place of the app until it is unlocked, here or anywhere else.
+    var screenLock: AndroidScreenLock? { androidRunning ? androidStatus.screenLock : nil }
+    var androidRunning: Bool { androidStatus.state == .running }
+
+    private func androidStatusChanged(_ status: VMStatus) {
+        androidStatus = status
+        for window in windows { window.androidStatusChanged(status) }
+    }
+
+    /// The credential typed into a window's lock, passed to the daemon (never kept).
+    func unlockAndroid(_ credential: String) async throws {
+        guard let client else { throw AvoError.daemonUnreachable(String(localized: "not connected", bundle: .windowHost)) }
+        try await client.unlockAndroid(credential: credential)
     }
 }

@@ -1,16 +1,31 @@
 import AppKit
 import AvoDaemonCore
 import AvoKit
+import SwiftUI
 
 /// Menu Bar Item (spec: NSStatusItem with VM status, start/stop and a
-/// shortcut to the Control Panel), plus quick access to installed apps.
+/// shortcut to the Control Panel). A click opens a small panel in the
+/// Library's look (MenuBarPanel.swift): Android's state, CPU and memory,
+/// the running and recent apps, Start, Pause, Resume and Stop. A right
+/// click (or Control-click) opens the classic menu, with every app.
 @MainActor
-final class MenuBarController: NSObject, NSMenuDelegate {
+final class MenuBarController: NSObject, NSMenuDelegate, NSPopoverDelegate {
     private let core: DaemonCore
     private let avoApp: URL
     private let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
+    private let menu = NSMenu()
+    private let popover = NSPopover()
+    private let model = MenuBarModel()
+    private var refreshing: Task<Void, Never>?
     private var status = VMStatus.stopped
     private var apps: [AppRecord] = []
+    /// Google apps are changing Android: Stop and Quit ask first.
+    private var installingGoogleApps = false
+    /// Avo was updated while Android ran: the daemon restarts on the new
+    /// build once Android stops (AppUpdateWatcher), which the menu offers.
+    var updatePending: @MainActor () -> Bool = { false }
+    /// `force`: Stop Anyway, while Google apps change Android.
+    var restartForUpdate: @MainActor (_ force: Bool) async throws -> Void = { _ in }
 
     init(core: DaemonCore, avoApp: URL) {
         self.core = core
@@ -20,37 +35,132 @@ final class MenuBarController: NSObject, NSMenuDelegate {
         image?.isTemplate = true
         item.button?.image = image
         item.button?.toolTip = "Avo"
-        let menu = NSMenu()
+        item.button?.target = self
+        item.button?.action = #selector(clicked(_:))
+        item.button?.sendAction(on: [.leftMouseUp, .rightMouseUp])
         menu.delegate = self
-        item.menu = menu
-        let updates = core.vm.statusUpdates
+        popover.behavior = .transient
+        popover.animates = true
+        popover.appearance = NSAppearance(named: .darkAqua)
+        popover.delegate = self
+        let panel = NSHostingController(rootView: MenuBarPanel(model: model, actions: panelActions))
+        // The popover follows the panel's height as its lists fill in after
+        // it opens; with a fixed size the taller panel ran off the top of
+        // the screen, under the menu bar.
+        panel.sizingOptions = .preferredContentSize
+        popover.contentViewController = panel
+        // Not core.vm.statusUpdates: that stream has a single reader, the core.
         Task { [weak self] in
-            for await status in updates { self?.update(status) }
+            for await status in await core.statusChanges() { self?.update(status) }
+        }
+        Task { [weak self] in
+            for await busy in await core.googleAppsBusyChanges() {
+                self?.installingGoogleApps = busy
+                self?.model.installingGoogleApps = busy
+            }
         }
     }
 
     private func update(_ status: VMStatus) {
         self.status = status
-        // Dim the icon while Android is not running.
+        model.status = status
+        // Dim the icon while Android is not running (paused included).
         item.button?.appearsDisabled = status.state != .running
+        item.button?.toolTip = status.isPaused ? String(localized: "Avo · Android is paused") : "Avo"
     }
+
+    // MARK: Click: the panel; right click: the menu
+
+    @objc private func clicked(_ sender: NSStatusBarButton) {
+        let event = NSApp.currentEvent
+        if event?.type == .rightMouseUp || event?.modifierFlags.contains(.control) == true {
+            popover.performClose(nil)
+            // Shown by the item itself, so it highlights like any menu bar menu.
+            item.menu = menu
+            sender.performClick(nil)
+            return
+        }
+        if popover.isShown {
+            popover.performClose(nil)
+        } else {
+            Task { await model.refresh(from: core) }
+            NSApp.activate()
+            popover.show(relativeTo: sender.bounds, of: sender, preferredEdge: .minY)
+        }
+    }
+
+    func menuDidClose(_ menu: NSMenu) {
+        // Back to the panel for the next click.
+        item.menu = nil
+    }
+
+    func popoverDidShow(_ notification: Notification) {
+        refreshing?.cancel()
+        refreshing = Task { [weak self] in
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .seconds(2))
+                guard let self else { return }
+                await model.refresh(from: core)
+            }
+        }
+    }
+
+    func popoverDidClose(_ notification: Notification) {
+        refreshing?.cancel()
+        refreshing = nil
+    }
+
+    private var panelActions: MenuBarActions {
+        MenuBarActions(
+            start: { [weak self] in self?.startVM() },
+            pause: { [weak self] in self?.pauseVM() },
+            resume: { [weak self] in self?.resumeVM() },
+            stop: { [weak self] in self?.stopVM() },
+            open: { [weak self] app in
+                self?.popover.performClose(nil)
+                guard let shim = app.shortcuts.shimPath else { return }
+                NSWorkspace.shared.openApplication(at: URL(filePath: shim), configuration: NSWorkspace.OpenConfiguration())
+            },
+            openAvo: { [weak self] in
+                self?.popover.performClose(nil)
+                self?.openControlPanel()
+            },
+            quit: { [weak self] in self?.quit() })
+    }
+
+    // MARK: The menu
 
     func menuNeedsUpdate(_ menu: NSMenu) {
         menu.removeAllItems()
         let state = NSMenuItem(title: Self.title(for: status), action: nil, keyEquivalent: "")
         state.isEnabled = false
         menu.addItem(state)
-        if status.state == .running {
-            menu.addItem(withTitle: "Stop Android", action: #selector(stopVM), keyEquivalent: "").target = self
-        } else {
-            let start = menu.addItem(withTitle: "Start Android", action: #selector(startVM), keyEquivalent: "")
+        if installingGoogleApps {
+            let installing = NSMenuItem(title: String(localized: "Installing Google apps…"), action: nil, keyEquivalent: "")
+            installing.isEnabled = false
+            menu.addItem(installing)
+        }
+        switch status.state {
+        case .running:
+            if core.vm.canPause {
+                menu.addItem(withTitle: String(localized: "Pause Android"), action: #selector(pauseVM), keyEquivalent: "").target = self
+            }
+            menu.addItem(withTitle: String(localized: "Stop Android"), action: #selector(stopVM), keyEquivalent: "").target = self
+        case .suspended, .suspending:
+            let resume = menu.addItem(withTitle: String(localized: "Resume Android"), action: #selector(resumeVM), keyEquivalent: "")
+            resume.target = self
+            resume.isEnabled = status.state == .suspended
+            menu.addItem(withTitle: String(localized: "Stop Android"), action: #selector(stopVM), keyEquivalent: "").target = self
+        default:
+            let start = menu.addItem(withTitle: String(localized: "Start Android"), action: #selector(startVM), keyEquivalent: "")
             start.target = self
-            start.isEnabled = ![.starting, .stopping].contains(status.state)
+            // The installer starts Android itself (and may be repairing it).
+            start.isEnabled = ![.starting, .stopping].contains(status.state) && !installingGoogleApps
         }
         menu.addItem(.separator())
 
         if !apps.isEmpty {
-            let appsItem = NSMenuItem(title: "Apps", action: nil, keyEquivalent: "")
+            let appsItem = NSMenuItem(title: String(localized: "Apps"), action: nil, keyEquivalent: "")
             let submenu = NSMenu()
             for app in apps.prefix(30) where app.shortcuts.shimPath != nil {
                 let entry = submenu.addItem(withTitle: app.displayName, action: #selector(openApp(_:)), keyEquivalent: "")
@@ -65,9 +175,15 @@ final class MenuBarController: NSObject, NSMenuDelegate {
             appsItem.submenu = submenu
             menu.addItem(appsItem)
         }
-        menu.addItem(withTitle: "Open Control Panel…", action: #selector(openControlPanel), keyEquivalent: ",").target = self
+        menu.addItem(withTitle: String(localized: "Open Control Panel…"), action: #selector(openControlPanel), keyEquivalent: ",").target = self
+        // Sparkle runs in the Control Panel (Avo.app's AppUpdater): it opens and checks.
+        menu.addItem(withTitle: String(localized: "Check for Updates…"), action: #selector(checkForUpdates), keyEquivalent: "").target = self
+        if updatePending() {
+            menu.addItem(withTitle: String(localized: "Restart Android to Finish Updating Avo"), action: #selector(restartForUpdateNow),
+                         keyEquivalent: "").target = self
+        }
         menu.addItem(.separator())
-        menu.addItem(withTitle: "Quit Avo", action: #selector(quit), keyEquivalent: "q").target = self
+        menu.addItem(withTitle: String(localized: "Quit Avo"), action: #selector(quit), keyEquivalent: "q").target = self
 
         Task { [weak self] in
             guard let self else { return }
@@ -77,22 +193,35 @@ final class MenuBarController: NSObject, NSMenuDelegate {
 
     private static func title(for status: VMStatus) -> String {
         switch status.state {
-        case .running: "Android is running" + (status.openDisplays > 0 ? " · \(status.openDisplays) open" : "")
-        case .starting: "Android is starting…"
-        case .stopping: "Android is stopping…"
-        case .stopped: "Android is stopped"
-        case .notInstalled: "Android image not installed"
-        case .failed: "Android stopped: \(status.detail ?? "error")"
-        case .suspending, .suspended: "Android is suspended"
+        case .running where status.openDisplays > 0: String(localized: "Android is running · \(status.openDisplays) open windows")
+        case .failed: status.detail.map { String(localized: "Android stopped: \($0)") } ?? String(localized: "Android stopped with an error")
+        default: MenuBarPanel.title(for: status)
         }
     }
+
+    // MARK: Actions
 
     @objc private func startVM() {
         Task { try? await core.startVMFromMenuBar() }
     }
 
+    @objc private func pauseVM() {
+        Task { try? await core.pauseFromMenuBar() }
+    }
+
+    @objc private func resumeVM() {
+        Task { try? await core.resumeFromMenuBar() }
+    }
+
     @objc private func stopVM() {
-        Task { await core.vm.stop() }
+        Task {
+            do {
+                try await core.stopVMFromMenuBar()
+            } catch {
+                guard confirmForce(error, action: String(localized: "Stop Anyway")) else { return }
+                try? await core.stopVMFromMenuBar(force: true)
+            }
+        }
     }
 
     @objc private func openApp(_ sender: NSMenuItem) {
@@ -104,10 +233,47 @@ final class MenuBarController: NSObject, NSMenuDelegate {
         NSWorkspace.shared.openApplication(at: avoApp, configuration: NSWorkspace.OpenConfiguration())
     }
 
+    @objc private func checkForUpdates() {
+        NSWorkspace.shared.open([ControlPanelLink.url(pane: ControlPanelLink.checkForUpdates)], withApplicationAt: avoApp,
+                                configuration: NSWorkspace.OpenConfiguration())
+    }
+
+    @objc private func restartForUpdateNow() {
+        Task {
+            do {
+                try await restartForUpdate(false)
+            } catch {
+                guard confirmForce(error, action: String(localized: "Stop Anyway")) else { return }
+                try? await restartForUpdate(true)
+            }
+        }
+    }
+
     @objc private func quit() {
         Task {
-            await core.vm.stop()
+            do {
+                try await core.quitFromMenuBar()
+            } catch {
+                guard confirmForce(error, action: String(localized: "Quit Anyway")) else { return }
+                try? await core.quitFromMenuBar(force: true)
+            }
             exit(0)
         }
+    }
+
+    /// Google apps are changing Android: stopping it now can leave it unable
+    /// to start until Avo repairs it at the next start. True to go ahead.
+    private func confirmForce(_ error: any Error, action: String) -> Bool {
+        popover.performClose(nil)
+        let alert = NSAlert()
+        alert.alertStyle = .warning
+        alert.messageText = error.localizedDescription
+        // True before and after the commit: only one that began leaves
+        // something for the next start to finish or undo.
+        alert.informativeText = String(localized: "Stopping Android now interrupts the install. If Google apps were already being copied into Android, Avo finishes or undoes the install the next time Android starts; otherwise, install them again.")
+        alert.addButton(withTitle: String(localized: "Keep Installing"))
+        alert.addButton(withTitle: action)
+        NSApp.activate()
+        return alert.runModal() == .alertSecondButtonReturn
     }
 }

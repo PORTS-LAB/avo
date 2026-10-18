@@ -28,12 +28,53 @@
 	<string>$(MACOSX_DEPLOYMENT_TARGET)</string>
 	<key>NSHumanReadableCopyright</key>
 	<string>Avo contributors. Apache License 2.0.</string>
+	<!-- macOS holds Avo.app responsible for its helpers: the engine records
+	     from the microphone while Android records (AvoDaemon asks first). -->
+	<!-- Android's data on an external drive: the daemon (Avo.app is held
+	     responsible) reads and writes it, and macOS asks once. -->
+	<key>NSRemovableVolumesUsageDescription</key>
+	<string>Android's data can be kept on an external drive (Settings › Storage › Location). Avo reads and writes it there while Android runs.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Android apps that record, like voice notes and calls, hear this Mac's microphone while they record.</string>
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
+	<!-- Avo's own updates (Sparkle; Avo/AppUpdater.swift, docs/releasing.md).
+	     SUFeedURL: where the appcast is published. The .invalid placeholder
+	     can never resolve: until it is replaced with the real feed, Avo does
+	     not start its updater and Settings › About says this build has no
+	     update feed. SUPublicEDKey: the public half of the EdDSA key that
+	     signs every update (generate_keys keeps the private half in the
+	     release Mac's login Keychain). Never change or remove it: installed
+	     copies accept only updates signed with this key. -->
+	<key>SUFeedURL</key>
+	<string>https://updates.avo.invalid/appcast.xml</string>
+	<key>SUPublicEDKey</key>
+	<string>W/SKL81r8nkZRC+f1CYNMK2uhNWWWbRmHhHFarxIG9M=</string>
+	<!-- On by default, without Sparkle's own question at the second launch;
+	     Settings › About turns it off. Once a day. -->
+	<key>SUEnableAutomaticChecks</key>
+	<true/>
+	<key>SUScheduledCheckInterval</key>
+	<integer>86400</integer>
 	<key>CFBundleLocalizations</key>
 	<array>
 		<string>en</string>
 		<string>id</string>
+	</array>
+	<!-- avo-control-panel://fingerprints opens that pane (an app window's
+	     Manage Fingerprints…; AvoKit's ControlPanelLink). -->
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>$(PRODUCT_BUNDLE_IDENTIFIER).control-panel</string>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>avo-control-panel</string>
+			</array>
+		</dict>
 	</array>
 	<!-- Spec §3: double-click .apk, .xapk, .apkm or .apks to install. -->
 	<key>CFBundleDocumentTypes</key>

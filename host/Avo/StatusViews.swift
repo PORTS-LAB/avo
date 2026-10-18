@@ -8,8 +8,8 @@ extension VMState {
         case .stopped: "Stopped"
         case .starting: "Starting"
         case .running: "Running"
-        case .suspending: "Saving state"
-        case .suspended: "Suspended"
+        case .suspending: "Pausing"
+        case .suspended: "Paused"
         case .stopping: "Stopping"
         case .failed: "Stopped with an error"
         }
@@ -32,8 +32,21 @@ struct VMStatusFooter: View {
     @Environment(ControlPanelModel.self) private var model
 
     var body: some View {
+        if model.daemonState == .connected {
+            vmStatus
+        } else {
+            // Without the daemon the last known state may be long gone.
+            HStack(spacing: 8) {
+                Circle().fill(.secondary).frame(width: 8, height: 8)
+                Text(model.daemonState == .connecting ? "Connecting…" : "Not connected").font(.callout.weight(.medium))
+                Spacer(minLength: 0)
+            }
+        }
+    }
+
+    private var vmStatus: some View {
         let status = model.status
-        HStack(alignment: .top, spacing: 8) {
+        return HStack(alignment: .top, spacing: 8) {
             Circle()
                 .fill(status.state.color)
                 .frame(width: 8, height: 8)
@@ -60,12 +73,23 @@ struct VMControlButton: View {
     var body: some View {
         let state = model.status.state
         if state == .running {
+            // A Google apps install restarts Android itself meanwhile.
             Button { model.stopVM() } label: { Label("Stop Android", systemImage: "stop.fill") }
-                .help("Stop the Android VM. Open apps close.")
+                .disabled(model.googleAppsChangingAndroid)
+                .help(model.googleAppsChangingAndroid
+                      ? LocalizedStringKey("Available again when the Google apps install finishes.")
+                      : "Stop the Android VM. Open apps close.")
+        } else if state == .suspended {
+            // Starting a paused Android resumes it.
+            Button { model.startVM() } label: { Label("Resume Android", systemImage: "play.fill") }
+                .disabled(model.daemonState != .connected)
+                .help("Android is paused to save energy. Opening an app resumes it too.")
         } else {
             Button { model.startVM() } label: { Label("Start Android", systemImage: "play.fill") }
-                .disabled(state.isBusy || model.daemonState != .connected)
-                .help("Start the Android VM in the background.")
+                .disabled(state.isBusy || model.daemonState != .connected || model.googleAppsChangingAndroid)
+                .help(model.googleAppsChangingAndroid
+                      ? LocalizedStringKey("Available again when the Google apps install finishes.")
+                      : "Start the Android VM in the background.")
         }
     }
 }

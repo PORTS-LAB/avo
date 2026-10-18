@@ -1,0 +1,72 @@
+import AvoKit
+import SwiftUI
+
+// Graphics › Renderer: how Android renders right now (VMStatus.renderer from
+// the daemon), and the way back to the GPU after a failed GPU start.
+
+/// Under the Renderer picker: what Android uses now (what Automatic means is
+/// in the picker's help).
+struct RendererStatusRow: View {
+    @Environment(ControlPanelModel.self) private var model
+
+    var body: some View {
+        if let renderer = model.status.renderer {
+            // Asked for the GPU but not getting it: worth noticing.
+            let missed = renderer.requested == .gpu && renderer.mode == .software
+            VStack(alignment: .leading, spacing: 6) {
+                Label {
+                    message(renderer)
+                        .foregroundStyle(missed ? Haze.warning : Haze.textSecondary)
+                } icon: {
+                    Image(systemName: renderer.mode == .gpu ? "cpu.fill" : (missed ? "exclamationmark.triangle.fill" : "cpu"))
+                        .foregroundStyle(missed ? Haze.warning : (renderer.mode == .gpu ? Haze.positive : Haze.textTertiary))
+                }
+                .fixedSize(horizontal: false, vertical: true)
+                if renderer.reason == .failed {
+                    if let failure = renderer.failure {
+                        Text(failure.description)
+                            .font(.mona(12))
+                            .foregroundStyle(Haze.textTertiary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    Button("Try GPU Again") { model.retryGPU() }
+                        .disabled(model.googleAppsChangingAndroid)
+                }
+            }
+            .font(.mona(13))
+        }
+    }
+
+    private func message(_ renderer: RendererStatus) -> Text {
+        if renderer.mode == .gpu {
+            if let device = renderer.detail, !device.isEmpty { return Text("Android renders on this Mac’s GPU (\(device)).") }
+            return Text("Android renders on this Mac’s GPU.")
+        }
+        switch renderer.reason {
+        case .emulatorMissing?:
+            return Text("GPU rendering needs the Android Emulator 37 or later. Install it with Android Studio’s SDK Manager (SDK Tools › Android Emulator).")
+        case .emulatorUnsupported?:
+            return Text("GPU rendering needs the Android Emulator 37 or later; this Mac has \(renderer.emulatorVersion ?? "?"). Update it with Android Studio’s SDK Manager.")
+        case .failed?:
+            return Text("GPU rendering failed to start, so Android uses software rendering.")
+        case .chosen?, nil:
+            return Text("Android renders in software on this Mac’s CPU.")
+        }
+    }
+}
+
+/// Above every pane after a GPU start failed, until the GPU is tried again
+/// or Software is chosen.
+struct GPUFallbackBanner: View {
+    @Environment(ControlPanelModel.self) private var model
+
+    var body: some View {
+        if model.status.renderer?.reason == .failed, model.config?.rendererMode != .software {
+            Banner(symbol: "exclamationmark.triangle", tint: .orange,
+                   text: "GPU rendering failed to start, so Android uses software rendering.") {
+                Button("Try GPU Again") { model.retryGPU() }
+                    .disabled(model.googleAppsChangingAndroid)
+            }
+        }
+    }
+}
