@@ -3,6 +3,12 @@
 > Dokumen sumber, 16 Oktober 2026, @Mochamad Nizwar Syafuan. Disalin dari PDF
 > spesifikasi ke Markdown supaya bisa di-review lewat pull request. Catatan
 > implementasi (bahasa Inggris) ada di [architecture.md](architecture.md).
+>
+> **Catatan implementasi.** Dokumen ini adalah spesifikasi awal dan disimpan
+> apa adanya. Implementasinya berbeda di beberapa bagian, terutama Engine VM:
+> Avo tidak memakai crosvm, tetapi engine sendiri, avo-vmm, yang menjalankan
+> image AOSP Cuttlefish langsung di Hypervisor.framework (lihat
+> [engine.md](engine.md)).
 
 ## Ringkasan dan tujuan
 
@@ -35,7 +41,7 @@ ke user tetap jujur.
 | Mac Intel | Tidak didukung | Butuh image x86 dan translasi ARM, sehingga beban maintenance jadi dua kali lipat |
 | Google Play Services / Play Store | Tidak dibundel | Distribusi GMS butuh lisensi Google; lihat bagian Strategi GMS |
 | Aplikasi bank, e-wallet, DRM | Tidak dijanjikan jalan | Play Integrity dan hardware attestation tidak bisa dilewati di VM |
-| Game FPS kompetitif (PUBG Mobile, Delta Force) | Target utama, dengan risiko anti-cheat | Anti-cheat bisa mendeteksi VM yang tidak dikenal; produk tidak menyediakan fitur curang |
+| Game FPS kompetitif (PUBG Mobile, Delta Force) | Target utama | Sebagian game online bisa mendeteksi VM yang tidak dikenal dan menolak berjalan; produk tidak menyediakan fitur apa pun di luar yang ada di ponsel |
 | Mac App Store | Bukan target distribusi | Butuh entitlement hypervisor dan akses sistem di luar sandbox |
 
 ## Arsitektur tingkat tinggi
@@ -118,7 +124,7 @@ yang semuanya berbicara dengan daemon itu lewat XPC.
 | --- | --- | --- |
 | Runtime Daemon | LaunchAgent (Swift + engine VM) | Menjalankan, menghentikan, dan membuat snapshot VM; memegang koneksi vsock ke Bridge Agent; menjadi satu sumber kebenaran untuk daftar aplikasi |
 | Engine VM | crosvm (Rust) dengan backend hypervisor baru untuk Hypervisor.framework; device virtio dan gfxstream (rutabaga) dipakai ulang | Virtualisasi CPU, memori, disk, dan perangkat virtio; meneruskan perintah grafis ke Metal |
-| Window Host | Framework Swift/AppKit yang berjalan di dalam proses App Shim, satu NSWindow per VirtualDisplay | Merender surface lewat Metal, meneruskan input keyboard, mouse, dan trackpad, menangani resize dan skala Retina |
+| Window Host | Framework Swift/AppKit yang berjalan di dalam proses App Shim, satu NSWindow per VirtualDisplay | Merender surface lewat Metal, meneruskan input keyboard, mouse, dan trackpad, menangani resize, resolusi internal, dan upscaling MetalFX |
 | App Shim | Bundle `.app` kecil per aplikasi Android di `~/Applications/Android Apps/` | Memberi ikon sendiri di Dock, Launchpad, dan Spotlight; saat dibuka, mengirim perintah launch package ke daemon |
 | Control Panel | Aplikasi SwiftUI | Pengaturan VM, daftar aplikasi, root, profil device, dan editor keymapping |
 | Keymap Overlay | Panel transparan di atas jendela game | Editor tombol dan runtime yang menerjemahkan tombol menjadi sentuhan |
@@ -227,14 +233,15 @@ Setiap poin brief dijabarkan menjadi perilaku yang bisa diuji.
   yang terpisah dari kanal Control.
 - **Profil bawaan:** profil untuk game FPS populer disediakan dan dikelola
   komunitas.
-- **Grafis:** preset "Game berat" dengan renderer Vulkan, batas FPS 90/120, dan
-  rekomendasi RAM VM minimal 8 GB.
+- **Grafis:** preset "Game berat" dengan rendering GPU, batas FPS 90/120,
+  rekomendasi RAM VM minimal 8 GB, dan game di 720p 16:9 dengan upscaling
+  MetalFX.
 - **Batas tegas:** tidak ada makro recoil, auto-aim, atau rapid fire otomatis.
-  Fitur seperti itu termasuk curang, melanggar aturan game, dan memperbesar
-  risiko akun user di-ban.
-- **Risiko anti-cheat:** anti-cheat game bisa menolak berjalan atau mem-ban akun
-  di VM yang tidak dikenali. Produk tidak akan menyembunyikan diri dari
-  anti-cheat. Status tiap game dicatat di daftar kompatibilitas komunitas.
+  Fitur seperti itu melanggar aturan banyak game dan memperbesar risiko akun
+  user di-ban.
+- **Risiko deteksi VM:** sebagian game online bisa menolak berjalan atau mem-ban
+  akun di VM yang tidak dikenali. Avo tidak menyembunyikan diri dari aplikasi
+  yang memeriksanya. Status tiap game dicatat di daftar kompatibilitas komunitas.
 
 ### 6. Control Panel
 
@@ -242,10 +249,11 @@ Setiap poin brief dijabarkan menjadi perilaku yang bisa diuji.
 | --- | --- | --- |
 | Performa | RAM (2–16 GB), jumlah CPU core, ballooning saat idle | Ya |
 | Storage | Ukuran disk data (bisa diperbesar, tidak bisa diperkecil), lokasi file image, bersihkan cache | Ya, untuk resize |
-| Grafis | Renderer (Vulkan atau GLES), batas FPS (30/60/120), DPI default | Sebagian |
-| Display | Ukuran jendela default, mode portrait atau landscape, skala Retina | Tidak |
+| Grafis | Renderer (Otomatis, GPU (Metal) lewat gfxstream dari Android Emulator 37+, atau Software; GPU yang gagal dimulai kembali ke Software sampai "Coba GPU Lagi"), batas FPS (30/60/120), resolusi dan penskalaan per profil Aplikasi/Game (ikuti jendela × skala render, atau resolusi tetap 540p–1080p dengan rasio aspek), ukuran tampilan, filter MetalFX/Bilinear/Nearest, ketajaman, HUD performa, pengaturan per aplikasi | Sebagian |
+| Display | Ukuran jendela default, mode portrait atau landscape | Tidak |
 | Aplikasi | Uninstall, force stop, clear data, izin, buka info aplikasi | Tidak |
-| Sistem | Root, profil device, snapshot, reset Android | Ya |
+| Sidik Jari | Daftarkan jari dengan nama (maksimal 5), ganti nama, hapus | Tidak |
+| Sistem | Versi Android, root, profil device, snapshot, reset Android | Ya |
 
 ### 7. Opsi root (checkbox)
 
@@ -269,6 +277,35 @@ Setiap poin brief dijabarkan menjadi perilaku yang bisa diuji.
 - Peringatan di UI: profil ini mengubah identitas yang dibaca aplikasi, tetapi
   tidak meloloskan hardware attestation.
 
+**Emulasi hardware (checkbox "Emulate this phone's hardware").** Untuk
+developer: selain nama/model, template bisa membawa blok `hardware` (SoC, CPU,
+GPU) sehingga aplikasi menjalankan jalur kode per-perangkat — misalnya cek
+"ini Snapdragon?" atau cek merek — seperti di perangkat aslinya. Mencentang
+kotak ini menerapkannya; tanpa dicentang (dan untuk identitas jujur Avo yang
+tak punya hardware) profil hanya mengubah nama. Jalurnya, sesuai cara aplikasi
+membaca hardware:
+
+- **SoC** — properti read-only saat boot: `ro.soc.manufacturer`/`ro.soc.model`
+  (`Build.SOC_MANUFACTURER`/`SOC_MODEL`), `ro.board.platform` (codename yang
+  dibaca pustaka deteksi SoC), `ro.product.board` (`Build.BOARD`), plus kunci
+  vendor (`ro.vendor.qti.*` Snapdragon, `ro.vendor.mediatek.*`/`ro.mediatek.*`
+  Dimensity). Ini jalur utama — hampir semua cek chipset lewat sini.
+- **GPU** — dua layer melaporkan GPU profil ke renderer milik aplikasi: layer
+  GLES (`libGLES_avo_profile.so`) menjawab `glGetString` (`GL_VENDOR`,
+  `GL_RENDERER`, `GL_VERSION`) dengan GPU profil alih-alih ANGLE, dan Vulkan
+  layer (`VK_LAYER_AVO_profile`) menjawab `VkPhysicalDeviceProperties` (nama,
+  vendorID, driver). GLES tetap digambar ANGLE di GPU Mac (ekstensi tetap
+  milik ANGLE); SurfaceFlinger, HWUI, WebView dan instance Vulkan milik ANGLE
+  sengaja tidak disentuh agar layar tetap benar.
+- **CPU** — mesin melaporkan model inti tiap cluster (MIDR) dan frekuensinya,
+  sehingga `/proc/cpuinfo` dan `/sys/devices/system/cpu` cocok dengan target.
+- Yang tetap jujur dan tak dipalsukan (mengubahnya memecah aplikasi/driver):
+  `ro.hardware` dan HAL, daftar ABI, level API, dan kemampuan GPU sebenarnya.
+  Aplikasi yang bercabang pada `.so`/HAL khusus-Qualcomm tetap jatuh ke jalur
+  fallback — dan itu justru informasi yang berguna bagi developer. Avo juga
+  tetap menyatakan dirinya (`ro.boot.avo.*`, `dev.avo.feature.MAC`), apa pun
+  profilnya; ini bukan untuk mengelabui attestation.
+
 ### Fitur native tambahan (di luar brief, tapi menentukan kesan native)
 
 - Notifikasi Android muncul di Notification Center macOS, dan meng-klik
@@ -282,6 +319,53 @@ Setiap poin brief dijabarkan menjadi perilaku yang bisa diuji.
 - Audio lewat virtio-snd ke CoreAudio.
 - Quick boot dari snapshot, dan VM tetap jalan di latar belakang dengan memori
   yang dikembalikan saat idle.
+- Mock sidik jari: jari yang didaftarkan dengan nama di Control Panel
+  (Pengaturan › Sidik Jari) di-enroll Avo sendiri ke stack sidik jari Android
+  (sensor virtual AOSP di image userdebug), jadi aplikasi (BiometricPrompt) dan
+  layar kunci melihat sidik jari terdaftar. Tombol sidik jari di title bar
+  jendela aplikasi membuka menu berisi jari-jari itu: memilih satu jari
+  menyentuh sensor dengan jari tersebut; "Jari Tak Terdaftar" menyentuh dengan
+  jari yang tidak dikenali; "Kelola Sidik Jari…" membuka Control Panel. Prompt
+  sidik jari aplikasi tampil di layar Android sendiri (tidak terlihat di
+  jendela), jadi tombolnya menyala saat aplikasi itu atau layar kunci meminta
+  sidik jari. Android hanya menerima sidik jari jika ada kunci layar (PIN, pola,
+  atau sandi); menghapus kunci layar, atau Reset Android, menghapus semua
+  sidik jari. Lima jari salah mengunci sidik jari 30 detik, dua puluh
+  berturut-turut sampai kunci layar dimasukkan. Batasan: sensor virtual tidak
+  menandatangani token perangkat keras, jadi aplikasi yang membuka kunci
+  kriptografi (CryptoObject) dengan sidik jari menerima sentuhannya tetapi
+  tidak bisa memakai kunci itu.
+
+### Setup awal dan versi Android
+
+- Avo tidak membundel Android. Saat pertama dibuka, dan selama belum ada
+  image Android yang bisa dipakai, Control Panel menampilkan Asisten
+  Pengaturan: Selamat Datang, Versi Android, Izin (notifikasi, mikrofon,
+  lokasi, masing-masing dengan kegunaan dan tombolnya), Aplikasi Google
+  (opsional, menunjuk ke penginstal di Pengaturan › Sistem), lalu Siap:
+  Android dijalankan dan progresnya ditampilkan. Bantuan › Asisten
+  Pengaturan… membukanya lagi.
+- Daftar versi diambil dari Android Build API publik Google (yang dipakai
+  ci.android.com dan `scripts/fetch-cuttlefish.sh`): build sukses terbaru
+  dari setiap versi Android, minimal Android 16, untuk target
+  `aosp_cf_arm64_only_phone-userdebug`, dengan nomor build, tanggal, dan
+  ukuran unduhan. Endpoint, API key, branch, dan target diatur di satu tempat
+  (`AndroidBuildSource`).
+- Unduhan bisa dijeda, dilanjutkan (juga setelah Avo ditutup), dan
+  dibatalkan. Ruang disk diperiksa sebelum mengunduh, dan unduhan dicocokkan
+  dengan MD5 dari API sebelum diekstrak. "Pakai Image di Mac Ini…" menerima
+  zip image, folder berisi file `.img`, atau folder hasil
+  `fetch-cuttlefish.sh`, dan memeriksanya dulu (arm64, userdebug, Android 16
+  atau lebih baru).
+- Image Cuttlefish adalah build Google, jadi tidak ditandatangani Avo: setelah
+  diperiksa, SHA-256 dan ukuran setiap file dicatat di `manifest.json`, dan
+  daemon memeriksanya sebelum Android dijalankan.
+- Pengaturan › Sistem › Versi Android menampilkan versi dan build yang
+  terpasang, serta "Ganti Versi Android…" dengan peringatan yang jelas: naik
+  versi tetap menyimpan aplikasi dan data; kembali ke Android yang lebih lama
+  tidak bisa dengan data yang sama (data Android dihapus dulu); aplikasi
+  Google harus sesuai dengan versi Android. Versi sebelumnya disimpan agar
+  bisa kembali.
 
 ## Strategi GMS untuk komunitas
 
@@ -306,7 +390,7 @@ di-notarize, dengan update otomatis lewat Sparkle.
 
 - Pengguna cukup mengunduh DMG dan menyeret aplikasinya ke folder Applications.
   Image Android (sekitar 1–2 GB) diunduh saat setup pertama, bukan dibundel di
-  DMG.
+  DMG (lihat "Setup awal dan versi Android").
 - Entitlement yang dibutuhkan: `com.apple.security.hypervisor` untuk VM, serta
   kamera dan mikrofon yang diminta hanya saat dipakai.
 - Biaya Apple Developer Program (USD 99 per tahun) diperlukan untuk

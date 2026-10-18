@@ -4,79 +4,124 @@
 
 <h1 align="center">Avo</h1>
 
-<p align="center">Android apps on macOS, each in its own window.<br>
-Open source, for Apple Silicon.</p>
+<p align="center">Android apps and games on your Mac, each in its own window.<br>
+Free and open source, for Macs with Apple silicon.</p>
+
+<p align="center">
+  <a href="https://github.com/nizwar/avo/releases">Releases</a> ·
+  <a href="docs/architecture.md">Architecture</a> ·
+  <a href="docs/engine.md">Engine</a> ·
+  <a href="docs/for-game-developers.md">For game developers</a> ·
+  <a href="CHANGELOG.md">Changelog</a>
+</p>
 
 ---
 
-Avo runs Android in a lightweight VM in the background and shows every Android
-app as a normal Mac app: its own window, its own Dock icon, Launchpad and
-Spotlight entries, Cmd+Tab, notifications in Notification Center, a shared
-clipboard and drag and drop from Finder. Games get keyboard, mouse and gamepad
-controls through keymap profiles, including an FPS mode with mouse-look.
+Avo runs a small Android system in the background and shows every Android
+app as a regular Mac app: its own window and Dock icon, Launchpad and
+Spotlight entries, ⌘Tab, notifications in Notification Center, a shared
+clipboard, links that open in your Mac's browser, and drag and drop from
+Finder. Games get keyboard, mouse and controller support, including a
+shooter mode with mouse-look.
 
-The full technical specification (Indonesian) is in [docs/spec.md](docs/spec.md).
+Under the hood Avo boots an unmodified AOSP image (Android 17, Cuttlefish)
+in its own virtual machine on Apple's Hypervisor.framework, and draws it on
+your Mac's GPU through gfxstream and Metal.
 
-## Status
+> **Status: early preview.** Avo is under active development and is not yet
+> signed with a Developer ID or notarized. Preview builds are published on
+> [GitHub Releases](https://github.com/nizwar/avo/releases) for testers.
+> Expect rough edges, and please [report problems](#reporting-problems).
 
-Avo is in **Phase 1 (Foundation)** of the [roadmap](docs/spec.md#roadmap-mvp).
-The macOS host is built and tested against a simulated guest; the VM engine
-and the Android image are not done yet, so **Avo cannot run Android apps yet**.
+## Features
 
-| Component | Where | State |
-| --- | --- | --- |
-| Control Panel (SwiftUI): app grid, install sheet, settings tabs | `host/Avo` | Working; tested with the daemon |
-| Runtime Daemon (LaunchAgent) + menu bar item | `host/AvoDaemon`, `host/AvoKit/Sources/AvoDaemonCore` | Working up to "start VM" (needs engine and image) |
-| App Shims + Window Host (one Mac window per Android display) | `host/AvoShim`, `host/AvoWindowHost` | Working; frames need the engine |
-| Package installer (.apk, .xapk, .apkm, .apks, OBB) | `AvoPackages`, `InstallPipeline` | Working against a simulated adbd |
-| ADB client (auth, shell v2, exec, sync, pm sessions) | `AvoADB` | Working; key format checked against `adb` |
-| Keymapping engine, FPS mode, editor overlay | `AvoKeymap`, `host/AvoWindowHost` | Working in tests; editor is basic |
-| Host ↔ guest protocol (Control protobuf, Input records) | `proto/`, `AvoProtocol` | Version 1, cross-checked Swift ↔ Java |
-| Bridge Agent (Android system app) | `guest/bridge-agent` | Compiles (SDK + NDK); not run on a device yet |
-| Avo AOSP product (device tree, sepolicy, avo_init) | `guest/device/avo` | Skeleton; needs an AOSP 16 build |
-| Engine VM: crosvm with a Hypervisor.framework backend | `engine/` | HVF backend crate boots the Android 16 kernel to `init`; crosvm port not started ([engine.md](docs/engine.md)) |
+**Apps as Mac apps**
+- One window per Android app, with its own Dock icon, Launchpad and
+  Spotlight entries; full screen with the menu bar and title bar on hover.
+- Notifications in Notification Center; a shared clipboard;
+  Android links open in the Mac's default browser.
+- Install `.apk`, `.xapk`, `.apkm` and `.apks` files (OBB data included) by
+  double-clicking, dropping them on Avo, or from Google Play.
+- Android follows the Mac: dark mode, time zone, 24-hour clock, language and
+  battery level.
+- Screen translation (⌘⇧T), screenshots and screen recordings with sound,
+  Keep on Top and Picture in Picture.
+- A shared folder between the Mac and Android, location from the Mac (or a
+  place or route you choose), the Mac's microphone, and mock fingerprints for
+  apps that ask for one.
 
-## Repository
+**Games**
+- Key mapping: put keys on a game's touch controls, with templates for
+  shooters, MOBAs and racing games; profiles can be shared.
+- Shooter mode with mouse-look, and full game controller support with a
+  visual controller editor.
+- GPU rendering through gfxstream and MoltenVK, a frame-rate cap of 30, 60,
+  90 or 120 fps (or the display's own rate), render scale and sharpening, and
+  a persistent shader cache.
+- Avo adds no auto-aim, macros or other advantages, and does not hide itself
+  from games ([details for publishers](docs/for-game-developers.md)).
 
-```
-branding/            Logo ("Monogram a"), app icon sources, generator
-docs/                Spec, architecture, protocol, engine plan, brand
-proto/               Host <-> guest protocol (protobuf) and test vectors
-host/                macOS: Xcode project (XcodeGen) and the AvoKit Swift package
-  Avo/               Control Panel app
-  AvoDaemon/         Runtime Daemon + menu bar item (LaunchAgent)
-  AvoWindowHost/     Window Host framework, loaded by every App Shim
-  AvoShim/           App Shim template
-  avoctl/            Command-line control of the daemon
-  AvoKit/            Core logic and tests (swift test)
-guest/               Android: Bridge Agent and the Avo AOSP product
-engine/              VM engine: HVF backend crates (Rust) and the crosvm port plan
-profiles/            Device profiles and community keymap profiles (JSON)
-scripts/             Code generation and image packaging
-```
+**System**
+- Control Panel with an app library, Settings, and a System Status view of
+  CPU, memory and GPU use per app.
+- Menu bar item with quick controls; Android pauses itself when idle and
+  resumes instantly when used.
+- Choose the Android version, the device profile apps see, and where
+  Android's data lives (including an external drive).
+- Optional Google Play (installed from MindTheGapps on request), ADB support
+  for `adb` and Android Studio, and `avoctl` for the command line.
+- Report a Problem collects a redacted diagnostics archive.
 
-## Building
+## Requirements
 
-Requirements: a Mac with Apple Silicon, macOS 15 or later, Xcode 26 or later,
-and [XcodeGen](https://github.com/yonaskolb/XcodeGen).
+- A Mac with Apple silicon (M1 or newer). Intel Macs are not supported.
+- macOS 15 Sequoia or newer.
+- At least 10 GB of free disk space: the Android image, and a data disk that
+  grows as you use it.
+- For GPU rendering (recommended for games): Google's
+  [Android Emulator](https://developer.android.com/studio/run/emulator),
+  installed with Android Studio or the SDK command-line tools. Avo uses its
+  gfxstream renderer. Without it, Android renders in software.
+
+## Installing a preview build
+
+1. Download `Avo-<version>.dmg` from
+   [Releases](https://github.com/nizwar/avo/releases) and drag Avo to
+   Applications.
+2. Preview builds are not notarized, so macOS blocks the first launch. Open
+   Avo once, then go to **System Settings › Privacy & Security** and click
+   **Open Anyway**.
+3. The Setup Assistant downloads an Android image from Google's public AOSP
+   build server and starts Android. Allow the background item when macOS asks
+   (System Settings › General › Login Items).
+
+Preview builds do not update themselves yet; install a newer DMG over the old
+one. Your Android data stays in `~/Library/Application Support/Avo`.
+
+## Building from source
+
+Requirements: Xcode 26 or later, [XcodeGen](https://github.com/yonaskolb/XcodeGen),
+and a Rust toolchain (`rustup`, stable) for the engine. The Android SDK is
+needed only to rebuild the small Android helpers, which are checked in.
 
 ```sh
-make test       # 126 unit and integration tests of the host core (swift test)
+make test       # host unit and integration tests (swift test)
 make project    # generate host/Avo.xcodeproj
-make build      # build Avo.app with xcodebuild
-make agent      # build the Bridge Agent APK (Android SDK + NDK)
+make build      # build Avo.app (Debug) into build/DerivedData
+make helpers    # rebuild the Android helpers embedded in the daemon
+cd engine/hvf && cargo test   # engine tests
 ```
 
-Or open `host/Avo.xcodeproj` in Xcode and run the **Avo** scheme. The first
-launch registers the Runtime Daemon as a LaunchAgent; macOS may ask you to
-allow it in System Settings › General › Login Items.
+Or open `host/Avo.xcodeproj` in Xcode and run the **Avo** scheme. A release
+disk image is built with `scripts/build-dmg.sh` (see
+[docs/releasing.md](docs/releasing.md)).
 
-`avoctl` (inside `Avo.app/Contents/MacOS`) drives the daemon from a terminal:
+`avoctl` (in `Avo.app/Contents/MacOS`) drives the daemon from a terminal:
 
 ```sh
 avoctl status
 avoctl install ~/Downloads/F-Droid.apk
-avoctl config fpsLimit=120 memoryMiB=8192
+avoctl start
 ```
 
 ## How it fits together
@@ -84,33 +129,73 @@ avoctl config fpsLimit=120 memoryMiB=8192
 ```mermaid
 flowchart LR
   subgraph mac[macOS]
-    cp[Avo.app<br/>Control Panel] -- XPC --> d[AvoDaemon<br/>LaunchAgent]
-    shim[App Shim + Window Host<br/>one process per app] -- XPC: input, IOSurface frames --> d
-    d -- spawns --> e[crosvm-hvf]
+    cp[Avo.app<br/>Control Panel] -- XPC --> d[AvoDaemon<br/>LaunchAgent + menu bar]
+    shim[App windows<br/>one process per app] -- XPC: input, displays --> d
+    d -- spawns --> e[avo-vmm<br/>Hypervisor.framework]
+    e -- frames in shared memory --> shim
+    e -- gfxstream, MoltenVK --> gpu[Metal]
   end
-  subgraph vm[Android VM]
-    a[Bridge Agent]
-    apps[Android apps on<br/>one VirtualDisplay each]
+  subgraph vm[Android VM: AOSP Cuttlefish]
+    adbd[adbd]
+    apps[Android apps<br/>one display per window]
   end
-  e <-- "vsock: ADB 5555 · Control 6000 · Input 6001" --> a
-  e <-- gfxstream --> apps
+  d <-- "vsock: ADB" --> adbd
+  e <-- "virtio: gpu, input, sound, net, fs" --> apps
 ```
 
-Details: [architecture](docs/architecture.md), [protocol](docs/protocol.md),
-[engine](docs/engine.md), [brand](docs/brand.md).
+| Document | Contents |
+| --- | --- |
+| [docs/architecture.md](docs/architecture.md) | Processes, windows, input, settings, storage, and how each feature works |
+| [docs/engine.md](docs/engine.md) | avo-vmm: devices, GPU, sound, networking, pause, the daemon contract |
+| [docs/protocol.md](docs/protocol.md) | Host ↔ guest channels and message formats |
+| [docs/for-game-developers.md](docs/for-game-developers.md) | How apps can detect Avo, and what differs from a phone |
+| [docs/releasing.md](docs/releasing.md) | Building, signing and publishing releases and updates |
+| [docs/brand.md](docs/brand.md) | Logo, colours and type |
+| [docs/spec.md](docs/spec.md) | The original product specification (Indonesian) |
 
-## What Avo will not do
+## Repository
 
-Avo does not bundle Google Play or Google apps (you can use F-Droid or Aurora
-Store, microG, or install a GApps package you downloaded yourself). Banking,
-e-wallet and DRM apps that rely on hardware attestation are not expected to
-work. Keymaps never include recoil macros, auto-aim or automatic rapid fire,
-and Avo does not hide itself from anti-cheat systems.
+```
+branding/   Logo and app icon sources, and their generator
+docs/       Architecture, engine, protocol and release documentation
+engine/     avo-vmm and the Hypervisor.framework crates (Rust)
+guest/      Android helpers Avo installs in the guest, and the AOSP product skeleton
+host/       The macOS apps (Xcode project via XcodeGen) and the AvoKit Swift package
+profiles/   Device profiles and keymap templates (JSON)
+proto/      Host ↔ guest protocol (protobuf) and test vectors
+scripts/    Code generation, image tools, DMG and update publishing
+website/    The project website (static, English and Indonesian)
+```
+
+## Limitations
+
+- Camera and Bluetooth are not supported yet.
+- Apps that rely on hardware attestation (most banking and some DRM apps)
+  generally do not run, and some online games refuse to run in a virtual
+  machine. Avo does not try to get around that.
+- 32-bit-only and x86-only apps cannot run on Apple silicon.
+
+## Reporting problems
+
+Use **Help › Report a Problem** in Avo to save a diagnostics archive (personal
+data is redacted), then open an
+[issue](https://github.com/nizwar/avo/issues) and attach it. Security issues:
+see [SECURITY.md](SECURITY.md).
+
+## Contributing
+
+Contributions are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md).
+
+## Acknowledgements
+
+Avo is developed with the help of Claude, Anthropic's AI model, as a coding
+assistant. It builds on AOSP and Cuttlefish, gfxstream and MoltenVK (through
+the Android Emulator), Sparkle, SwiftProtobuf and smoltcp; see
+[NOTICE](NOTICE).
 
 ## License
 
-Apache License 2.0 for the host, the Bridge Agent and the device
-configuration ([LICENSE](LICENSE)). crosvm is BSD-3-Clause. GPL components (the
-Linux kernel and KernelSU) are built and published separately. Android is a
-trademark of Google LLC; device names in `profiles/devices` are used only for
-app compatibility.
+Avo is licensed under the [Apache License 2.0](LICENSE). The engine crates in
+`engine/hvf` are BSD-3-Clause. Android is a trademark of Google LLC; Avo is
+not affiliated with Google or Apple. Device names in `profiles/devices` are
+used only for app compatibility.

@@ -2,14 +2,21 @@ Avo
 Copyright 2026 Avo contributors
 
 This product includes software developed by the Avo contributors and is
-licensed under the Apache License, Version 2.0 (see LICENSE).
+licensed under the Apache License, Version 2.0 (see LICENSE). The engine
+crates in engine/hvf are licensed under the BSD 3-Clause License.
 
-Third-party components:
+Third-party components included in Avo.app:
+- Sparkle (MIT), https://sparkle-project.org
 - SwiftProtobuf (Apache License 2.0), https://github.com/apple/swift-protobuf
-- Protocol Buffers Java Lite runtime (BSD-3-Clause), bundled in the Bridge Agent
-- crosvm (BSD-3-Clause), used as the VM engine
-- The Linux kernel and KernelSU (GPL-2.0) are built and distributed separately
-  with their source, as the GPL requires.
+- smoltcp (0BSD) and mio (MIT), used by avo-vmm
+- Hubot Sans and Mona Sans (SIL Open Font License 1.1), by GitHub
+
+Used at run time, not included:
+- AOSP Cuttlefish images (Apache License 2.0, with the Linux kernel under
+  GPL-2.0), downloaded by the user from Google's public build server.
+- gfxstream and MoltenVK from the Android Emulator (Apache License 2.0),
+  installed by the user.
+- MindTheGapps (Google apps), downloaded only when the user asks for them.
 
 Android is a trademark of Google LLC. Device names in profiles/devices are used
 only so apps see a familiar device; they are not Avo branding.

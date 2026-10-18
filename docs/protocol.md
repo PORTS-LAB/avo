@@ -9,7 +9,7 @@ Runtime Daemon (`avod`) is the only host process that connects.
 | ADB | 5555 | ADB wire protocol (adbd `service.adb.listen_addrs=vsock:5555`) | adbd |
 | Control | 6000 | Length-delimited protobuf `avo.v1.Envelope` ([control.proto](../proto/avo/v1/control.proto)) | Bridge Agent |
 | Input | 6001 | Fixed-layout little-endian binary records (below) | Bridge Agent |
-| Graphics | gfxstream pipe | gfxstream / rutabaga | gfxstream guest drivers |
+| Graphics | virtio-gpu | gfxstream (host renderer from the Android Emulator, through MoltenVK) | gfxstream guest drivers |
 
 On macOS there is no `AF_VSOCK`. The engine exposes the guest's vsock ports to
 the daemon through a Unix domain socket using the same convention as
@@ -57,7 +57,7 @@ Events (`AppInstalled`, `Notification`, …) always have `request_id = 0`.
 | `ListApps` | `AppList` |
 | `GetPermissions` | `PermissionList` |
 | `Launch` | `Reply`, then `DisplayReady` once the first frame is posted |
-| `Resize`, `Close`, `SetDisplayVisibility`, `SetRefreshRate` | `Reply` |
+| `Resize`, `Close`, `SetDisplayVisibility`, `SetRefreshRate`, `FocusDisplay` | `Reply` |
 | `Install`, `Uninstall`, `ForceStop`, `DeleteAppData`, `SetPermission` | `Reply` |
 | `ShareFiles`, `OpenNotification`, `DismissNotification`, `SetClipboard` | `Reply` |
 
@@ -74,7 +74,10 @@ Events (`AppInstalled`, `Notification`, …) always have `request_id = 0`.
    the display's surface to the host through gfxstream. When the first frame
    lands it sends `DisplayReady`.
 4. Window resizes send `Resize` (debounced to the end of a live resize).
-   Minimising sends `SetDisplayVisibility{visible=false}`.
+   Minimising sends `SetDisplayVisibility{visible=false}`. The window becoming
+   the Mac's key window sends `FocusDisplay`, so its app has Android's input
+   focus (the GPU engine; the Bridge Agent's displays each have their own
+   focus, and it answers `STATUS_UNSUPPORTED`).
 5. When the task finishes inside Android, the agent sends `TaskClosed` and the
    window closes. Closing the window sends `Close`.
 
@@ -182,8 +185,15 @@ support (forwarded to a virtual gamepad in the guest).
 | 8 | 1 | `pad` index (0…3) |
 | 9 | 1 | `connected` (0/1) |
 | 10 | 2 | reserved |
-| 12 | 4 | `buttons` bitmask (see `GamepadButton` in AvoKit) |
+| 12 | 4 | `buttons` bitmask (see `GamepadButton` in AvoKit; bit 16 is Home) |
 | 16 | 32 | `f32` axes: LX, LY, RX, RY, LT, RT, HAT_X, HAT_Y |
+
+Axes use GameController's conventions: sticks and hat -1…1 with y up,
+triggers 0…1. `connected` 0 unplugs the guest's gamepad: App Shims send it
+when no controller is there or the window's key mapping uses the gamepad.
+`display_id` is the display of the key window that drives the gamepad; the
+host only forwards it for a display the sender owns, and the guest unplugs
+the gamepad when that display closes.
 
 **`0x7F` PING** — `u64` token at offset 8. The guest echoes the record back on
 the same stream; the host uses it to measure input round-trip latency.

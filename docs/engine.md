@@ -1,15 +1,571 @@
-# Engine VM: crosvm with a Hypervisor.framework backend
+# Engine: avo-vmm on Hypervisor.framework
 
-The spec chose crosvm (BSD-3-Clause) with a new backend for Apple's
-Hypervisor.framework (HVF), reusing crosvm's virtio devices and gfxstream
-(rutabaga). Upstream crosvm runs on KVM, WHPX, Gunyah and others; macOS support
-stops at a minimal `base/src/sys/macos` (kqueue events, timers, sockets). This
-document is the contract the macOS host already implements, and the plan for
-the port — the largest piece of Phase 1.
+Avo runs Android in a virtual machine of its own, `avo-vmm`
+([engine/hvf/vmm](../engine/hvf/vmm)), a Rust VMM built directly on Apple's
+Hypervisor.framework (HVF). It boots an unmodified AOSP Cuttlefish image and
+provides the virtio devices Cuttlefish expects, with Mac implementations
+behind them (Core Audio, Metal through gfxstream and MoltenVK, user-mode
+networking, FSEvents-backed virtio-fs). This document describes the engine,
+its devices and its contract with the Runtime Daemon.
 
-## Contract with the Runtime Daemon
+## avo-vmm and the Cuttlefish image
 
-The daemon (`CrosvmEngine` in AvoDaemonCore) spawns
+The engine boots a prebuilt AOSP Cuttlefish image (`aosp_cf_arm64_only_phone-userdebug`
+from ci.android.com, which the Setup Assistant or `scripts/fetch-cuttlefish.sh`
+downloads; see architecture.md, "Android images (Cuttlefish)"). The daemon
+picks it when `Avo.app/Contents/MacOS/avo-vmm` exists (`VMMEngine`) and looks
+up the image at every start (`CuttlefishImage.prepareStart`); without avo-vmm
+it falls back to the legacy crosvm contract at the end of this document,
+which no shipping build uses.
+
+**The engine.** HVF with the in-kernel GICv3, SMP vCPUs and PSCI; virtio-pci
+devices in Cuttlefish's layout: block (composite GPT disk), 20 consoles,
+rng, vsock (hybrid `CONNECT <port>` socket), a virtio-gpu (2D, or gfxstream
+3D, see "GPU" below) with 16 hot-pluggable scanouts, one touchscreen per scanout, a keyboard, three NICs,
+a sound card and a gamepad (an Xbox One S pad, 045e:02ea, which
+Android maps with its stock key layout); with `--shared-dir`, a virtio-fs
+device comes last (see "Shared folder" below). Frames go to shared memory
+(`frames/scanout-<i>-<generation>.frames`, triple buffered).
+
+- **Network** (`net.rs`, virtio-net): eth2 is the one with a carrier;
+  Cuttlefish's `setup_wifi` turns it into wlan0, so Android is on Wi-Fi
+  ("VirtWifi"). User-mode NAT like the Android Emulator's: DHCP gives
+  10.0.2.15, 10.0.2.2 is the gateway and the Mac's own 127.0.0.1, 10.0.2.3
+  the DNS server (the Mac's resolver from /etc/resolv.conf). Guest TCP ends
+  in smoltcp and goes on over ordinary Mac sockets (SYN-ACK only once the
+  Mac's connection is up), UDP per guest port, ping through the Mac's
+  unprivileged ICMP socket. No privileges, no vmnet entitlement, no ports
+  opened on the Mac. eth0 (mobile) and eth1 (Ethernet) have no carrier.
+- **Sound** (`virtio/sound.rs`, virtio-snd): one playback and one capture
+  stream, S16 8–48 kHz, through Core Audio's AudioQueue on the Mac's default
+  output and input. Playback runs on the device's own clock, one period
+  per period starting 100 ms behind the guest's first (`play_period`): each
+  period is done on time whatever Core Audio does, and its audio goes to the
+  Mac's queue, which holds at most 120 ms (whole periods, at least two) after
+  a 30 ms lead-in of silence; a period that finds it full is dropped on the
+  Mac. A period that finds it empty (a late tick, the gap after the
+  lead-in) starts 30 ms after the queue's playhead
+  (`AudioQueueEnqueueBufferWithParameters`): the queue's timeline runs on
+  while it is empty, a period enqueued plainly is due in the past, and
+  AudioQueue drops its past frames yet hands it back as played. With 20 ms
+  periods that was all of every period after a single hiccup: the guest,
+  the tap and recordings had the sound, the Mac played silence (coreaudiod's
+  IO reports showed no non-zero cycles). When periods were done only once the Mac had played them, every Core
+  Audio hiccup filled the guest's ring and its HAL dropped whole 85 ms
+  chunks ("incomplete data sent, dropping 4096 frames"): robotic, broken
+  sound. Measured on the test VM (60 s, two AAudio streams, OpenSL and four
+  busy threads, host load about 7): 0 HAL drops mid-stream, 0 skips, 0
+  xruns with 20 ms HAL periods, at default and Oboe-sized (two-burst)
+  buffers. Capture runs
+  on a clock, the microphone joins when macOS allows it (the daemon asks in
+  Avo's name when Android first records, `microphone` event). A start is
+  answered at once and the AudioQueue opens on a thread of its own (the
+  first one in a process took 2 s on a vCPU, and Android's audio stalled for
+  as long); Core Audio is warmed up in the background when the device
+  activates. The guest's last period in flight is handed back only when it
+  sends the next one (or after 1 s): Linux's virtio_snd follows the device
+  by its position in the ring, and when every period came back before it
+  looked (a burst of AudioQueue callbacks, or its worker late under load)
+  the position read as no progress, the driver sent nothing more and
+  Android stayed silent ("Error writing into ALSA: -1") until the stream
+  closed. A watchdog replaces a queue that has buffers but plays none for
+  500 ms. `AVO_VMM_SOUND_DEBUG=1` logs the control requests and, every 2 s,
+  the playback counters (received, played, held, restarts, queue depth). What the Mac
+  has played (or, without an output device, the clock has used up) also goes
+  into a ring in shared memory for screen recordings (`virtio/sound/tap.rs`:
+  `<instance>/audio/playback.ring`, a 4 KiB header and 512 seqlocked slots of
+  S16 PCM, each with the host time its first frame played at), one per
+  process, announced by the sticky `audio playback <epoch> <path>` event.
+  `AVO_VMM_MUTE=1` sets the Mac's playback volume to 0 and leaves the
+  microphone closed (tests on a Mac someone is using); the ring still gets
+  the sound. Only the
+  HAL's ordinary streams reach ALSA: its MMAP streams (AAudio's low-latency
+  path, which games take through Oboe, Wwise or Unreal) and its compressed
+  offload are stubs (output dropped on a simulated clock, MMAP input random
+  noise). Every boot `HostAgent` bind-mounts the primary module's
+  configuration without those mix ports and restarts audioserver
+  (`GuestAudioPolicy`): the HAL then reports MMAP as never supported, so
+  AAudio uses AudioTrack and AudioRecord like OpenSL ES and Java apps do,
+  nothing is offloaded, and every stream goes through the mixer. The HAL
+  also refuses buffers under 85 ms (`ModulePrimary`'s `kStandardLatencyMs`,
+  a constant no property changes), so the mixer took 4096 frames from every
+  track per cycle and a game that sizes its buffer from the 20 ms burst it is
+  given (two bursts with Oboe) underran every cycle: over half its sound was
+  silence. On the known HAL build (by SHA-256) the same boot step bind-mounts
+  a copy with that one instruction set to 20 ms, and sets
+  `ro.hardware.audio.tinyalsa.period_size_multiplier=2`, so ALSA gets four
+  512-frame periods instead of 256-frame ones (`GuestAudioHal`): the mixer
+  runs in 21 ms periods. Measured on the test VM: a two-burst AAudio stream
+  went from 11 underruns a second to none, and a game's write to the Mac
+  playing it from about 255 ms (AAudio's default buffer) to about 82 ms.
+- **Modem** (`modem.rs`): Cuttlefish's radio HAL needs a modem simulator;
+  this one answers AT commands like a modem without a SIM, so telephony
+  settles on "No SIM" instead of the phone process failing to start forever.
+- **Shared folder** (`virtio/fs.rs`, `virtio/fs/server.rs`; `--shared-dir
+  <folder>`): virtio-fs (device 26, tag `avo_shared`, one request queue of
+  1024, no DAX window) with a FUSE 7.31 server over the Mac folder: nodes
+  are the Mac's inodes, found by path, so nothing stays open on a drive but
+  the files Android has open; names with a slash, "." or "..", directories
+  that are symlinks and symlinked files (O_NOFOLLOW) are refused, so nothing
+  outside the folder is reachable; every file is media_rw's (1023, 0770 and
+  0660); errno values are translated to Linux's; names and attributes are
+  good for a second, and the page cache follows size and time changes
+  (AUTO_INVAL_DATA). Extended attributes, locks, fallocate and Android's
+  FUSE_CANONICAL_PATH answer ENOSYS. A folder that is not there at the start
+  (an unplugged drive) leaves the device out with a line in the log. The
+  daemon mounts it in Android (architecture.md, "The shared folder").
+  Cuttlefish's own fstab tries a virtiofs tag `shared` at /mnt/vendor/shared
+  (nofail), which is why Avo's tag differs.
+- **Reboots** (`cuttlefish.rs` `run`): a guest reboot (PSCI SYSTEM_RESET)
+  builds a new machine in the same process, unless `--exit-on-reboot`
+  (the daemon always passes it): then avo-vmm exits 77 (EXIT_GUEST_REBOOT)
+  and the daemon starts Android again. A reboot that leaves recovery's
+  `--wipe_data` on misc (Android's factory reset) exits 76
+  (EXIT_FACTORY_RESET) either way; a recovery request left on misc from
+  before is dropped before each boot.
+- The engine raises its threads to user-initiated QoS (the sound clock to
+  user-interactive): the daemon it inherits from runs at utility.
+
+**GPU (gfxstream).** Graphics › Renderer: Automatic (the default), GPU
+(Metal) or Software. With the GPU, Android's GLES (guest ANGLE) and Vulkan
+(`vulkan.ranchu`) go through gfxstream to MoltenVK and Metal; apps get
+GLES 3.1 and Vulkan 1.3.
+
+- **Requirement**: the Android Emulator 37 or later from Android Studio's SDK
+  Manager (`~/Library/Android/sdk/emulator`, or
+  `defaults write dev.avo.daemon AvoAndroidEmulator <dir>`). avo-vmm loads its
+  `lib64/libgfxstream_backend.dylib` (and the ten libraries it needs) at run
+  time by absolute path; Avo never ships them. The dylibs carry Google's Team
+  ID, so avo-vmm is signed with `com.apple.security.cs.disable-library-validation`
+  (`engine/hvf/hypervisor.entitlements`).
+- **Flags**: `--gpu gfxstream --gfxstream-dir <emulator dir>` (the daemon adds
+  them after `--properties`); none, or `--gpu 2d`, is the software engine bit
+  for bit. `--hwc client|host` is a bring-up knob the daemon never passes.
+- **Exit 75**: the renderer could not load or initialise (within 20 s), before
+  any guest code ran; stderr has `error: gpu: <reason>`.
+- **Device**: features VIRGL, RESOURCE_BLOB and CONTEXT_INIT, capsets
+  gfxstream-vulkan (3) and gfxstream-composer (9), and an 8 GiB 64-bit
+  host-visible BAR2 in a MEM64 window at 0x8_0000_0000. Bootconfig switches
+  the unchanged guest to `gfxstream_guest_angle` with client composition
+  (`hwcomposer.mode=client`), and turns on two ANGLE features in every guest
+  process (`debug.angle.feature_overrides_enabled`):
+  `mapUnspecifiedColorSpaceToPassThrough`, as Cuttlefish does, and
+  `preferDrawClearOverVkCmdClearAttachments`. The emulator's MoltenVK (1.4.0)
+  runs `vkCmdClearAttachments` as a helper draw that leaves its clear colours
+  bound where ANGLE keeps its push constants, so whatever an app drew after a
+  `glClear` in the middle of a frame came out mirrored left-right and squeezed
+  into the middle half (Microsoft Launcher); ANGLE now clears with its own draw.
+- **Guest Vulkan layer** (`guest/gfxsync`, `GuestGfxstreamSync`): HostAgent
+  installs `VK_LAYER_AVO_gfxstream_sync` in `/data/local/debug/vulkan` and
+  names it in `debug.vulkan.layer.9` (from the boot after the first install),
+  so every Vulkan instance, ANGLE's included, goes through it. It keeps the
+  guest driver from deadlocking (presents wait outside the driver's lock), and
+  splits each fragment output array into one output per element: the
+  emulator's MoltenVK cannot make a pipeline from a shader such as ANGLE's
+  `gl_FragData[8]` when the subpass has fewer colour attachments ("'color'
+  attribute must be made explicit"; Need for Speed No Limits hit it).
+  `guest/gfxsync/test/run.sh` checks the split against that MoltenVK on the Mac.
+  It also gives ANGLE's own instance `VK_EXT_provoking_vertex`
+  (`provokingVertexLast`), which neither the driver nor MoltenVK has: the
+  image's ANGLE (`8d8796935e4f`) offers no GLES above 2.0 without it ("required
+  for flat shading"; ANGLE up to mid-2025 offered 3.1 regardless), so before
+  this apps got ES 2.0 contexts only. The layer takes the extension, its
+  feature structure and the pipelines' provoking-vertex state out again
+  before the driver sees them, so `flat` varyings come from a primitive's
+  first vertex instead of its last. Apps' own Vulkan instances do not see the
+  extension. Processes that start before HostAgent names the layer, every
+  boot (SurfaceFlinger, system_server, SystemUI), stay at ES 2.0; they work
+  with either.
+- **Native ASTC** (`engine/hvf/vmm/layer/native_astc.c`, `virtio/gpu/astc.rs`):
+  gfxstream decompresses ASTC into RGBA8 itself unless the driver samples
+  *linear-tiled* ASTC, which Metal never does, and an emulated ASTC texture
+  asks for 5x (4x4), 10x (6x6) or 17x (8x8) its memory: UE4 games sized their
+  texture streaming by that and dropped mip levels within a second (Delta
+  Force: sharp, then blurry). avo-vmm writes a Vulkan layer (built by
+  build.rs, signed ad hoc) to the temporary folder and names it to the loader
+  (`VK_ADD_LAYER_PATH`, `VK_INSTANCE_LAYERS`); it reports sampled, linear
+  filtered linear tiling for ASTC, so gfxstream passes ASTC to Metal, and the
+  guest layer hides those two bits from apps again. `avo-vmm.log` says
+  `[gpu] ASTC goes to Metal natively`; `AVO_NATIVE_ASTC=0` brings the
+  emulation back. Measured in a test VM: 1.0x memory, the ASTC probes all
+  correct through Vulkan and ANGLE. Metal still refuses
+  `BLOCK_TEXEL_VIEW_COMPATIBLE` ASTC images, which MoltenVK reports as
+  unsupported. With the emulation on (`AVO_NATIVE_ASTC=0`), gfxstream
+  decompresses only on a `vkCmdPipelineBarrier`: after a
+  `vkCmdPipelineBarrier2` or `vkCmdWaitEvents` into a sampled layout the
+  guest layer adds one, and it turns `vkCmdCopyBufferToImage2` into
+  `vkCmdCopyBufferToImage`, whose data gfxstream keeps (otherwise such
+  textures read back black, stale or magenta).
+- **Frames**: on each flush the engine reads the composed buffer back into the
+  same shared-memory frames as software (0.6–1.2 ms a frame measured at
+  720×1280 and 1080×1920), so the daemon, MetalFX and recording are
+  unchanged. Zero-copy IOSurfaces come with our own gfxstream build.
+- **Engine** (`virtio/gpu/render.rs`): one `gpu-render` thread makes every
+  gfxstream call (vCPUs only post work; gfxstream's fence callback only posts
+  the fence); fenced requests are answered when gfxstream signals them, and a
+  guest reboot or device reset purges the guest's contexts, resources and
+  maps while the renderer stays. Blobs are mapped into BAR2 with `hv_vm_map`
+  before the guest hears back, in whole 16 KiB pages only. While frames flow
+  `avo-vmm.log` gets `[gpu] ctx=… res=… blobs=… mapped=… fences=… flush/s=…
+  readback avg/max=… rejected-maps=… unknown=… errors=…` every 5 s, and
+  gfxstream's errors and warnings as `[gfxstream] …`.
+- **Shader cache** (`virtio/gpu/cache.rs`, `GPUCache.swift`): a shader's
+  first use is almost all Metal compiling MoltenVK's MSL (about 100 ms a
+  program measured). ANGLE's GLSL→SPIR-V in the guest and MoltenVK's
+  SPIR-V→MSL take about 2 ms together. Metal keeps what it compiled. Before
+  gfxstream starts, avo-vmm points Metal's cache (`MTLSetShaderCachePath`) at
+  `~/Library/Caches/Avo/gpu-cache/<key>/metal`; otherwise it would sit in
+  Avo.app's folder of `DARWIN_USER_CACHE_DIR`, shared with the Control Panel,
+  with no limit of Avo's and nothing Avo could clear. The key names the
+  emulator revision, Vulkan driver, chip and macOS build
+  (`emulator-37.1.11_moltenvk_apple-m4-pro_macos-26a434`, described in its
+  `last-used` file). Each Metal cache file is capped at 512 MiB
+  (`MTL_SHADER_CACHE_SIZE`; Metal's default is 1 GiB). Every start removes
+  other keys unused for 30 days, then, oldest first, whatever keeps the
+  folder over 2 GiB. `AVO_GPU_CACHE_DIR` names another folder; `off` leaves
+  Metal's default.
+  - **Guest**: GPU mode turns on Android's multifile EGL blob cache
+    (`ro.egl.blobcache.multifile`, 128 MiB per app, as ANGLE recommends in its
+    "GL performance: HIGH" log), where each app keeps ANGLE's programs and
+    MoltenVK's pipeline cache (`/data/user_de/<user>/<package>/cache/`). The
+    stock single file holds 2 MiB and lost a game's shaders.
+  - **Clearing**: Graphics › Clear GPU cache (`clearGPUCache`; `gpuCacheStatus`
+    gives the size; `avoctl gpu-cache [clear]`) empties the Mac's folder. A
+    running engine keeps what it has loaded.
+  - **Measured** (test VM, 150 GLES 2.0 programs, each compiled, linked and
+    drawn once, 3 a frame):
+
+    | Run | Time per program | Total | Worst frame |
+    |---|---|---|---|
+    | Cold | 100 ms | 15.1 s | 344 ms (every frame over 100 ms) |
+    | From both caches | 2.3 ms | 0.8 s | 21 ms |
+    | After an engine restart (400 programs) | 2.5 ms | 1.0 s | 91 ms |
+    | Android's caches cleared | 4.5 ms | 0.9 s | 47 ms |
+    | Metal's cache cleared | 93 ms | 14.0 s | 512 ms |
+
+    With 400 programs and a warm start, the single-file blob cache gave
+    3.9 ms per program; the multifile cache gives 2.3 ms.
+- **Fallback** (`VMMEngine`, `GPURenderer.swift`): exit 75 or a crash while
+  starting, `gpu stalled`, or no `gpu first-frame` within 60 s of `gpu context`
+  (Android's first rendering context; Android has 10 minutes to get there, as
+  a first boot spends minutes on ART and the new data before any graphics)
+  restarts Android in software. So do two crashes within 10 minutes
+  after Android was ready, from the next start. The choice is kept in
+  `vm/gpu-fallback.json` until Try GPU Again, a Renderer change, or a new
+  avo-vmm, emulator or macOS; the Graphics pane and a banner say why, and the
+  failed log is kept as `avo-vmm-gpu-failed.log`.
+- **Limits**: one refresh rate for all of Android's displays per boot (60
+  to 120 Hz; below), ES 3.1 (no geometry shaders in MoltenVK; with the
+  guest Vulkan layer, above), first-vertex `flat` varyings, no zero-copy
+  yet, no quick boot.
+- **Refresh rate** (`virtio/gpu/edid.rs`, both modes): the virtio-gpu offers
+  EDIDs (`VIRTIO_GPU_F_EDID`). A scanout's preferred timing is its size at
+  its rate, 60 Hz unless `display <i> <w> <h> <hz>` or, for display 0,
+  `--refresh-rate` gives another (any whole rate from 24 to 240); the other
+  rates of 60, 90 and 120 follow. Timings have little blanking and a pixel
+  clock that makes the rate exact; sizes over 4095 pixels, clocks over
+  655 MHz (4K at 120 Hz) and a fourth timing (a rate besides 60, 90 and 120,
+  such as 75) go into a DisplayID extension, which the guest's kernel and
+  composer take (75 Hz at 1080×2400 and 3840×2160: `supportedRefreshRates
+  [75, 37.5, 25]`). The identity is that of the composer's fallback
+  EDIDs (GGL, `EMU_display_<n>`, size 0), so display ids (`local:…`) and
+  densities stay what they were in both modes.
+  - **Android**: Cuttlefish's composer (ranchu, `display_finder_mode=drm`)
+    hands SurfaceFlinger one mode per display, the connector's first (the
+    preferred timing), and its vsync thread ticks at it. Like a new size, a
+    new rate takes a re-plug. SurfaceFlinger can render at the rate or a
+    divisor of it (`peak_refresh_rate`); `dumpsys display` then lists e.g.
+    `supportedRefreshRates [120, 60, 40, 30, 24, 20]`.
+  - **One rate**: Android paces displays of different rates unevenly (an app
+    on a 120 Hz display next to the 60 Hz display 0 got 96 fps; on a 60 Hz
+    display under a 120 Hz one its frames came in bunches), and unplugging
+    display 0 restarts SurfaceFlinger. So the daemon picks one rate per boot
+    (`FrameRates.androidRate`: the frame rate cap above 60, else 60; 60 by
+    default), passes it as `--refresh-rate` and plugs every window's display
+    at it. The caps are 30, 60, 90 and 120 whatever the Mac's screens show,
+    and the own rate of each screen between 60 and 120 (a 75 or 100 Hz
+    monitor), so Android can run in step with it. Under a cap that no screen
+    shows evenly, the cap's controls say what the screens make of it
+    (`FrameRates.screenNote`): a slower screen shows the newest frame at each
+    of its refreshes (the window's display link draws it,
+    `FrameRates.presentPacing`), a faster one out of step judders.
+  - **The cap**: a lower one is a render rate for every display
+    (`peak_refresh_rate`, which Android rounds down to a divisor), at once; a
+    cap that needs another display rate waits for a restart (the Restart
+    Android banner; Quick Settings says so). Above 60 Hz, HostAgent turns off
+    Android's game default frame rate (`ro.surface_flinger.game_default_frame_rate_override`
+    is 60 here; `debug.graphics.game_default_frame_rate.disabled`): it holds
+    games that ask for no rate of their own at 60, and with mixed rates it
+    stalled them to about a frame a second.
+  - **Measured** (GPU unless noted; the test VM's own app as below, n = 16,
+    categorized as a game; frames as the host receives them):
+
+    | Display rate, size | Frames/s | Interval median / p99 | avo-vmm CPU |
+    |---|---|---|---|
+    | 120 Hz, 720×1280 | 120.0 | 8.35 / 10.4 ms | about 85% |
+    | 120 Hz, 720×1280, n = 128 | 120.1 | 8.34 / 9.5 ms | about 95% |
+    | 120 Hz, 1080×2400 | 120.1 | 8.32 / 9.6 ms | about 85% |
+    | 120 Hz, cap 60 / cap 30 | 60.2 / 30.2 | 16.5 / 33.6 ms | |
+    | 90 Hz, 1080×2400 | 90.0 | 11.13 / 13.3 ms | |
+    | 60 Hz (default), 1080×2400 | 60.2 | 16.50 / 22.0 ms | |
+    | Software, 120 Hz, 720×1280, n = 0 | 119.8 | 8.33 / 9.5 ms | |
+
+    Read back from gfxstream, a 1080×2400 frame takes 0.65 ms on average.
+    The composer flushes display 0 with every frame too, so the engine
+    reads back 240 frames a second at 120 Hz.
+
+    On a Mac with a fixed 75 Hz monitor (1080×2400, n = 16 and n = 0, two
+    to three runs each; the user's own Android busy alongside at 65–80%):
+
+    | Display rate | Frames/s | Interval median / p99 | avo-vmm CPU |
+    |---|---|---|---|
+    | 60 Hz | 60.1 | 16.8 / 23–27 ms | 75–86% |
+    | 75 Hz (the monitor's own) | 75.1 | 13.4 / 19–22 ms | 77–85% |
+    | 120 Hz | 120.0 | 8.3 / 14–17 ms | 91–107% |
+
+    At 75 Hz SurfaceFlinger presented 75.1 fps on a 13.33 ms vsync (the
+    app counted 75.0), and Settings scrolled at 75 (13.7 ms median while
+    moving). 120 Hz under the 75 Hz screen costs avo-vmm 15–20 points of a
+    core more than 75 (about a fifth), and the daemon copies all 120 frames
+    into the window's surfaces; the window draws the newest 75.
+- **Measured** (M4 Pro; test VM with 4 vCPUs and 4 GiB; a GLES app drawing a
+  full-screen fractal shader with *n* iterations per pixel, vsync-paced;
+  fps, then avo-vmm host CPU with 100% = one core):
+
+  | Load | Software | GPU |
+  |---|---|---|
+  | n = 16, 720×1280 | 59.8 fps, 219% | 58.5 fps, 75% |
+  | n = 48, 720×1280 | 46.5 fps, 396% | 58.5 fps, 75% |
+  | n = 128, 720×1280 | 18.6 fps, 396% | 59.6 fps, 60% |
+  | n = 128, 1080×1920 (second display) | 8.3 fps, 396% | 59.7 fps, 196% |
+  | Settings scrolling | 54.9 fps, 136% | 55.7 fps, 78% |
+
+  Sixteen such n = 128 passes a frame still run at about 40 fps on the GPU.
+  Boot to `sys.boot_completed` takes 6.5 s (software 5.7–6.3 s); starting
+  the renderer adds about 0.3 s.
+
+The control socket (`control.sock`, one text command per line):
+
+| Command | |
+|---|---|
+| `display <i> <w> <h> [<hz>]` / `display <i> off` | plug (at *hz*, 60 unless given), resize or unplug scanout *i* |
+| `touch <i> [id:x:y …]` / `key <code> <0\|1>` | input |
+| `gamepad <buttons> <lx> <ly> <rx> <ry> <lt> <rt> <hatx> <haty>` | the gamepad's whole state in evdev units; only changes reach the guest |
+| `location <lat> <lng> [alt] [accuracy] [speed] [bearing]` / `location off` | the GPS fix Android's GNSS HAL reads from /dev/gnss1 (about once a second, timestamped when read, and carried on along its bearing at its speed for up to a second since it was set); a playing route sends it four times a second (architecture.md, "Android's location") |
+| `snapshot <i> <path>` | next frame as a BMP |
+| `pause` / `resume` | stop the vCPUs / let them run again (both idempotent); `pause` answers once no vCPU runs guest code, or with an error when one does not stop within 5 s (the others go on) |
+| `subscribe` | events: `frames …` (new layout), `frame <i> <seq>`, `frames-off <i>`, `microphone` (Android started recording), `sound playback on\|off` and `sound capture on\|off` (sticky: Android's sound streams), `paused` and `resumed <ms>` (how long the guest stood still), `audio playback <epoch> <path>` (sticky: the ring of what Android played); with the GPU also `gpu active <device>`, `gpu context` (Android's first rendering context this boot), `gpu first-frame <i>` and `gpu stalled <ms>` |
+
+**Pause** (`pause.rs`). The vCPUs stop at a gate before their next
+`hv_vcpu_run` (a kick takes them out of the guest; one in WFI comes back
+within a millisecond) and wait there; CPU_OFF vCPUs count as stopped, and a
+pause asked for between two machines (a guest reboot) holds the next one's
+vCPUs before they run. Devices keep their state: what arrives meanwhile (a
+packet, a host vsock connection, an input event) waits in its queue and
+raises its interrupt when the vCPUs run again. The guest's counter stands
+still with them, as with QEMU's `kvm-adjvtime`: before a vCPU runs again its
+vtimer offset grows by the time from the last vCPU stopping to the resume
+(on its own thread, `hv_vcpu_set_vtimer_offset`), so CNTVCT goes on where the
+guest last saw it, the same on every vCPU and never backwards. A counter that
+jumped would make the kernel report soft lockups and RCU stalls and fire
+Android's watchdog and ANR timers. Android's wall clock is therefore behind by
+the pause afterwards: the daemon sets it (`HostAgent.clockResumed`: the Mac's
+time with network time on, else the guest's time plus the pause, through
+`cmd alarm set-time`, then `cmd network_time_update_service force_refresh`).
+While paused, the sensors stop streaming (the console would queue every
+reading), the sound clock stands still and the Mac's AudioQueues pause; the
+GPU renderer and the network keep their own bounded timers. Measured on the
+test VM: about 8% of one core idle and running, 0% paused (0.2% in GPU mode),
+a pause takes well under a second, adbd answers a command sent during the
+pause right after `resume`, and frames come again at once. When the daemon
+goes away during a pause, the engine resumes before it powers Android off.
+
+`--properties FILE` replaces image properties before anything reads them
+(the device profile, by default Avo's honest identity, plus Avo's
+`ro.boot.avo.*` markers, which `VMMEngine` writes for every launch; see
+[for-game-developers.md](for-game-developers.md)): a small cpio placed
+*before* the LZ4 ramdisks holds `/force_debuggable` and `/adb_debug.prop`,
+which init loads on unlocked devices. Android derives `ro.build.fingerprint`
+from the profile's brand, name and device when the profile does not set one
+(`Avo/avo_droid/avo_droid:17/<build id>/<incremental>:userdebug/test-keys`). When the daemon that started it goes away, the
+engine powers Android off through its shell console instead of running on.
+
+This file loads at first-stage init, so it may carry only properties Cuttlefish
+tolerates that early: the identity (`ro.product.*`, `ro.build.fingerprint`) and,
+when "Emulate this phone's hardware" is on, the profile's SoC naming
+(`ro.soc.*`, `ro.board.platform`, `ro.product.board`, vendor keys,
+`ro.hardware.chipname`) and the GPU layers' values (`debug.avo.gl.*`,
+`debug.avo.vk.*`). Loading the layers is applied later, by `HostAgent` after
+Android is up, because doing it at first boot would break it: naming a Vulkan
+layer system-wide before its file exists stops the graphics services. So the
+daemon installs `libGLES_avo_profile.so` into `/data/local/debug/gles` and
+`libVkLayer_avo_profile.so` into `/data/local/debug/vulkan` at every boot
+that lacks them, emulated or not, and sets `debug.gles.layers` and
+`debug.vulkan.layers` only on a boot that began with the files in place: a
+process that started before the install would fail to create a Vulkan
+instance (`GuestGPUProfile`). The GLES
+layer answers an app's own `glGetString` with the profile's vendor, renderer
+and driver version instead of ANGLE's; the Vulkan layer reports the profile's
+GPU to an app's own Vulkan. Both leave SurfaceFlinger, HWUI, WebView and
+ANGLE's shared Vulkan instance untouched, so the on-screen picture is
+unchanged. Android hands a GLES layer only libEGL's own entries, and
+`libGLESv1_CM`'s `glGetString` (which Java's `GLES20` binds to) reads the
+driver straight from libEGL's dispatch tables, so the GLES layer swaps
+`glGetString` in those two tables on the app's first `eglMakeCurrent`
+(`guest/gpuprofile/src/gles_layer.c`).
+
+The profile's CPU (`hardware.cpu`: each cluster's MIDR and cpufreq table) is
+carried by the data model and shown in the Control Panel, but the engine does
+not present it to the guest yet — `/proc/cpuinfo` and `/sys/devices/system/cpu`
+still describe the host vCPUs. Setting the vCPU `MIDR_EL1` per cluster and
+populating the guest's `virtual-cpufreq` perf table from the profile is the
+remaining engine work for hardware emulation.
+
+**The host agent.** Cuttlefish has no Bridge Agent, so `HostAgent` in the
+daemon plays it over ADB (vsock 6520, root through `su` on userdebug):
+
+- a window is a scanout plugged at the window's size and Android's display
+  rate this boot (above); a task already on
+  Android's own screen moves there (`am display move-stack`), else the app
+  starts there like a launcher would;
+- resizing re-plugs the display at the new size (Android's composer ignores
+  mode changes of a connected display; Android 17 moves the tasks back).
+  A scanout is plugged again, by a re-plug or a new window, only once
+  SurfaceFlinger and DisplayManager have dropped its old display, not when
+  its EDID went: SurfaceFlinger crashed on a plug in between
+  (architecture.md, "Resolution and scaling");
+- touches go to the scanout's touchscreen, tied to its display by an IDC file
+  (`touch.displayId`); keys go to the engine's keyboard, or through
+  `input -d` when another display has Android's focus;
+- Android focuses one display at a time, so the window that becomes the
+  Mac's key window takes it (`FocusDisplay`), as a tap there would: games
+  pause their sound while their window is not focused. The Mac state helper
+  (guest/macstate, `focus-display`, run as the shell user) focuses the
+  display's top visible task (`IActivityTaskManager.setFocusedRootTask`);
+- the key window's game controller goes to the engine's gamepad, unless its
+  key mapping uses the gamepad in Game Mode; the gamepad's virtio driver
+  stays unbound (no gamepad in Android) while no controller drives it;
+- `am stack list` closes windows whose app ended (TaskClosed) and opens
+  windows for apps started by adb or other apps on Android's own screen
+  (TaskStarted);
+- clipboard both ways through `avo-clipboard.jar` (guest/clipboard, run with
+  `app_process` as the shell user), notifications from `cmd notification`,
+  the Mac's location (CoreLocation), or a place or route from an app
+  window's Location panel, as GNSS fixes (`LocationCenter`);
+- links apps open go to the Mac through Avo Links (guest/links, installed
+  when Android's copy differs, made the browser once per data disk): it logs
+  each link, the daemon follows its uid's lines (`logcat --uid`) and opens
+  http, https, mailto and tel links, and geo links as Apple Maps links, with
+  the Mac's default apps (`GuestLinkPolicy`; nothing else leaves Android);
+- ADB support (Settings › System) splices 127.0.0.1:5555 to adbd, so adb and
+  Android Studio see it as `emulator-5554` / `AVO_Droid`;
+- once per data disk: Wi-Fi on and joined to VirtWifi, media volume at full
+  (the Mac's volume sets how loud), Bluetooth and Thread off (no radios to
+  simulate them); every boot: UWB off (otherwise Android files a full bug
+  report for the missing radio), the audio HAL without the MMAP and offload
+  streams it only simulates and with 20 ms mixer periods ("Sound" above),
+  multi audio focus on (every app keeps audio focus when another asks for it,
+  as every window plays at once on a Mac; `HostAgent.shareAudioFocus`, kept
+  by Android across boots), and a bug report the A+B key
+  chord starts (init.cutf_cvm.rc) is stopped;
+- once Google apps are installed (their overlay makes /product keep
+  changes): Avo's system feature, `/product/etc/permissions/dev.avo.feature.mac.xml`
+  (`IdentityFeature`), written when it is missing or from another schema and
+  read by Android from the next start. The stock image's /product is
+  read-only under verified boot, so without Google apps only the
+  `ro.boot.avo.*` properties identify Avo.
+
+**Google apps** (Settings › Google Apps, "Bring your own GApps" in the spec). The
+user's own MindTheGapps package (a .zip or unzipped folder, which the Control
+Panel copies into `~/Library/Caches/Avo/gapps` since the daemon never reads
+Downloads or Documents, or a GitHub release the daemon downloads there and
+checks against the asset's SHA-256 `digest` or its `.sha256sum`) is installed
+as privileged system apps by `GoogleAppsInstaller`, with `HostAgent` doing the
+guest steps as root. The package's `build.prop` must match the guest
+(`arch` = `ro.bionic.arch`, `version` = SDK); its recovery installer never
+runs, but its rules apply (no VelvetTitan except on tangorpro, no Google
+SetupWizard so AOSP's Provision stays, no addon.d). Then:
+`avbctl disable-verity` and an engine restart when verity is on (the instance
+keeps a writable vbmeta copy, whose flags the engine reads at start);
+`remount`, with one more restart when it has just created the overlayfs
+scratch partition; `/mnt/scratch` remounted `async` (it is mounted `sync`,
+which turns a 700 MB copy into 20 minutes); the files pushed to
+`/data/local/tmp/avo-gapps` and copied into `/product` and `/system_ext` as
+root (root:root, 0755/0644, `restorecon`) by a script `GoogleAppsCommit`
+writes; a last restart, after which `pm list packages` must list Play
+services and the Play Store. Only then does Settings › Google services
+switch to "Bring your own GApps".
+
+The commit is safe to interrupt. It first lists every path it may add in
+`/product/etc/avo-gapps.files` (relative paths, synced before anything
+changes), then copies in the safest order: `etc` (privapp allowlists,
+sysconfig; extra allowlist entries are harmless, while a privileged app
+without one stops system_server under `ro.control_privapp_permissions=enforce`),
+then libraries, frameworks and other files, then the app folders. Each file
+and each new app folder is copied under `<partition>/.avo-new` and renamed
+into place (a new, upper-only folder renames fine with
+`redirect_dir=nofollow`); `#complete` ends the list. When the commit fails,
+the boot after it never gets ready, or Android does not list Google Play,
+the installer takes out every listed path again: through HostAgent when
+Android runs, else over a fresh adbd connection (`VMManager.rescueShell`;
+adbd is up while system_server loops, long before `sys.boot_completed`),
+using the overlay's upper folders if the partitions stay read-only; then
+Android restarts as it was and the pane says "Google apps were not
+installed; Android was restored". Every guest step has a time limit
+(`GoogleAppsInstaller.Limits`). While the install changes Android, Stop,
+Restart, Reset and Save Snapshot are refused (`GoogleAppsGuard`; Reset
+first stops an install that is still downloading); the menu bar's Stop and
+Quit offer "Stop Anyway"/"Quit Anyway". A commit the daemon does not see
+to its end (it quit, or Android was stopped anyway) is noted in
+`vm/google-apps-commit.json`; the next start keeps it when it is complete
+and Android lists Google Play, and takes it out otherwise.
+
+The overlay's scratch partition is an image on the data disk
+(`/data/gsi/remount`), so Reset Android takes Google apps away again
+(verity stays off) and sets Google services back to None.
+
+Which package fits is the Android version's: MindTheGapps keeps one GitHub
+repository per version and architecture (`MindTheGapps/17.0.0-arm64`, its
+`version_nice` and `arch`), so `GoogleAppsLine` maps Android's major version
+(or API level − 20) to it. Settings › Google Apps lists that line's releases
+for the Android that runs, or the one that starts next while Android is
+stopped (`GoogleAppsCatalog`: drafts, pre-releases and packages without a
+SHA-256 left out, newest first); the newest is the one to install, older
+ones and a package from a file are there too, and a link of one's own only
+under Advanced. The last listing of each line is kept in
+`~/Library/Caches/Avo/gapps-releases`: younger than 30 minutes it is used as
+it is, older it is asked for again with its ETag (a 304 does not count
+against GitHub's 60 requests an hour), and while GitHub can't be reached or
+refuses (403/429 with no requests left, or `Retry-After`) the pane shows it
+with the reason. A 404 means no package for that Android yet.
+
+Google apps fit only the Android version they were installed on: another
+version starts with verified boot on again, so their overlay stays unused.
+Once Android lists Google Play after an install the daemon notes the
+Android in `google-apps.json` beside the data disk (it travels with the
+data; Reset Android removes it; an install from before the record is noted
+when Android next lists them, or by the Control Panel when another version
+is chosen). With that record (`GoogleAppsSituation`) the pane says they
+stop working at the next restart, or that they are left over and Reset
+Android comes first, and the daemon refuses an install over them; while
+another version is chosen but not started yet, it asks for the restart
+first, since the install's own restarts would switch versions halfway. Progress reaches
+every Control Panel as `DaemonEvent.googleAppsProgress`; the pane also
+shows the GSF Android ID (gservices provider, else Play services'
+gservices.db, polled until Play services has checked in) to register at
+google.com/android/uncertified, which AOSP test-keys builds need before
+Google lets them sign in. A new data disk gets a new ID. The Play Store and
+the Google app are system apps, so Apps offers no Uninstall for them.
+
+Not there yet: camera (Cuttlefish's vsock camera protocol), Bluetooth,
+zero-copy GPU frames, microG.
+
+## Legacy: the crosvm contract
+
+Avo's original plan was a port of crosvm to macOS. avo-vmm replaced it, but
+the daemon still carries the contract it was written against, as a fallback
+when a bundle has no avo-vmm, and `EngineContractTests` keep it honest. The
+daemon (`CrosvmEngine` in AvoDaemonCore) spawns
 `Avo.app/Contents/MacOS/crosvm` and expects the following. The argument list is
 built by `CrosvmEngine.arguments(for:)` and covered by `EngineContractTests`.
 
@@ -64,44 +620,13 @@ IOSurface with Metal. Frames are never encoded.
 **Entitlements.** `com.apple.security.hypervisor`, hardened runtime,
 Developer ID signature, notarized with the app.
 
-## Porting crosvm to macOS
+## History
 
-| Area | Work |
-| --- | --- |
-| `hypervisor/src/hvf` | New backend implementing `Hypervisor`, `Vm`, `VmAArch64`, `Vcpu`, `VcpuAArch64` on Hypervisor.framework through a thin `-sys` crate. |
-| Memory | `hv_vm_map` with 16 KiB granules (the host page size); guest memory from `mach_vm_allocate`; dirty tracking for snapshots via write protection. |
-| vCPUs | HVF binds a vCPU to the thread that created it: one thread per vCPU running `hv_vcpu_run`. Exits: data aborts decoded from ESR (ISV, SAS, SRT, WnR) into MMIO; `HVC`/`SMC` for PSCI (CPU_ON, SYSTEM_OFF, SYSTEM_RESET); `WFI` parks the thread until an interrupt is pending; `VTIMER_ACTIVATED` raises the timer PPI. |
-| Interrupts | macOS 15's in-kernel GICv3 (`hv_gic_create`, `hv_gic_set_spi`) — the reason Avo requires macOS 15. Device tree generation in `aarch64/` describes it. |
-| `base`, `cros_async` | Extend the existing kqueue-based `sys/macos` to what devices need (event, wait contexts, shared memory). |
-| Devices | virtio-mmio transport; blk, console, input, balloon reused; vsock reimplemented in user space with the hybrid Unix socket (crosvm's Windows backend already does this over named pipes); virtio-snd CoreAudio backend. |
-| Graphics | gfxstream host on macOS: Vulkan through MoltenVK, GLES through gfxstream's GLES-on-Vulkan path; color buffers backed by IOSurface (`VK_EXT_metal_objects`) for zero-copy blits; per-display callback driving the XPC calls above. |
-| Main loop | `src/crosvm/sys/macos`: VM setup, vCPU threads, device worker threads, control socket. |
-
-### Milestones
-
-Code for the first two lives in [`engine/hvf`](../engine/hvf/README.md).
-
-1. **HVF crate** — *done*: create a VM, map memory, run a tiny AArch64 guest
-   that writes to MMIO and calls PSCI `SYSTEM_OFF`; `cargo test` runs it, signed
-   with the hypervisor entitlement by a cargo runner.
-2. **Linux to init** — *done for the kernel*: the Android 16 GKI kernel boots
-   on one vCPU with a generated device tree, HVF's in-kernel GICv3, the virtual
-   arch timer, PSCI over HVC and a minimal PL011 (earlycon), unpacks the
-   Android ramdisk and starts first-stage `init`, which loads its virtio
-   modules and then stops for lack of virtio devices. Remaining: SMP
-   (PSCI `CPU_ON`, one thread per vCPU), WFI sleeping until the timer deadline
-   instead of polling, and the console on virtio.
-3. **Android first stage**: virtio-blk partitions, `androidboot` parameters,
-   Cuttlefish-style fstab.
-4. **Headless Android**: vsock bridge; the daemon connects, Bridge Agent
-   answers Hello, ADB installs work — the Phase 1 gate ("APK di-install dari
-   Finder dan aplikasinya bisa dipakai") minus display.
-5. **Displays**: gfxstream on Metal, IOSurface swapchains, frames in App Shim windows.
-
-### Risks (from the spec)
-
-- gfxstream on Metal too slow for heavy games: measure from milestone 5 with
-  Genshin Impact, PUBG Mobile and Delta Force; keep Venus (virtio-gpu Vulkan)
-  through MoltenVK as the fallback path.
-- macOS updates changing HVF behaviour: run the HVF crate tests on macOS betas
-  in CI (self-hosted Apple Silicon runners).
+The specification ([spec.md](spec.md)) chose crosvm with a new
+Hypervisor.framework backend. The first milestones were built that way: the
+HVF crate in [`engine/hvf`](../engine/hvf/README.md) (VM, memory, vCPUs,
+in-kernel GICv3, PSCI) and a kernel boot to first-stage `init`. Instead of
+porting crosvm's device model and main loop, Avo grew those crates into
+avo-vmm, which implements the virtio devices Cuttlefish needs directly and
+boots the stock AOSP image. The HVF crate is unchanged in spirit and is still
+what avo-vmm runs on.
