@@ -127,15 +127,17 @@ test('support goes to the developer: one section with its channels', async () =>
     assert.match(html, /<section class="section support" id="support"/, page);
     assert.match(html, /<a href="[^"]*#support">/, `${page}: the menu links to it`);
   }
-  // No channel yet: said plainly.
-  assert.match(read('index.html'), /Support links are coming soon\./);
+  const home = read('index.html');
+  assert.match(home, /href="https:\/\/github\.com\/sponsors\/nizwar"/);
+  assert.match(home, /href="https:\/\/paypal\.me\/nizwar"/);
+  assert.match(home, /href="https:\/\/saweria\.co\/hangpuan"/);
+  assert.match(home, /Monthly or one-time · USD/);
+  assert.doesNotMatch(home, /streamKey/, 'no link that carries a key');
+  // No channel at all: said plainly.
   const dir = await mkdtemp(path.join(tmpdir(), 'avo-site-'));
   try {
-    const channel = { name: 'GitHub Sponsors', url: 'https://github.com/sponsors/nizwar', currency: 'USD', frequency: 'monthly-or-once' };
-    await build({ outDir: dir, quiet: true, overrides: { support: { channels: [channel] } } });
-    const html = readFileSync(path.join(dir, 'index.html'), 'utf8');
-    assert.match(html, /href="https:\/\/github\.com\/sponsors\/nizwar"/);
-    assert.match(html, /Monthly or one-time · USD/);
+    await build({ outDir: dir, quiet: true, overrides: { support: { channels: [] } } });
+    assert.match(readFileSync(path.join(dir, 'index.html'), 'utf8'), /Support links are coming soon\./);
   } finally {
     await rm(dir, { recursive: true, force: true });
   }

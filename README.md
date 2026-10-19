@@ -182,6 +182,18 @@ data is redacted), then open an
 [issue](https://github.com/nizwar/avo/issues) and attach it. Security issues:
 see [SECURITY.md](SECURITY.md).
 
+## Support Avo
+
+Avo is free, and built and maintained by one independent developer. If it is
+useful to you, you can support its development:
+
+- [GitHub Sponsors](https://github.com/sponsors/nizwar), monthly or once
+- [PayPal](https://paypal.me/nizwar)
+- [Saweria](https://saweria.co/hangpuan) (Indonesia)
+
+Support goes to the developer personally; it does not buy features or
+priority help.
+
 ## Contributing
 
 Contributions are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md).

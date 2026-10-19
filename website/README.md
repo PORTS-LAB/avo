@@ -91,7 +91,7 @@ For a custom domain, set it in Settings › Pages and set `siteUrl` to match.
 
 ## Checklist before going live
 
-- [ ] Support channels in `site.config.mjs` once their pages are live (GitHub Sponsors, Saweria)
+- [ ] GitHub Sponsors set up for the account the support link points to
 - [ ] Whether to show `maintainer.name`
 - [ ] `deploy/github-pages.yml` copied to `.github/workflows/`, Pages source set to GitHub Actions
 - [ ] When a release is published: `release.available`, `version`, `downloadUrl`
