@@ -104,7 +104,12 @@ resize. Minimising or fully covering a window tells the guest to
 detach the display's surface (the app keeps running, but stops rendering),
 except while the window is being recorded, so the movie does not freeze.
 Window frames are remembered per app. When the Android task finishes, the
-window closes; when the last window closes, the shim quits.
+window closes. Closing an app's last window (Close, ⌘W, Quit, or the shim
+going away) ends the app like a force stop: the shim quits, and the daemon
+force-stops the package before its display is unplugged
+(`DaemonCore.closeDisplay`). Unplugged first, the app's task would move to
+Android's own screen, where the task watch (`checkDefaultDisplay`) takes a
+known app's visible task for a new start and opens its window again.
 
 Frames: the engine renders each display into a small swapchain of IOSurfaces,
 hands them to the daemon once (`engineSetSurfaces`) and then only announces

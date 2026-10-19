@@ -4,7 +4,7 @@ All notable changes to Avo are listed here. Versions follow
 [Semantic Versioning](https://semver.org); preview builds carry a build
 number (`CFBundleVersion`) that only goes up.
 
-## 0.1.0 Preview 1 (build 32)
+## 0.1.0 Preview 1 (build 33)
 
 The first public preview, for testers. It is signed ad hoc and not
 notarized, so macOS asks you to confirm the first launch (System Settings ›
@@ -20,6 +20,8 @@ Privacy & Security › Open Anyway).
   on Hypervisor.framework with avo-vmm, Avo's own engine. The Setup Assistant
   downloads the image; Settings › System switches Android versions and keeps
   the previous one to go back to.
+- **Older Android versions** (15, 14 and 13) are listed under Older Versions;
+  they may not start on Apple silicon.
 - **Each Android version keeps its own data.** Changing versions never erases
   anything: you choose the data the new version uses (the data it had
   before, Android data in another folder, or new data in an empty folder),
@@ -65,12 +67,14 @@ Privacy & Security › Open Anyway).
 - A display re-plug no longer crashes SurfaceFlinger.
 - Android's Thread radio service no longer restarts every few seconds (the
   VM has no Thread radio).
+- Closing an app's last window ends the app (like a force stop), and its
+  window no longer opens again by itself (Google Play, Settings).
+- The Google apps install shows one realistic progress bar across its steps.
 - Menus and pop-up buttons in Settings, and the menu bar panel's position.
 
 ### Known issues
 
 - Preview builds do not update themselves; install a newer DMG over this one.
-- Sound can drop out for up to a second and then come back by itself.
 - Some games rate the VM as a low-end device. Delta Force, for example, draws
   flat terrain at its MAX preset; a lower preset looks right.
 - Camera and Bluetooth are not supported.
