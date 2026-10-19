@@ -26,6 +26,8 @@ final class SetupAssistant {
     }
 
     var isPresented = false
+    /// Its window is on screen (SetupWindow): asking to show stops there.
+    var windowOpen = false
     var step: Step = .welcome
     var selection: AndroidVersionRow.ID?
     /// Settings › Google Apps opens when the assistant closes (Google apps step).
@@ -93,9 +95,11 @@ struct SetupAssistantView: View {
     @State private var lastStep: SetupAssistant.Step = .welcome
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    static let size = CGSize(width: 880, height: 580)
+    static let size = CGSize(width: 960, height: 640)
     /// The hidden title bar's height (its safe area), part of `size`.
     static let titleBarInset: CGFloat = 32
+    /// Around a step's content, below the title bar and above the footer.
+    static let pageInsets = EdgeInsets(top: 18, leading: 44, bottom: 16, trailing: 44)
 
     var body: some View {
         ZStack {
@@ -108,24 +112,24 @@ struct SetupAssistantView: View {
                     VStack(alignment: .leading, spacing: 0) {
                         // Each step slides in from the side it comes from as the last one fades.
                         ZStack(alignment: .topLeading) {
-                            content
-                                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                            page
                                 .id(assistant.step)
                                 .transition(stepTransition)
                         }
                         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                         footer
+                            .padding(.horizontal, Self.pageInsets.leading)
+                            .padding(.bottom, 24)
                     }
-                    .padding(.top, 50)
-                    .padding(.horizontal, 44)
-                    .padding(.bottom, 24)
+                    // Below the hidden title bar: what scrolls never slides under it.
+                    .padding(.top, Self.titleBarInset)
                     .background(alignment: .topLeading) { SetupStepGlow(step: assistant.step) }
                 }
                 .transition(.opacity)
             }
         }
         // Fills its window. SwiftUI adds the hidden title bar's inset to the
-        // smallest window it makes for this view: 880 × 580, which the
+        // smallest window it makes for this view: 960 × 640, which the
         // Setup window keeps (SetupWindow).
         .frame(minWidth: Self.size.width, maxWidth: .infinity, minHeight: Self.size.height - Self.titleBarInset, maxHeight: .infinity)
         .background(Haze.windowBase)
@@ -165,13 +169,20 @@ struct SetupAssistantView: View {
         return .asymmetric(insertion: .opacity.combined(with: .offset(x: forward ? 36 : -36)), removal: .opacity)
     }
 
-    @ViewBuilder private var content: some View {
+    /// A step's page, between the title bar and the footer, which stays in
+    /// view: what is taller than the window (longer words in another
+    /// language, a failed download's message) scrolls. The Android step's
+    /// list scrolls by itself, in the height the rest leaves it.
+    @ViewBuilder private var page: some View {
         switch assistant.step {
         case .welcome: EmptyView()
-        case .android: AndroidStep()
-        case .permissions: PermissionsStep()
-        case .googleApps: GoogleAppsStep()
-        case .ready: ReadyStep()
+        case .android:
+            AndroidStep()
+                .padding(Self.pageInsets)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        case .permissions: SetupPage { PermissionsStep() }
+        case .googleApps: SetupPage { GoogleAppsStep() }
+        case .ready: SetupPage { ReadyStep() }
         }
     }
 
@@ -313,81 +324,95 @@ private struct WelcomeScreen: View {
             .scaleEffect(appeared || reduceMotion ? 1 : 0.92)
             .opacity(appeared ? 1 : 0)
             .animation(Haze.Motion.animation(.spring(response: 1.1, dampingFraction: 0.9), reduceMotion: reduceMotion), value: appeared)
+            // The dots keep to the bottom; what is above them scrolls if it
+            // is taller than the window (longer words in another language).
             VStack(spacing: 0) {
-                AvoGlowMark(size: 96, markSize: 70)
-                    .scaleEffect(appeared || reduceMotion ? 1 : 0.86)
-                    .opacity(appeared ? 1 : 0)
-                    .animation(Haze.Motion.animation(.spring(response: 0.6, dampingFraction: 0.75), reduceMotion: reduceMotion).delay(0.05),
-                               value: appeared)
-                Group {
-                    Text("Welcome to Avo")
-                        .textCase(.uppercase)
-                        .font(.hazeMono(11))
-                        .tracking(1.8)
-                        .foregroundStyle(Haze.running)
-                        .padding(.top, 24)
-                    Text("Android apps, at home on your Mac")
-                        .font(.hubot(36, 750))
-                        .tracking(-0.6)
-                        .multilineTextAlignment(.center)
-                        .hazeLineHeight(1.1, size: 36)
-                        .padding(.top, 10)
-                    Text("Avo runs Android in a light virtual machine on Apple silicon. Every app opens in its own Mac window, and games draw with your Mac’s GPU.")
-                        .font(.mona(15))
-                        .hazeParagraph(1.55, size: 15)
-                        .foregroundStyle(Haze.textSecondary)
-                        .multilineTextAlignment(.center)
-                        .frame(maxWidth: 540)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .padding(.top, 12)
+                ScrollView(.vertical) {
+                    welcome
+                        .frame(maxWidth: .infinity)
+                        .padding(.top, 46)
+                        .padding(.horizontal, 64)
+                        .padding(.bottom, 12)
                 }
-                .hazeEntrance(appeared, delay: 0.14, rise: 10)
-                HStack(alignment: .top, spacing: 14) {
-                    FeatureCard(symbol: "macwindow", tint: 0xD8E8A7, tintAlpha: 0.14, title: "Mac windows",
-                                text: "Each app gets its own window, Dock icon and shortcuts.")
-                        .hazeEntrance(appeared, delay: 0.24)
-                    FeatureCard(symbol: "gamecontroller", tint: 0xEAA970, tintAlpha: 0.16, title: "Made for games",
-                                text: "GPU rendering, MetalFX upscaling and key mapping.")
-                        .hazeEntrance(appeared, delay: 0.29)
-                    FeatureCard(symbol: "chevron.left.forwardslash.chevron.right", tint: 0xA9CFEE, tintAlpha: 0.14, title: "Open source",
-                                text: "Free to use, and built in the open.")
-                        .hazeEntrance(appeared, delay: 0.34)
-                }
-                .fixedSize(horizontal: false, vertical: true)
-                .padding(.top, 26)
-                HStack(spacing: 12) {
-                    Button { assistant.next() } label: {
-                        HStack(spacing: 10) {
-                            Text("Get Started")
-                            Image(systemName: "arrow.right").font(.system(size: 14, weight: .bold))
-                        }
-                    }
-                    .buttonStyle(HazeButtonStyle(kind: .primary, height: 48, fontSize: 15, horizontalPadding: 26))
-                    .shadow(color: Haze.accent.opacity(0.28), radius: 15, y: 10)
-                    .keyboardShortcut(.defaultAction)
-                    Button("Not Now") { assistant.isPresented = false }
-                        .buttonStyle(HazeLinkButtonStyle())
-                        .font(.mona(15))
-                        .foregroundStyle(Haze.textSecondary)
-                        .padding(.horizontal, 18)
-                        .frame(height: 48)
-                        .keyboardShortcut(.cancelAction)
-                }
-                .padding(.top, 28)
-                .hazeEntrance(appeared, delay: 0.42, rise: 8)
-                // A new Mac: Android's data from the old one, on a drive.
-                SetupCarriedDataButton()
-                    .padding(.top, 10)
-                    .hazeEntrance(appeared, delay: 0.48, rise: 6)
-                Spacer(minLength: 0)
+                .scrollBounceBehavior(.basedOnSize)
+                .scrollIndicators(.automatic)
                 StepDots(count: SetupAssistant.Step.allCases.count, current: 0)
+                    .padding(.top, 12)
+                    .padding(.bottom, 24)
             }
-            .padding(.top, 46)
-            .padding(.horizontal, 64)
-            .padding(.bottom, 24)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .onAppear { appeared = true }
+    }
+
+    private var welcome: some View {
+        VStack(spacing: 0) {
+            AvoGlowMark(size: 96, markSize: 70)
+                .scaleEffect(appeared || reduceMotion ? 1 : 0.86)
+                .opacity(appeared ? 1 : 0)
+                .animation(Haze.Motion.animation(.spring(response: 0.6, dampingFraction: 0.75), reduceMotion: reduceMotion).delay(0.05),
+                           value: appeared)
+            Group {
+                Text("Welcome to Avo")
+                    .textCase(.uppercase)
+                    .font(.hazeMono(11))
+                    .tracking(1.8)
+                    .foregroundStyle(Haze.running)
+                    .padding(.top, 24)
+                Text("Android apps, at home on your Mac")
+                    .font(.hubot(36, 750))
+                    .tracking(-0.6)
+                    .multilineTextAlignment(.center)
+                    .hazeLineHeight(1.1, size: 36)
+                    .padding(.top, 10)
+                Text("Avo runs Android in a light virtual machine on Apple silicon. Every app opens in its own Mac window, and games draw with your Mac’s GPU.")
+                    .font(.mona(15))
+                    .hazeParagraph(1.55, size: 15)
+                    .foregroundStyle(Haze.textSecondary)
+                    .multilineTextAlignment(.center)
+                    .frame(maxWidth: 540)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.top, 12)
+            }
+            .hazeEntrance(appeared, delay: 0.14, rise: 10)
+            HStack(alignment: .top, spacing: 14) {
+                FeatureCard(symbol: "macwindow", tint: 0xD8E8A7, tintAlpha: 0.14, title: "Mac windows",
+                            text: "Each app gets its own window, Dock icon and shortcuts.")
+                    .hazeEntrance(appeared, delay: 0.24)
+                FeatureCard(symbol: "gamecontroller", tint: 0xEAA970, tintAlpha: 0.16, title: "Made for games",
+                            text: "GPU rendering, MetalFX upscaling and key mapping.")
+                    .hazeEntrance(appeared, delay: 0.29)
+                FeatureCard(symbol: "chevron.left.forwardslash.chevron.right", tint: 0xA9CFEE, tintAlpha: 0.14, title: "Open source",
+                            text: "Free to use, and built in the open.")
+                    .hazeEntrance(appeared, delay: 0.34)
+            }
+            .fixedSize(horizontal: false, vertical: true)
+            .padding(.top, 26)
+            HStack(spacing: 12) {
+                Button { assistant.next() } label: {
+                    HStack(spacing: 10) {
+                        Text("Get Started")
+                        Image(systemName: "arrow.right").font(.system(size: 14, weight: .bold))
+                    }
+                }
+                .buttonStyle(HazeButtonStyle(kind: .primary, height: 48, fontSize: 15, horizontalPadding: 26))
+                .shadow(color: Haze.accent.opacity(0.28), radius: 15, y: 10)
+                .keyboardShortcut(.defaultAction)
+                Button("Not Now") { assistant.isPresented = false }
+                    .buttonStyle(HazeLinkButtonStyle())
+                    .font(.mona(15))
+                    .foregroundStyle(Haze.textSecondary)
+                    .padding(.horizontal, 18)
+                    .frame(height: 48)
+                    .keyboardShortcut(.cancelAction)
+            }
+            .padding(.top, 28)
+            .hazeEntrance(appeared, delay: 0.42, rise: 8)
+            // A new Mac: Android's data from the old one, on a drive.
+            SetupCarriedDataButton()
+                .padding(.top, 10)
+                .hazeEntrance(appeared, delay: 0.48, rise: 6)
+        }
     }
 }
 
@@ -624,23 +649,46 @@ private struct SetupStepGlow: View {
     let step: SetupAssistant.Step
 
     var body: some View {
-        // The window's glows, drawn over the content area (the rail has its own).
+        // The window's glows over the content area, from the window's top
+        // (the rail has its own). Ready's sits behind its ring (ReadyStep).
         GeometryReader { geometry in
+            let ring = ReadyStep.ringCenter(in: geometry.size)
             ZStack {
                 HazeBackground(glows: step == .ready
-                    ? [HazeGlow(x: .points(geometry.size.width * 0.79), y: .points(geometry.size.height * 0.44), rx: 420, ry: 360, color: 0xD8E8A7, alpha: 0.22),
-                       HazeGlow(x: .points(geometry.size.width * 0.99), y: .points(geometry.size.height * 0.06), rx: 240, ry: 170, color: 0xFBF8F1, alpha: 0.10)]
-                    : [HazeGlow(x: .points(geometry.size.width * 0.95), y: .points(-46), rx: 520, ry: 320, color: 0xD8E8A7, alpha: 0.20),
-                       HazeGlow(x: .points(geometry.size.width * 0.99), y: .points(35), rx: 240, ry: 170, color: 0xFBF8F1, alpha: 0.12),
-                       HazeGlow(x: .points(geometry.size.width * 0.2), y: .points(geometry.size.height * 1.12), rx: 420, ry: 300, color: 0xBCDC8F, alpha: 0.10)])
+                    ? [HazeGlow(x: .points(ring.x), y: .points(ring.y), rx: 400, ry: 340, color: 0xD8E8A7, alpha: 0.22),
+                       HazeGlow(x: .points(geometry.size.width * 1.04), y: .points(-8), rx: 240, ry: 170, color: 0xFBF8F1, alpha: 0.10)]
+                    : [HazeGlow(x: .points(geometry.size.width * 1.0), y: .points(-96), rx: 520, ry: 320, color: 0xD8E8A7, alpha: 0.20),
+                       HazeGlow(x: .points(geometry.size.width * 1.04), y: .points(-15), rx: 240, ry: 170, color: 0xFBF8F1, alpha: 0.12),
+                       HazeGlow(x: .points(geometry.size.width * 0.16), y: .points(geometry.size.height * 1.16), rx: 420, ry: 300, color: 0xBCDC8F, alpha: 0.10)])
                     .id(step == .ready)
                     .transition(.opacity)
             }
         }
-        .padding(.top, -50)
-        .padding(.horizontal, -44)
-        .padding(.bottom, -24)
         .allowsHitTesting(false)
+    }
+}
+
+/// A step's content, scrolling only when it is taller than the space it has,
+/// and fading out at the edges as it scrolls.
+private struct SetupPage<Content: View>: View {
+    @ViewBuilder var content: Content
+
+    var body: some View {
+        ScrollView(.vertical) {
+            content
+                .frame(maxWidth: .infinity, alignment: .topLeading)
+                .padding(SetupAssistantView.pageInsets)
+        }
+        .scrollBounceBehavior(.basedOnSize)
+        .scrollIndicators(.automatic)
+        // Within the insets: content at rest is never faded.
+        .mask {
+            VStack(spacing: 0) {
+                LinearGradient(colors: [.clear, .black], startPoint: .top, endPoint: .bottom).frame(height: 14)
+                Color.black
+                LinearGradient(colors: [.black, .clear], startPoint: .top, endPoint: .bottom).frame(height: 14)
+            }
+        }
     }
 }
 
@@ -710,7 +758,7 @@ private struct AndroidStep: View {
             } else if let carried = assistant.carriedData {
                 StepHeader(kicker: StepHeader.kicker(.android), title: Text("Choose Android for your data"),
                            subtitle: Text(carriedSubtitle(carried)))
-                AndroidVersionList(selection: $assistant.selection, maxCardsHeight: 196)
+                AndroidVersionList(selection: $assistant.selection, maxCardsHeight: .infinity)
                     .padding(.top, 24)
                 if let job = images.job {
                     AndroidImageJobView(job: job).padding(.top, 12)
@@ -724,7 +772,7 @@ private struct AndroidStep: View {
             } else {
                 StepHeader(kicker: StepHeader.kicker(.android), title: Text("Choose your Android"),
                            subtitle: Text("Avo downloads Android from Google’s public build servers: about 1 GB, 2 GB on disk. You can switch versions later in Settings."))
-                AndroidVersionList(selection: $assistant.selection, maxCardsHeight: 196)
+                AndroidVersionList(selection: $assistant.selection, maxCardsHeight: .infinity)
                     .padding(.top, 24)
                 if let job = images.job {
                     AndroidImageJobView(job: job).padding(.top, 12)
@@ -742,7 +790,10 @@ private struct AndroidStep: View {
         .onAppear {
             images.problem = nil
             if assistant.selection == nil { assistant.selection = images.defaultRow?.id }
+            dismissIfCancelled()
         }
+        // A download cancelled here goes back to the list as it was, without a card to dismiss.
+        .onChange(of: images.job?.phase) { _, _ in dismissIfCancelled() }
         .onChange(of: images.allRows.map(\.id)) { _, ids in
             if assistant.selection == nil || !ids.contains(assistant.selection ?? "") { assistant.selection = images.defaultRow?.id }
         }
@@ -751,6 +802,10 @@ private struct AndroidStep: View {
     private func isFailed(_ job: AndroidImageJob) -> Bool {
         if case .failed = job.phase { return true }
         return false
+    }
+
+    private func dismissIfCancelled() {
+        if case .cancelled? = images.job?.phase { images.dismissJob() }
     }
 
     /// What the carried data needs.
@@ -850,25 +905,37 @@ private struct ReadyStep: View {
     @Environment(AndroidImageManager.self) private var images
     @Environment(ControlPanelModel.self) private var model
 
+    /// The column on the left, the ring beside it: they never overlap.
+    static let columnWidth: CGFloat = 360
+    static let ringSize: CGFloat = 220
+    static let ringTop: CGFloat = 12
+
+    /// Where the ring's center is in the content area (its glow, SetupStepGlow).
+    static func ringCenter(in area: CGSize) -> CGPoint {
+        let insets = SetupAssistantView.pageInsets
+        return CGPoint(x: area.width - insets.trailing - ringSize / 2,
+                       y: SetupAssistantView.titleBarInset + insets.top + ringTop + ringSize / 2)
+    }
+
     var body: some View {
-        ZStack(alignment: .topLeading) {
-            if images.current != nil || waitingForImage {
-                BootRing(fraction: StartStages.fraction(status: model.status, needsRestart: needsRestart, waiting: waitingForImage),
-                         underWay: model.status.state == .starting || waitingForImage)
-                    .frame(width: 300, height: 300)
-                    .frame(maxWidth: .infinity, alignment: .trailing)
-                    .offset(x: 36 + 44, y: 46)
-            }
+        HStack(alignment: .top, spacing: 24) {
             VStack(alignment: .leading, spacing: 0) {
-                StepHeader(kicker: StepHeader.kicker(.ready), title: Text(headline), subtitle: Text(subtitle), subtitleWidth: 340)
+                StepHeader(kicker: StepHeader.kicker(.ready), title: Text(headline), subtitle: Text(subtitle), subtitleWidth: Self.columnWidth)
                 Group {
                     if let job = images.job, !job.isDone {
                         AndroidImageJobView(job: job)
-                            .frame(maxWidth: 360)
                     }
                     state
                 }
                 .padding(.top, 22)
+            }
+            .frame(maxWidth: Self.columnWidth, alignment: .leading)
+            if images.current != nil || waitingForImage {
+                Spacer(minLength: 0)
+                BootRing(fraction: StartStages.fraction(status: model.status, needsRestart: needsRestart, waiting: waitingForImage),
+                         underWay: model.status.state == .starting || waitingForImage)
+                    .frame(width: Self.ringSize, height: Self.ringSize)
+                    .padding(.top, Self.ringTop)
             }
         }
         .task(id: Readiness(path: images.current?.path, downloading: images.job?.isRunning == true || images.job?.canResume == true,

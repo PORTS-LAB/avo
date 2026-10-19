@@ -35,12 +35,18 @@ struct SetupWindow: View {
         }
         // Opened some other way than the assistant (a restored window): it
         // starts over, so Done and Not Now close it.
-        .onAppear { if !assistant.isPresented { assistant.show() } }
+        .onAppear {
+            assistant.windowOpen = true
+            if !assistant.isPresented { assistant.show() }
+        }
         .onChange(of: assistant.isPresented) { _, shown in
             if !shown { dismissWindow(id: Self.id) }
         }
         // Closed with its close button: put off until Help › Setup Assistant….
-        .onDisappear { assistant.isPresented = false }
+        .onDisappear {
+            assistant.windowOpen = false
+            assistant.isPresented = false
+        }
         .background { SetupWindowAccessor() }
     }
 }
@@ -67,7 +73,18 @@ private struct SetupAssistantPresenter: ViewModifier {
 
     func body(content: Content) -> some View {
         content.onChange(of: assistant.isPresented, initial: true) { _, shown in
-            if shown { openWindow(id: SetupWindow.id) }
+            guard shown, !assistant.windowOpen else { return }
+            openWindow(id: SetupWindow.id)
+            // At launch the Library's window is still being made: a request
+            // made then is dropped without a word (the assistant only showed
+            // once Settings opened). Asked again until its window is there.
+            Task { @MainActor in
+                for _ in 0..<12 {
+                    try? await Task.sleep(for: .milliseconds(250))
+                    guard assistant.isPresented, !assistant.windowOpen else { return }
+                    openWindow(id: SetupWindow.id)
+                }
+            }
         }
     }
 }

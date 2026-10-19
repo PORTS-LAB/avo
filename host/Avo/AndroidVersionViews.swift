@@ -109,10 +109,13 @@ struct AndroidVersionList: View {
     @Environment(AndroidImageManager.self) private var images
     @Environment(ControlPanelModel.self) private var model
     @Binding var selection: AndroidVersionRow.ID?
-    /// Taller lists scroll (the Setup Assistant shows two cards at a time).
+    /// Taller lists scroll. `.infinity`: as tall as the space around leaves
+    /// (the Setup Assistant, whose footer stays in view).
     var maxCardsHeight: CGFloat = 300
     @State private var chooseImage = false
     @State private var showOlder = false
+    /// The cards' own height: the list is never taller.
+    @State private var cardsHeight: CGFloat?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -123,10 +126,13 @@ struct AndroidVersionList: View {
                     olderVersions
                 }
                 .padding(2)
+                .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { cardsHeight = $0 }
             }
             .scrollIndicators(.automatic)
-            .frame(maxHeight: maxCardsHeight)
-            .fixedSize(horizontal: false, vertical: true)
+            .scrollBounceBehavior(.basedOnSize)
+            // As tall as the cards, up to maxCardsHeight; shorter (a card and
+            // a half at least) where the rest of the view needs the space.
+            .frame(minHeight: min(cardsHeight ?? 0, 132), maxHeight: min(cardsHeight ?? maxCardsHeight, maxCardsHeight))
             .accessibilityElement(children: .contain)
             .accessibilityLabel(Text("Android versions"))
             HStack(spacing: 10) {
@@ -477,10 +483,18 @@ struct AndroidImageJobView: View {
                     .accessibilityLabel(Text(title))
                     .accessibilityValue(Text((fraction ?? 0).formatted(.percent.precision(.fractionLength(0)))))
             }
-            HStack(spacing: 16) {
-                stats
-                Spacer(minLength: 8)
-                hazeButtons
+            // One line where it fits; else the buttons go under the numbers,
+            // so the card keeps the width it is given.
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 16) {
+                    stats
+                    Spacer(minLength: 8)
+                    hazeButtons
+                }
+                VStack(alignment: .leading, spacing: 10) {
+                    stats
+                    hazeButtons
+                }
             }
             .font(.mona(12.5))
             .foregroundStyle(Haze.textSecondary)
@@ -516,8 +530,8 @@ struct AndroidImageJobView: View {
                     Text("About \(Duration.seconds(left).formatted(.units(allowed: [.hours, .minutes, .seconds], width: .narrow, maximumUnitCount: 1))) left")
                 }
             }
+            // Its own width beside the buttons (ViewThatFits); under them, never wider than the card.
             .lineLimit(1)
-            .fixedSize()
             .monospacedDigit()
         default:
             Text(title).lineLimit(1)
