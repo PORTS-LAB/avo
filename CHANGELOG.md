@@ -4,7 +4,7 @@ All notable changes to Avo are listed here. Versions follow
 [Semantic Versioning](https://semver.org); preview builds carry a build
 number (`CFBundleVersion`) that only goes up.
 
-## 0.1.0 Preview 1 (build 34)
+## 0.1.0 Preview 1 (build 35)
 
 The first public preview, for testers. It is signed ad hoc and not
 notarized, so macOS asks you to confirm the first launch (System Settings ›
