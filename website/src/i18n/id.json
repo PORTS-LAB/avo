@@ -29,7 +29,7 @@
     "statusUnreleased": "Masih tahap awal, baru build pratinjau",
     "statusReleased": "Versi {version} sudah tersedia",
     "download": "Unduh untuk Mac",
-    "downloadMeta": "Gratis, untuk Mac dengan chip Apple",
+    "downloadMeta": "Pratinjau gratis · macOS 15 atau lebih baru · Apple silicon",
     "build": "Build sendiri",
     "watch": "Ikuti di GitHub",
     "unreleasedNote": "Baru ada build pratinjau untuk penguji. Ikuti Avo di GitHub supaya tahu kalau sudah siap."
@@ -226,7 +226,7 @@
     "q1": "Apakah Avo gratis?",
     "a1": "Ya. Tidak bayar, tidak ada iklan, dan tidak perlu bikin akun.",
     "q2": "Kapan bisa diunduh?",
-    "a2": "Build pratinjau untuk penguji ada di <a href=\"{github}/releases\">GitHub Releases</a>. Avo masih di tahap awal, jadi wajar kalau masih ada kekurangan.",
+    "a2": "Sekarang, sebagai pratinjau: pakai tombol unduh, atau ambil dari <a href=\"{github}/releases\">GitHub Releases</a>. Avo belum dinotarisasi, jadi saat pertama kali dibuka, masuk ke Pengaturan Sistem › Privasi & Keamanan lalu klik Tetap Buka.",
     "q3": "Apakah semua game bisa jalan?",
     "a3": "Masih kami uji. Beberapa game online memblokir program seperti Avo, dan Avo tidak akan mencoba mengakalinya.",
     "q4": "Bisa pakai Google Play?",

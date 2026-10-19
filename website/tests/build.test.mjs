@@ -104,10 +104,21 @@ test('screenshots: AVIF and WebP with a JPEG fallback, translated alt text, lazy
 });
 
 test('the unreleased state is honest; a release shows the download', async () => {
+  // The published build: the button downloads the disk image itself.
   const home = read('index.html');
-  assert.match(home, /preview builds only/);
-  assert.match(home, /Follow on GitHub/);
-  assert.doesNotMatch(home, /Download for Mac/);
+  assert.match(home, /Download for Mac/);
+  assert.match(home, /href="https:\/\/github\.com\/nizwar\/avo\/releases\/download\/v[^"]+\.dmg"/);
+
+  const unreleased = await mkdtemp(path.join(tmpdir(), 'avo-site-'));
+  try {
+    await build({ outDir: unreleased, quiet: true, overrides: { release: { available: false } } });
+    const html = readFileSync(path.join(unreleased, 'index.html'), 'utf8');
+    assert.match(html, /preview builds only/);
+    assert.match(html, /Follow on GitHub/);
+    assert.doesNotMatch(html, /Download for Mac/);
+  } finally {
+    await rm(unreleased, { recursive: true, force: true });
+  }
 
   const dir = await mkdtemp(path.join(tmpdir(), 'avo-site-'));
   try {

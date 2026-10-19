@@ -29,7 +29,7 @@
     "statusUnreleased": "Early development: preview builds only",
     "statusReleased": "Version {version} is out",
     "download": "Download for Mac",
-    "downloadMeta": "Free, for Macs with Apple chips",
+    "downloadMeta": "Free preview · macOS 15 or newer · Apple silicon",
     "build": "Build it yourself",
     "watch": "Follow on GitHub",
     "unreleasedNote": "Only preview builds for testers so far. Follow Avo on GitHub to hear when it's ready."
@@ -226,7 +226,7 @@
     "q1": "Is Avo free?",
     "a1": "Yes. No price, no ads and no account needed.",
     "q2": "When can I download it?",
-    "a2": "Preview builds for testers are on <a href=\"{github}/releases\">GitHub Releases</a>. Avo is still in early development, so expect rough edges.",
+    "a2": "Now, as a preview: use the download button, or get it from <a href=\"{github}/releases\">GitHub Releases</a>. It isn’t notarized yet, so the first time you open it, go to System Settings › Privacy & Security and click Open Anyway.",
     "q3": "Will all my games work?",
     "a3": "We're still testing. Some online games block programs like Avo, and Avo won't try to get around that.",
     "q4": "Can I use Google Play?",
