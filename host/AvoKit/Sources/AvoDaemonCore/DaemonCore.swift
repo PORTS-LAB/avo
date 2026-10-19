@@ -1265,9 +1265,19 @@ public actor DaemonCore {
     }
 
     public func closeDisplay(_ id: UInt32, client: ClientID) async {
-        guard ownedDisplay(id, by: client) != nil else { return }
+        guard let display = ownedDisplay(id, by: client) else { return }
         displays[id] = nil
         usageWindowClosed(id)
+        // Closing an app's last window ends the app (Close, ⌘W, Quit, or the
+        // shim going away), as a force stop does. Before its display goes:
+        // unplugged first, the app's task would land on Android's own screen,
+        // which the task watch takes for a new start, opening the window again.
+        if !displays.values.contains(where: { $0.package == display.package }) {
+            var stop = Avo_V1_ForceStop()
+            stop.package = display.package
+            _ = try? await vm.controlSession().request(.forceStop(stop))
+            runningPackages.remove(display.package)
+        }
         var request = Avo_V1_Close()
         request.displayID = id
         _ = try? await vm.controlSession().request(.close(request))

@@ -108,8 +108,11 @@ final class ShimAppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidati
     /// when Android ended the app (Back on its first screen) does it leave.
     func windowClosed(_ controller: AndroidWindowController, byGuest: Bool) {
         windows.removeAll { $0 === controller }
-        if windows.isEmpty && byGuest {
-            appEnded = true
+        // The last window closing ends the app, by Android or by the user
+        // (Close, ⌘W): it quits, and the daemon force-stops it in Android
+        // (DaemonCore.closeDisplay; quitting asks for the stop as well).
+        if windows.isEmpty {
+            appEnded = byGuest
             NSApp.terminate(nil)
         }
     }

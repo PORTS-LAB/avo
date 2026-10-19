@@ -204,9 +204,19 @@ struct Harness {
         #expect(await harness.engine.input.records.first == .touch(TouchEvent(displayID: display, action: .down,
                                                                               pointers: [TouchPointer(id: 0, x: 1, y: 2)])))
 
-        // Quitting the shim closes its display in Android.
+        // Quitting the shim closes its display in Android, and its last
+        // window closing ends the app, before the display goes (else its task
+        // lands on Android's own screen and the window opens again).
         await harness.core.disconnect(shim)
         #expect(await eventually { await harness.agent.requests { if case .close(let c) = $0 { c.displayID } else { nil } } == [display] })
+        let order = await harness.agent.requests { request -> String? in
+            switch request {
+            case .forceStop(let stop): "stop \(stop.package)"
+            case .close: "close"
+            default: nil
+            }
+        }
+        #expect(order == ["stop org.fdroid.fdroid", "close"])
     }
 
     @Test func guestEventsReachTheMac() async throws {
