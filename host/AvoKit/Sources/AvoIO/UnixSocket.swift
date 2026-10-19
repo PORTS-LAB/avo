@@ -52,6 +52,9 @@ public enum UnixSocket {
     public static func pair() throws -> (Int32, Int32) {
         var fds: [Int32] = [0, 0]
         guard socketpair(AF_UNIX, SOCK_STREAM, 0, &fds) == 0 else { throw IOError.errno("socketpair") }
+        // A write to an end whose peer closed fails with EPIPE instead of killing the process.
+        FileDescriptorStream.disableSIGPIPE(fds[0])
+        FileDescriptorStream.disableSIGPIPE(fds[1])
         return (fds[0], fds[1])
     }
 

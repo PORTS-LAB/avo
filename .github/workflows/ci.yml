@@ -11,6 +11,12 @@ jobs:
     runs-on: macos-26
     steps:
       - uses: actions/checkout@v5
+      # The newest Xcode on the runner: its Swift build system compiles the
+      # String Catalogs into the package's resource bundle (the Indonesian
+      # strings the tests check), as Xcode 27 does locally.
+      - uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
       - name: Core tests
         run: cd host/AvoKit && swift test
       - name: Build Avo.app
