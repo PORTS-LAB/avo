@@ -81,19 +81,18 @@ node tools/screenshots.mjs --out /tmp/avo-shots [--only home-en] [--views deskto
 
 ## Deploy
 
-1. Fill in `site.config.mjs` and check with `npm run build:strict`.
-2. Copy `deploy/github-pages.yml` to `.github/workflows/website.yml`.
-3. In the repository's Settings › Pages, choose **GitHub Actions** as the
-   source. Every push to `main` that touches `website/` runs the tests, builds
-   with `--strict` and publishes `website/dist`.
+The site is published on GitHub Pages at https://nizwar.github.io/avo by
+`.github/workflows/website.yml` (a copy is in `deploy/github-pages.yml`):
+every push to `main` that touches `website/` runs the tests, builds with
+`--strict` and publishes `website/dist`. The repository's Settings › Pages
+source is **GitHub Actions**. Check with `npm run build:strict` before
+pushing.
 
 For a custom domain, set it in Settings › Pages and set `siteUrl` to match.
 
 ## Checklist before going live
 
-- [ ] GitHub Sponsors set up for the account the support link points to
 - [ ] Whether to show `maintainer.name`
-- [ ] `deploy/github-pages.yml` copied to `.github/workflows/`, Pages source set to GitHub Actions
 - [ ] When a release is published: `release.available`, `version`, `downloadUrl`
 
 ## Licenses
