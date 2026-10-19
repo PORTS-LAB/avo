@@ -63,7 +63,60 @@
     "shotKeysLabel": "Setting up keys",
     "shotKeysText": "Add a key, drag it onto a button, then press the key you want to use. Templates get you started.",
     "shotKeysAlt": "Avo's key editor over a game's lobby: a toolbar with Add Control and Templates, and key labels such as W, A, S, D, Q, E and the mouse buttons placed on the game's buttons.",
-    "shotNote": "Player names and account numbers in these screenshots are blurred."
+    "shotNote": "Player names and account numbers in these screenshots are blurred.",
+    "showcaseLabel": "Game screenshots",
+    "hint": "Point at a key label, or tap it, to see what it does."
+  },
+  "hotspots": {
+    "playMove": {
+      "key": "W A S D",
+      "text": "Move. The four keys push the game's on-screen stick."
+    },
+    "playLook": {
+      "key": "Mouse look",
+      "text": "Move the mouse to look around, as far as you like. One key frees the pointer and takes it back."
+    },
+    "playFire": {
+      "key": "L-Click",
+      "text": "The left mouse button fires, holding the game's button for as long as you hold it. Avo adds no rapid fire."
+    },
+    "playJump": {
+      "key": "Space",
+      "text": "Each key presses the game button under it: Space jumps, C crouches, R reloads."
+    },
+    "playFps": {
+      "key": "Frame rate",
+      "text": "See how smoothly the game runs, right in the corner."
+    },
+    "keysAdd": {
+      "key": "Add Control",
+      "text": "Adds a new key. Drag it onto the game's button."
+    },
+    "keysTemplates": {
+      "key": "Templates",
+      "text": "Start from a ready-made layout for shooters, MOBAs or racing games."
+    },
+    "keysKey": {
+      "key": "Q",
+      "text": "Select a key, then press the key you want. Drag to move it, use the corner to resize it, and × to remove it."
+    },
+    "keysLook": {
+      "key": "Mouse look",
+      "text": "The box is where the mouse swipes to turn the camera. Drag its edges to fit the game."
+    },
+    "keysPad": {
+      "key": "D-pad",
+      "text": "Four keys on one stick. A controller's d-pad can push it too."
+    },
+    "keysMouse": {
+      "key": "R-Click",
+      "text": "With a key selected, right-click to choose a mouse button or the scroll wheel instead."
+    }
+  },
+  "ui": {
+    "zoom": "Enlarge screenshot",
+    "close": "Close",
+    "lightbox": "Enlarged screenshot"
   },
   "mac": {
     "kicker": "On your Mac",

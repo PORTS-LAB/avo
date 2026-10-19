@@ -63,7 +63,60 @@
     "shotKeysLabel": "Mengatur tombol",
     "shotKeysText": "Tambahkan tombol, seret ke atas tombol game, lalu tekan tombol keyboard yang mau dipakai. Template membantu kamu mulai.",
     "shotKeysAlt": "Editor tombol Avo di atas lobi sebuah game: bilah alat dengan Add Control dan Templates, serta label tombol seperti W, A, S, D, Q, E, dan tombol mouse di atas tombol-tombol game.",
-    "shotNote": "Nama pemain dan nomor akun di tangkapan layar ini diburamkan."
+    "shotNote": "Nama pemain dan nomor akun di tangkapan layar ini diburamkan.",
+    "showcaseLabel": "Tangkapan layar game",
+    "hint": "Arahkan kursor ke label tombol, atau ketuk, untuk melihat fungsinya."
+  },
+  "hotspots": {
+    "playMove": {
+      "key": "W A S D",
+      "text": "Bergerak. Keempat tombol ini mendorong stik di layar game."
+    },
+    "playLook": {
+      "key": "Lihat pakai mouse",
+      "text": "Gerakkan mouse untuk melihat sekeliling sejauh yang kamu mau. Satu tombol melepas pointer dan mengambilnya kembali."
+    },
+    "playFire": {
+      "key": "L-Click",
+      "text": "Klik kiri untuk menembak: tombol game ditahan selama kamu menahan klik. Avo tidak menambah tembakan otomatis."
+    },
+    "playJump": {
+      "key": "Space",
+      "text": "Setiap tombol menekan tombol game di bawahnya: Space untuk lompat, C untuk jongkok, R untuk isi ulang."
+    },
+    "playFps": {
+      "key": "Frame rate",
+      "text": "Lihat seberapa mulus game berjalan, langsung di pojok layar."
+    },
+    "keysAdd": {
+      "key": "Add Control",
+      "text": "Menambah tombol baru. Seret ke atas tombol game."
+    },
+    "keysTemplates": {
+      "key": "Templates",
+      "text": "Mulai dari tata letak siap pakai untuk game tembak-tembakan, MOBA, atau balap."
+    },
+    "keysKey": {
+      "key": "Q",
+      "text": "Pilih sebuah tombol, lalu tekan tombol keyboard yang kamu mau. Seret untuk memindahkan, tarik sudutnya untuk mengubah ukuran, dan klik × untuk menghapus."
+    },
+    "keysLook": {
+      "key": "Lihat pakai mouse",
+      "text": "Kotak ini area tempat mouse menggeser untuk memutar kamera. Seret tepinya agar pas dengan game."
+    },
+    "keysPad": {
+      "key": "D-pad",
+      "text": "Empat tombol dalam satu stik. D-pad controller juga bisa menggerakkannya."
+    },
+    "keysMouse": {
+      "key": "R-Click",
+      "text": "Saat sebuah tombol dipilih, klik kanan untuk memakai tombol mouse atau roda gulir."
+    }
+  },
+  "ui": {
+    "zoom": "Perbesar tangkapan layar",
+    "close": "Tutup",
+    "lightbox": "Tangkapan layar yang diperbesar"
   },
   "mac": {
     "kicker": "Di Mac kamu",

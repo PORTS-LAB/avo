@@ -16,7 +16,8 @@ website/
 │   ├── partials/            head, header, footer, SVG sprite
 │   ├── i18n/en.json, id.json  All wording, English and Indonesian (same keys; the build checks)
 │   └── assets/              css/site.css, css/fonts/ (one file per typeface set), js/ (site
-│                            behaviour, WebGL haze), fonts/ (one folder per family, each with
+│                            behaviour, pointer motion, games showcase, tabs, click to zoom,
+│                            WebGL haze), fonts/ (one folder per family, each with
 │                            its OFL.txt), img/ (Avo mark and icon from branding/, favicons, og/,
 │                            screens/: screenshots of Avo in AVIF, WebP and JPEG at 640 px and
 │                            full width, with player names and device IDs blurred)

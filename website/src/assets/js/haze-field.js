@@ -2,7 +2,8 @@
 // resolution (smoke is soft, so a fraction of the pixels is enough). It draws
 // one still frame when the visitor prefers reduced motion, pauses when off
 // screen or in a background tab, and leaves the CSS gradient underneath in
-// place when WebGL is not available.
+// place when WebGL is not available. Given a `pointer` ({ x, y } from 0 to 1
+// across the canvas, y up, and `active`), the light leans slowly toward it.
 
 const VERTEX = `
 attribute vec2 aPos;
@@ -127,7 +128,7 @@ function compile(gl, type, source) {
  * Starts the haze on a canvas. Returns a function that stops it, or null
  * when WebGL is not available (the CSS background then stays as it is).
  */
-export function mountHaze(canvas, presetName, { reduceMotion } = {}) {
+export function mountHaze(canvas, presetName, { reduceMotion, pointer } = {}) {
   const preset = PRESETS[presetName] || PRESETS.hero;
   let gl;
   try {
@@ -165,6 +166,11 @@ export function mountHaze(canvas, presetName, { reduceMotion } = {}) {
   gl.uniform3fv(u('uSmoke'), preset.smoke);
   gl.uniform1f(u('uDensity'), preset.density);
 
+  // Where the light rests, and where it is now (it eases toward the pointer).
+  let rest = preset.sun;
+  const sun = [...preset.sun];
+  const LEAN = 0.16;
+
   const small = window.matchMedia('(max-width: 760px)').matches;
   const scale = small ? 0.33 : 0.4;
   const maxPixels = 520_000;
@@ -189,7 +195,10 @@ export function mountHaze(canvas, presetName, { reduceMotion } = {}) {
     gl.uniform2f(uRes, w, h);
     // On a tall, narrow screen the text sits on top: keep the light lower and softer.
     const portrait = h > w * 1.1;
-    gl.uniform2fv(uSun, portrait && preset.sunPortrait ? preset.sunPortrait : preset.sun);
+    rest = portrait && preset.sunPortrait ? preset.sunPortrait : preset.sun;
+    sun[0] = rest[0];
+    sun[1] = rest[1];
+    gl.uniform2fv(uSun, sun);
     gl.uniform1f(uGlow, portrait ? preset.glow * 0.62 : preset.glow);
     return true;
   }
@@ -202,6 +211,12 @@ export function mountHaze(canvas, presetName, { reduceMotion } = {}) {
   let running = false;
 
   function draw(now) {
+    if (pointer) {
+      const lean = pointer.active ? LEAN : 0;
+      sun[0] += (rest[0] + (pointer.x - rest[0]) * lean - sun[0]) * 0.05;
+      sun[1] += (rest[1] + (pointer.y - rest[1]) * lean - sun[1]) * 0.05;
+      gl.uniform2fv(uSun, sun);
+    }
     gl.uniform1f(uTime, (now - start) / 1000);
     gl.drawArrays(gl.TRIANGLES, 0, 3);
     if (!canvas.classList.contains('is-ready')) canvas.classList.add('is-ready');

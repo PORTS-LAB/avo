@@ -1,9 +1,14 @@
-// Every page: the header and menu, the haze, gentle reveals, and (on the home
-// page) the settings tour's tabs.
+// Every page: the header and menu, the haze, reveals on scroll and motion
+// that follows the pointer; on the home page also the games showcase, the
+// settings tour's tabs and click to zoom on screenshots.
 // Nothing here is required to read the site; without JavaScript the content
 // is all there.
 
 import { mountHaze } from './haze-field.js';
+import { setupLightbox } from './lightbox.js';
+import { setupMotion } from './motion.js';
+import { setupShowcase } from './showcase.js';
+import { makeTabs } from './tabs.js';
 
 const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
 
@@ -69,113 +74,89 @@ function setupCurrentSection() {
   for (const target of map.keys()) io.observe(target);
 }
 
+/**
+ * Scroll reveals: what is below the fold rises and fades in as it arrives.
+ * Things that arrive together come in one after another, top to bottom and
+ * left to right. Nothing already on screen is hidden, and nothing moves for
+ * visitors who prefer reduced motion.
+ */
 function setupReveal() {
   if (reduceMotion.matches || !('IntersectionObserver' in window)) return;
   const selector = [
-    '.section-head', '.feature', '.tile', '.steps li', '.art', '.req-list > div', '.faq-list',
-    '.channels-block', '.plain-list li', '.also', '.tour-gallery',
+    '.section-head > *', '.feature-card', '.tile', '.steps li', '.showcase', '.req-list > div', '.faq-list',
+    '.channels-block', '.plain-list li', '.also', '.tour-gallery', '.status-note', '.more-link', '.dev-grid .cta-row',
   ].join(',');
   const io = new IntersectionObserver(
     (entries) => {
-      for (const entry of entries) {
-        if (!entry.isIntersecting) continue;
-        entry.target.classList.add('reveal-in');
-        entry.target.classList.remove('reveal-pending');
-        io.unobserve(entry.target);
-      }
+      const arriving = entries
+        .filter((entry) => entry.isIntersecting)
+        .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top || a.boundingClientRect.left - b.boundingClientRect.left);
+      arriving.forEach((entry, i) => {
+        const el = entry.target;
+        el.style.setProperty('--reveal-delay', `${Math.min(i, 6) * 85}ms`);
+        el.classList.add('reveal-in');
+        el.classList.remove('reveal-pending');
+        io.unobserve(el);
+      });
     },
-    { rootMargin: '0px 0px -6% 0px', threshold: 0.06 },
+    { rootMargin: '0px 0px -8% 0px', threshold: 0.08 },
   );
   const fold = window.innerHeight * 0.9;
-  const groups = new Map();
   for (const el of document.querySelectorAll(selector)) {
     // Never hide what is already on screen.
     if (el.getBoundingClientRect().top < fold) continue;
-    const index = groups.get(el.parentElement) ?? 0;
-    groups.set(el.parentElement, index + 1);
-    el.style.transitionDelay = `${Math.min(index, 5) * 70}ms`;
     el.classList.add('reveal-pending');
     io.observe(el);
   }
 }
 
 /**
+ * Looping animations (the recording dot, the hotspots' pulse) pause while
+ * their section is off screen.
+ */
+function setupOffscreenPause() {
+  if (!('IntersectionObserver' in window)) return;
+  const io = new IntersectionObserver(
+    (entries) => {
+      for (const entry of entries) entry.target.classList.toggle('is-offscreen', !entry.isIntersecting);
+    },
+    { rootMargin: '100px 0px' },
+  );
+  for (const section of document.querySelectorAll('.hero, .section')) io.observe(section);
+}
+
+/**
  * The settings tour: without JavaScript every screenshot is shown with its
- * caption. Here the captions become tabs (WAI-ARIA tabs pattern: arrow keys,
- * Home and End move between them) beside one large screenshot.
+ * caption. Here the captions become tabs beside one large screenshot, and the
+ * screenshots cross-fade, moving the way the list moves.
  */
 function setupTour() {
   const tour = document.querySelector('[data-tour]');
   const items = tour ? [...tour.querySelectorAll('[data-tour-item]')] : [];
   if (items.length < 2) return;
 
-  const list = document.createElement('div');
-  list.className = 'tour-tabs';
-  list.setAttribute('role', 'tablist');
-  list.setAttribute('aria-label', tour.dataset.tourLabel || '');
-  const tabs = items.map((item) => {
-    const tab = document.createElement('button');
-    tab.type = 'button';
-    tab.className = 'tour-tab';
-    tab.id = `${item.id}-tab`;
-    tab.setAttribute('role', 'tab');
-    tab.setAttribute('aria-controls', item.id);
-    const title = document.createElement('span');
-    title.className = 'tour-tab-title';
-    title.id = `${item.id}-tab-title`;
-    title.textContent = item.querySelector('h3')?.textContent ?? '';
-    tab.append(title);
-    tab.setAttribute('aria-labelledby', title.id);
-    const caption = item.querySelector('figcaption p');
-    if (caption) {
-      const text = document.createElement('span');
-      text.className = 'tour-tab-text';
-      text.id = `${item.id}-tab-text`;
-      text.textContent = caption.textContent;
-      tab.append(text);
-      tab.setAttribute('aria-describedby', text.id);
-    }
-    item.setAttribute('role', 'tabpanel');
-    item.setAttribute('aria-labelledby', tab.id);
-    item.tabIndex = 0;
-    return tab;
+  const tabs = makeTabs({
+    items,
+    label: tour.dataset.tourLabel,
+    prefix: 'tour',
+    titleOf: (item) => item.querySelector('h3')?.textContent ?? '',
+    textOf: (item) => item.querySelector('figcaption p')?.textContent ?? '',
+    animate: () => !reduceMotion.matches,
+    onSelect(index) {
+      items.forEach((item, i) => {
+        const on = i === index;
+        item.classList.toggle('is-off', !on);
+        // Screens above the chosen one wait above it, the others below.
+        item.style.setProperty('--off', i < index ? '-1' : '1');
+        item.inert = !on;
+        item.setAttribute('aria-hidden', String(!on));
+      });
+    },
   });
-
-  const select = (index, focus = false) => {
-    tabs.forEach((tab, i) => {
-      const on = i === index;
-      tab.setAttribute('aria-selected', String(on));
-      tab.tabIndex = on ? 0 : -1;
-      items[i].hidden = !on;
-    });
-    if (focus) tabs[index].focus();
-  };
-  list.addEventListener('click', (event) => {
-    const tab = event.target.closest('[role="tab"]');
-    if (tab) select(tabs.indexOf(tab));
-  });
-  list.addEventListener('keydown', (event) => {
-    const current = tabs.indexOf(document.activeElement);
-    if (current < 0) return;
-    const last = tabs.length - 1;
-    const next = {
-      ArrowRight: current === last ? 0 : current + 1,
-      ArrowDown: current === last ? 0 : current + 1,
-      ArrowLeft: current === 0 ? last : current - 1,
-      ArrowUp: current === 0 ? last : current - 1,
-      Home: 0,
-      End: last,
-    }[event.key];
-    if (next === undefined) return;
-    event.preventDefault();
-    select(next, true);
-  });
-
-  list.append(...tabs);
-  tour.prepend(list);
+  tour.prepend(tabs.list);
   tour.classList.add('is-tabbed');
   const linked = items.findIndex((item) => `#${item.id}` === window.location.hash);
-  select(linked >= 0 ? linked : 0);
+  tabs.select(linked >= 0 ? linked : 0);
 
   // Hidden panels would only start loading when chosen: fetch them early.
   const warm = () => {
@@ -194,18 +175,27 @@ function setupTour() {
   io.observe(tour);
 }
 
+// Where the pointer is over the hero, for the haze's light (motion.js fills it in).
+const hazePointer = { x: 0.5, y: 0.5, active: false };
+
 function setupHaze() {
   for (const canvas of document.querySelectorAll('canvas[data-haze]')) {
     try {
-      mountHaze(canvas, canvas.dataset.haze, { reduceMotion });
+      mountHaze(canvas, canvas.dataset.haze, { reduceMotion, pointer: canvas.closest('[data-hero]') ? hazePointer : null });
     } catch {
       // The CSS background stays.
     }
   }
 }
 
+// Layout changes first (tabs, the stacked showcase), so the reveals measure
+// the page as it will stay.
 setupHeader();
 setupCurrentSection();
 setupTour();
+setupShowcase({ reduceMotion });
+setupLightbox({ reduceMotion });
 setupHaze();
 setupReveal();
+setupOffscreenPause();
+setupMotion({ reduceMotion, hazePointer });

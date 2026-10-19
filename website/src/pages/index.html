@@ -8,9 +8,10 @@
 {{> header}}
 <main id="main">
 
-  <section class="hero" aria-labelledby="hero-title">
+  <section class="hero" aria-labelledby="hero-title" data-hero>
     <div class="hero-sky" aria-hidden="true"></div>
     <canvas class="haze-canvas" data-haze="hero" aria-hidden="true"></canvas>
+    <div class="hero-fx" aria-hidden="true"><div class="hero-light"></div></div>
     <div class="wrap hero-grid">
       <div class="hero-copy">
         {{h:releasePill}}
@@ -27,7 +28,7 @@
       </div>
 
       <div class="hero-visual">
-        <div class="shot shot-library hero-shot">
+        <div class="shot shot-library hero-shot" data-zoom>
           <picture>
             <source type="image/avif" srcset="{{v:root}}assets/img/screens/library-640.avif 640w, {{v:root}}assets/img/screens/library-1080.avif 1080w" sizes="(max-width: 1080px) min(92vw, 720px), 600px">
             <source type="image/webp" srcset="{{v:root}}assets/img/screens/library-640.webp 640w, {{v:root}}assets/img/screens/library-1080.webp 1080w" sizes="(max-width: 1080px) min(92vw, 720px), 600px">
@@ -47,39 +48,95 @@
         <p class="lede">{{t:games.lede}}</p>
       </header>
 
-      <div class="split split-art-left">
-        <div class="art art-shots">
-          <figure class="shot-figure">
-            <div class="shot shot-game">
-              <picture>
-                <source type="image/avif" srcset="{{v:root}}assets/img/screens/game-play-640.avif 640w, {{v:root}}assets/img/screens/game-play-1309.avif 1309w" sizes="(max-width: 1080px) min(92vw, 720px), 600px">
-                <source type="image/webp" srcset="{{v:root}}assets/img/screens/game-play-640.webp 640w, {{v:root}}assets/img/screens/game-play-1309.webp 1309w" sizes="(max-width: 1080px) min(92vw, 720px), 600px">
-                <img src="{{v:root}}assets/img/screens/game-play-1309.jpg" srcset="{{v:root}}assets/img/screens/game-play-640.jpg 640w, {{v:root}}assets/img/screens/game-play-1309.jpg 1309w" sizes="(max-width: 1080px) min(92vw, 720px), 600px" width="1309" height="770" alt="{{a:games.shotPlayAlt}}" loading="lazy" decoding="async">
-              </picture>
-            </div>
-            <figcaption><span class="shot-label">{{t:games.shotPlayLabel}}</span> {{t:games.shotPlayText}}</figcaption>
-          </figure>
-          <figure class="shot-figure">
-            <div class="shot shot-game">
-              <picture>
-                <source type="image/avif" srcset="{{v:root}}assets/img/screens/game-keys-640.avif 640w, {{v:root}}assets/img/screens/game-keys-1309.avif 1309w" sizes="(max-width: 1080px) min(92vw, 720px), 600px">
-                <source type="image/webp" srcset="{{v:root}}assets/img/screens/game-keys-640.webp 640w, {{v:root}}assets/img/screens/game-keys-1309.webp 1309w" sizes="(max-width: 1080px) min(92vw, 720px), 600px">
-                <img src="{{v:root}}assets/img/screens/game-keys-1309.jpg" srcset="{{v:root}}assets/img/screens/game-keys-640.jpg 640w, {{v:root}}assets/img/screens/game-keys-1309.jpg 1309w" sizes="(max-width: 1080px) min(92vw, 720px), 600px" width="1309" height="770" alt="{{a:games.shotKeysAlt}}" loading="lazy" decoding="async">
-              </picture>
-            </div>
-            <figcaption><span class="shot-label">{{t:games.shotKeysLabel}}</span> {{t:games.shotKeysText}}</figcaption>
-          </figure>
+      <!-- Without JavaScript both screenshots show side by side, and the
+           hotspots open on hover and focus. site.js stacks them like cards
+           and adds tabs beside them. -->
+      <div class="showcase" data-showcase data-showcase-label="{{a:games.showcaseLabel}}">
+        <div class="showcase-stage" data-tilt="deck">
+          <div class="showcase-deck" data-tilt-target>
+            <figure class="showcase-item" id="games-play" data-showcase-item>
+              <div class="shot shot-game" data-zoom>
+                <picture>
+                  <source type="image/avif" srcset="{{v:root}}assets/img/screens/game-play-640.avif 640w, {{v:root}}assets/img/screens/game-play-1309.avif 1309w" sizes="(max-width: 900px) 92vw, 760px">
+                  <source type="image/webp" srcset="{{v:root}}assets/img/screens/game-play-640.webp 640w, {{v:root}}assets/img/screens/game-play-1309.webp 1309w" sizes="(max-width: 900px) 92vw, 760px">
+                  <img src="{{v:root}}assets/img/screens/game-play-1309.jpg" srcset="{{v:root}}assets/img/screens/game-play-640.jpg 640w, {{v:root}}assets/img/screens/game-play-1309.jpg 1309w" sizes="(max-width: 900px) 92vw, 760px" width="1309" height="770" alt="{{a:games.shotPlayAlt}}" loading="lazy" decoding="async">
+                </picture>
+                <div class="hotspots">
+                  <span class="hotspot hs-play-move tip-start">
+                    <button class="hotspot-dot" type="button" aria-describedby="hs-play-move"><span class="visually-hidden">{{t:hotspots.playMove.key}}</span></button>
+                    <span class="hotspot-tip"><strong aria-hidden="true">{{t:hotspots.playMove.key}}</strong> <span id="hs-play-move" role="tooltip">{{t:hotspots.playMove.text}}</span></span>
+                  </span>
+                  <span class="hotspot hs-play-look">
+                    <button class="hotspot-dot" type="button" aria-describedby="hs-play-look"><span class="visually-hidden">{{t:hotspots.playLook.key}}</span></button>
+                    <span class="hotspot-tip"><strong aria-hidden="true">{{t:hotspots.playLook.key}}</strong> <span id="hs-play-look" role="tooltip">{{t:hotspots.playLook.text}}</span></span>
+                  </span>
+                  <span class="hotspot hs-play-fire tip-start">
+                    <button class="hotspot-dot" type="button" aria-describedby="hs-play-fire"><span class="visually-hidden">{{t:hotspots.playFire.key}}</span></button>
+                    <span class="hotspot-tip"><strong aria-hidden="true">{{t:hotspots.playFire.key}}</strong> <span id="hs-play-fire" role="tooltip">{{t:hotspots.playFire.text}}</span></span>
+                  </span>
+                  <span class="hotspot hs-play-jump tip-end">
+                    <button class="hotspot-dot" type="button" aria-describedby="hs-play-jump"><span class="visually-hidden">{{t:hotspots.playJump.key}}</span></button>
+                    <span class="hotspot-tip"><strong aria-hidden="true">{{t:hotspots.playJump.key}}</strong> <span id="hs-play-jump" role="tooltip">{{t:hotspots.playJump.text}}</span></span>
+                  </span>
+                  <span class="hotspot hs-play-fps tip-start tip-below">
+                    <button class="hotspot-dot" type="button" aria-describedby="hs-play-fps"><span class="visually-hidden">{{t:hotspots.playFps.key}}</span></button>
+                    <span class="hotspot-tip"><strong aria-hidden="true">{{t:hotspots.playFps.key}}</strong> <span id="hs-play-fps" role="tooltip">{{t:hotspots.playFps.text}}</span></span>
+                  </span>
+                </div>
+              </div>
+              <figcaption><span class="shot-label">{{t:games.shotPlayLabel}}</span> <span class="shot-text">{{t:games.shotPlayText}}</span></figcaption>
+            </figure>
+            <figure class="showcase-item" id="games-keys" data-showcase-item>
+              <div class="shot shot-game" data-zoom>
+                <picture>
+                  <source type="image/avif" srcset="{{v:root}}assets/img/screens/game-keys-640.avif 640w, {{v:root}}assets/img/screens/game-keys-1309.avif 1309w" sizes="(max-width: 900px) 92vw, 760px">
+                  <source type="image/webp" srcset="{{v:root}}assets/img/screens/game-keys-640.webp 640w, {{v:root}}assets/img/screens/game-keys-1309.webp 1309w" sizes="(max-width: 900px) 92vw, 760px">
+                  <img src="{{v:root}}assets/img/screens/game-keys-1309.jpg" srcset="{{v:root}}assets/img/screens/game-keys-640.jpg 640w, {{v:root}}assets/img/screens/game-keys-1309.jpg 1309w" sizes="(max-width: 900px) 92vw, 760px" width="1309" height="770" alt="{{a:games.shotKeysAlt}}" loading="lazy" decoding="async">
+                </picture>
+                <div class="hotspots">
+                  <span class="hotspot hs-keys-add tip-below">
+                    <button class="hotspot-dot" type="button" aria-describedby="hs-keys-add"><span class="visually-hidden">{{t:hotspots.keysAdd.key}}</span></button>
+                    <span class="hotspot-tip"><strong aria-hidden="true">{{t:hotspots.keysAdd.key}}</strong> <span id="hs-keys-add" role="tooltip">{{t:hotspots.keysAdd.text}}</span></span>
+                  </span>
+                  <span class="hotspot hs-keys-templates tip-below">
+                    <button class="hotspot-dot" type="button" aria-describedby="hs-keys-templates"><span class="visually-hidden">{{t:hotspots.keysTemplates.key}}</span></button>
+                    <span class="hotspot-tip"><strong aria-hidden="true">{{t:hotspots.keysTemplates.key}}</strong> <span id="hs-keys-templates" role="tooltip">{{t:hotspots.keysTemplates.text}}</span></span>
+                  </span>
+                  <span class="hotspot hs-keys-key tip-start">
+                    <button class="hotspot-dot" type="button" aria-describedby="hs-keys-key"><span class="visually-hidden">{{t:hotspots.keysKey.key}}</span></button>
+                    <span class="hotspot-tip"><strong aria-hidden="true">{{t:hotspots.keysKey.key}}</strong> <span id="hs-keys-key" role="tooltip">{{t:hotspots.keysKey.text}}</span></span>
+                  </span>
+                  <span class="hotspot hs-keys-look">
+                    <button class="hotspot-dot" type="button" aria-describedby="hs-keys-look"><span class="visually-hidden">{{t:hotspots.keysLook.key}}</span></button>
+                    <span class="hotspot-tip"><strong aria-hidden="true">{{t:hotspots.keysLook.key}}</strong> <span id="hs-keys-look" role="tooltip">{{t:hotspots.keysLook.text}}</span></span>
+                  </span>
+                  <span class="hotspot hs-keys-pad tip-start">
+                    <button class="hotspot-dot" type="button" aria-describedby="hs-keys-pad"><span class="visually-hidden">{{t:hotspots.keysPad.key}}</span></button>
+                    <span class="hotspot-tip"><strong aria-hidden="true">{{t:hotspots.keysPad.key}}</strong> <span id="hs-keys-pad" role="tooltip">{{t:hotspots.keysPad.text}}</span></span>
+                  </span>
+                  <span class="hotspot hs-keys-mouse tip-end">
+                    <button class="hotspot-dot" type="button" aria-describedby="hs-keys-mouse"><span class="visually-hidden">{{t:hotspots.keysMouse.key}}</span></button>
+                    <span class="hotspot-tip"><strong aria-hidden="true">{{t:hotspots.keysMouse.key}}</strong> <span id="hs-keys-mouse" role="tooltip">{{t:hotspots.keysMouse.text}}</span></span>
+                  </span>
+                </div>
+              </div>
+              <figcaption><span class="shot-label">{{t:games.shotKeysLabel}}</span> <span class="shot-text">{{t:games.shotKeysText}}</span></figcaption>
+            </figure>
+          </div>
+        </div>
+        <div class="showcase-side">
+          <p class="showcase-hint"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-pointer"/></svg><span>{{t:games.hint}}</span></p>
           <p class="shot-note">{{t:games.shotNote}}</p>
         </div>
-
-        <ul class="features">
-          <li class="feature"><h3>{{t:games.keysTitle}}</h3><p>{{t:games.keysText}}</p></li>
-          <li class="feature"><h3>{{t:games.aimTitle}}</h3><p>{{t:games.aimText}}</p></li>
-          <li class="feature"><h3>{{t:games.padTitle}}</h3><p>{{t:games.padText}}</p></li>
-          <li class="feature"><h3>{{t:games.shareTitle}}</h3><p>{{t:games.shareText}}</p></li>
-          <li class="feature"><h3>{{t:games.fairTitle}}</h3><p>{{t:games.fairText}}</p></li>
-        </ul>
       </div>
+
+      <ul class="feature-cards">
+        <li class="feature-card" data-tilt="card"><span class="feature-icon" data-tilt-depth aria-hidden="true"><svg class="icon"><use href="#i-keys"/></svg></span><h3>{{t:games.keysTitle}}</h3><p>{{t:games.keysText}}</p></li>
+        <li class="feature-card" data-tilt="card"><span class="feature-icon" data-tilt-depth aria-hidden="true"><svg class="icon"><use href="#i-aim"/></svg></span><h3>{{t:games.aimTitle}}</h3><p>{{t:games.aimText}}</p></li>
+        <li class="feature-card" data-tilt="card"><span class="feature-icon" data-tilt-depth aria-hidden="true"><svg class="icon"><use href="#i-pad"/></svg></span><h3>{{t:games.padTitle}}</h3><p>{{t:games.padText}}</p></li>
+        <li class="feature-card" data-tilt="card"><span class="feature-icon" data-tilt-depth aria-hidden="true"><svg class="icon"><use href="#i-share"/></svg></span><h3>{{t:games.shareTitle}}</h3><p>{{t:games.shareText}}</p></li>
+        <li class="feature-card" data-tilt="card"><span class="feature-icon" data-tilt-depth aria-hidden="true"><svg class="icon"><use href="#i-shield"/></svg></span><h3>{{t:games.fairTitle}}</h3><p>{{t:games.fairText}}</p></li>
+      </ul>
       <p class="status-note">{{t:games.status}}</p>
     </div>
   </section>
@@ -92,8 +149,8 @@
         <h2 id="mac-title" class="display">{{t:mac.title}}</h2>
       </header>
       <div class="bento">
-        <article class="tile tile-dock">
-          <div class="tile-art" role="img" aria-label="{{a:mac.artDockAlt}}">
+        <article class="tile tile-dock" data-tilt="tile">
+          <div class="tile-art" data-tilt-depth role="img" aria-label="{{a:mac.artDockAlt}}">
             <div class="mini-dock" aria-hidden="true">
               <img src="{{v:root}}assets/img/avo-icon-macos.svg" alt="" width="40" height="40" loading="lazy">
               <span class="dock-sep"></span>
@@ -108,8 +165,8 @@
           <h3>{{t:mac.windowsTitle}}</h3>
           <p>{{t:mac.windowsText}}</p>
         </article>
-        <article class="tile tile-notif">
-          <div class="tile-art" aria-hidden="true">
+        <article class="tile tile-notif" data-tilt="tile">
+          <div class="tile-art" data-tilt-depth aria-hidden="true">
             <div class="notif notif-static">
               <svg class="notif-icon"><use href="#app-messages"/></svg>
               <div class="notif-text"><p class="notif-app">{{t:mac.artNotifTitle}}</p><p class="notif-body">{{t:mac.artNotifBody}}</p></div>
@@ -118,8 +175,8 @@
           <h3>{{t:mac.notifTitle}}</h3>
           <p>{{t:mac.notifText}}</p>
         </article>
-        <article class="tile tile-clip">
-          <div class="tile-art" aria-hidden="true">
+        <article class="tile tile-clip" data-tilt="tile">
+          <div class="tile-art" data-tilt-depth aria-hidden="true">
             <div class="clip-flow">
               <span class="pill"><svg class="icon"><use href="#i-copy"/></svg>{{t:mac.artCopy}}</span>
               <svg class="icon flow-arrow"><use href="#i-arrow"/></svg>
@@ -129,8 +186,8 @@
           <h3>{{t:mac.clipTitle}}</h3>
           <p>{{t:mac.clipText}}</p>
         </article>
-        <article class="tile tile-translate">
-          <div class="tile-art" aria-hidden="true">
+        <article class="tile tile-translate" data-tilt="tile">
+          <div class="tile-art" data-tilt-depth aria-hidden="true">
             <div class="translate-demo">
               <span class="translate-line">{{t:mac.artTranslateFrom}}<span class="translate-plate">{{t:mac.artTranslateTo}}</span></span>
               <span class="translate-line translate-line-muted">{{t:mac.artTranslateSub}}</span>
@@ -139,8 +196,8 @@
           <h3>{{t:mac.translateTitle}}</h3>
           <p>{{t:mac.translateText}}</p>
         </article>
-        <article class="tile tile-follow">
-          <div class="tile-art" aria-hidden="true">
+        <article class="tile tile-follow" data-tilt="tile">
+          <div class="tile-art" data-tilt-depth aria-hidden="true">
             <ul class="chips">
               <li>{{t:mac.artFollowDark}}</li>
               <li>{{t:mac.artFollowZone}}</li>
@@ -152,8 +209,8 @@
           <h3>{{t:mac.followTitle}}</h3>
           <p>{{t:mac.followText}}</p>
         </article>
-        <article class="tile tile-capture">
-          <div class="tile-art" aria-hidden="true">
+        <article class="tile tile-capture" data-tilt="tile">
+          <div class="tile-art" data-tilt-depth aria-hidden="true">
             <div class="rec-bar"><span class="lights"><i></i><i></i><i></i></span><span class="rec-dot"></span><span class="rec-time">{{t:mac.artRecording}} 00:12</span><svg class="icon"><use href="#i-cam"/></svg></div>
           </div>
           <h3>{{t:mac.captureTitle}}</h3>
@@ -175,7 +232,7 @@
       </header>
       <div class="tour-gallery" data-tour data-tour-label="{{a:tour.tabsLabel}}">
         <figure class="tour-item" id="tour-graphics" data-tour-item>
-          <div class="shot shot-settings">
+          <div class="shot shot-settings" data-tilt="shot" data-zoom>
             <picture>
               <source type="image/avif" srcset="{{v:root}}assets/img/screens/settings-graphics-640.avif 640w, {{v:root}}assets/img/screens/settings-graphics-955.avif 955w" sizes="(max-width: 900px) 92vw, 800px">
               <source type="image/webp" srcset="{{v:root}}assets/img/screens/settings-graphics-640.webp 640w, {{v:root}}assets/img/screens/settings-graphics-955.webp 955w" sizes="(max-width: 900px) 92vw, 800px">
@@ -188,7 +245,7 @@
           </figcaption>
         </figure>
         <figure class="tour-item" id="tour-privacy" data-tour-item>
-          <div class="shot shot-settings">
+          <div class="shot shot-settings" data-tilt="shot" data-zoom>
             <picture>
               <source type="image/avif" srcset="{{v:root}}assets/img/screens/settings-privacy-640.avif 640w, {{v:root}}assets/img/screens/settings-privacy-955.avif 955w" sizes="(max-width: 900px) 92vw, 800px">
               <source type="image/webp" srcset="{{v:root}}assets/img/screens/settings-privacy-640.webp 640w, {{v:root}}assets/img/screens/settings-privacy-955.webp 955w" sizes="(max-width: 900px) 92vw, 800px">
@@ -201,7 +258,7 @@
           </figcaption>
         </figure>
         <figure class="tour-item" id="tour-fingerprints" data-tour-item>
-          <div class="shot shot-settings">
+          <div class="shot shot-settings" data-tilt="shot" data-zoom>
             <picture>
               <source type="image/avif" srcset="{{v:root}}assets/img/screens/settings-fingerprints-640.avif 640w, {{v:root}}assets/img/screens/settings-fingerprints-955.avif 955w" sizes="(max-width: 900px) 92vw, 800px">
               <source type="image/webp" srcset="{{v:root}}assets/img/screens/settings-fingerprints-640.webp 640w, {{v:root}}assets/img/screens/settings-fingerprints-955.webp 955w" sizes="(max-width: 900px) 92vw, 800px">
@@ -214,7 +271,7 @@
           </figcaption>
         </figure>
         <figure class="tour-item" id="tour-android" data-tour-item>
-          <div class="shot shot-settings">
+          <div class="shot shot-settings" data-tilt="shot" data-zoom>
             <picture>
               <source type="image/avif" srcset="{{v:root}}assets/img/screens/settings-android-640.avif 640w, {{v:root}}assets/img/screens/settings-android-955.avif 955w" sizes="(max-width: 900px) 92vw, 800px">
               <source type="image/webp" srcset="{{v:root}}assets/img/screens/settings-android-640.webp 640w, {{v:root}}assets/img/screens/settings-android-955.webp 955w" sizes="(max-width: 900px) 92vw, 800px">
@@ -227,7 +284,7 @@
           </figcaption>
         </figure>
         <figure class="tour-item" id="tour-google" data-tour-item>
-          <div class="shot shot-settings">
+          <div class="shot shot-settings" data-tilt="shot" data-zoom>
             <picture>
               <source type="image/avif" srcset="{{v:root}}assets/img/screens/settings-google-640.avif 640w, {{v:root}}assets/img/screens/settings-google-955.avif 955w" sizes="(max-width: 900px) 92vw, 800px">
               <source type="image/webp" srcset="{{v:root}}assets/img/screens/settings-google-640.webp 640w, {{v:root}}assets/img/screens/settings-google-955.webp 955w" sizes="(max-width: 900px) 92vw, 800px">
@@ -240,7 +297,7 @@
           </figcaption>
         </figure>
         <figure class="tour-item" id="tour-general" data-tour-item>
-          <div class="shot shot-settings">
+          <div class="shot shot-settings" data-tilt="shot" data-zoom>
             <picture>
               <source type="image/avif" srcset="{{v:root}}assets/img/screens/settings-general-640.avif 640w, {{v:root}}assets/img/screens/settings-general-955.avif 955w" sizes="(max-width: 900px) 92vw, 800px">
               <source type="image/webp" srcset="{{v:root}}assets/img/screens/settings-general-640.webp 640w, {{v:root}}assets/img/screens/settings-general-955.webp 955w" sizes="(max-width: 900px) 92vw, 800px">
@@ -344,6 +401,13 @@
 
 </main>
 {{> footer}}
+<dialog class="lightbox" data-lightbox aria-label="{{a:ui.lightbox}}" data-zoom-label="{{a:ui.zoom}}">
+  <div class="lightbox-scrim" data-lightbox-scrim></div>
+  <figure class="lightbox-figure" data-lightbox-figure>
+    <figcaption class="lightbox-caption" data-lightbox-caption></figcaption>
+  </figure>
+  <button class="lightbox-close" type="button" data-lightbox-close autofocus><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-close"/></svg><span class="visually-hidden">{{t:ui.close}}</span></button>
+</dialog>
 <script type="module" src="{{v:root}}assets/js/site.js?v={{v:jsVersion}}"></script>
 </body>
 </html>
