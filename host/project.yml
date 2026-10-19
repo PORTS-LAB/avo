@@ -91,7 +91,7 @@ targets:
           destination: executables
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: $(AVO_BUNDLE_ID_PREFIX).Avo
+        PRODUCT_BUNDLE_IDENTIFIER: $(AVO_APP_BUNDLE_ID)
         PRODUCT_NAME: Avo
         INFOPLIST_FILE: Avo/Info.plist
         CODE_SIGN_ENTITLEMENTS: Avo/Avo.entitlements

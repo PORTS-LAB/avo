@@ -4,6 +4,8 @@
 // open question in docs/spec.md. Keep it in sync with AvoIdentifiers.prefix
 // (AvoKit); IdentifierTests checks that they match.
 AVO_BUNDLE_ID_PREFIX = dev.avo
+// Avo.app's own identifier (AvoIdentifiers.app); its helpers use the prefix.
+AVO_APP_BUNDLE_ID = emu.avo.droid
 
 // Marketing version of the macOS app; the Android image is versioned separately.
 MARKETING_VERSION = 0.1.0

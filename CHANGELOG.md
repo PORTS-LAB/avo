@@ -4,7 +4,7 @@ All notable changes to Avo are listed here. Versions follow
 [Semantic Versioning](https://semver.org); preview builds carry a build
 number (`CFBundleVersion`) that only goes up.
 
-## 0.1.0 Preview 1 (build 33)
+## 0.1.0 Preview 1 (build 34)
 
 The first public preview, for testers. It is signed ad hoc and not
 notarized, so macOS asks you to confirm the first launch (System Settings ›
@@ -71,6 +71,12 @@ Privacy & Security › Open Anyway).
   window no longer opens again by itself (Google Play, Settings).
 - The Google apps install shows one realistic progress bar across its steps.
 - Menus and pop-up buttons in Settings, and the menu bar panel's position.
+
+### Notes for testers of internal builds
+
+- Avo.app's bundle identifier is now `emu.avo.droid` (it was `dev.avo.Avo`).
+  Its preferences move over at the first launch; macOS may ask again for
+  permissions the Control Panel had.
 
 ### Known issues
 

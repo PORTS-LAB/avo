@@ -12,7 +12,7 @@ private let info = Bundle.main.infoDictionary ?? [:]
         return URL(filePath: path)
     }
     // Avo.app was moved: ask LaunchServices.
-    let identifier = info["AvoHostBundleIdentifier"] as? String ?? "dev.avo.Avo"
+    let identifier = info["AvoHostBundleIdentifier"] as? String ?? "emu.avo.droid"
     return NSWorkspace.shared.urlForApplication(withBundleIdentifier: identifier)
 }
 

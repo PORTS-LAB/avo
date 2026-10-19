@@ -286,7 +286,7 @@ final class FingerprintMenu: NSObject {
     /// Settings › Fingerprints in the Control Panel (Avo.app takes the link).
     @objc private func manageFingerprints() {
         let link = ControlPanelLink.url(pane: ControlPanelLink.fingerprintsPane)
-        guard let avo = AndroidWindowController.hostApplication ?? NSWorkspace.shared.urlForApplication(withBundleIdentifier: "dev.avo.Avo") else {
+        guard let avo = AndroidWindowController.hostApplication ?? NSWorkspace.shared.urlForApplication(withBundleIdentifier: AvoIdentifiers.app) else {
             NSWorkspace.shared.open(link)
             return
         }

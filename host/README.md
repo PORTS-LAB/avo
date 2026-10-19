@@ -103,7 +103,7 @@ docs/architecture.md, "Android images (Cuttlefish)".
 daemon boots the chosen image with `avo-vmm` (see docs/engine.md).
 `defaults write dev.avo.daemon AvoCuttlefishImages <img folder>` overrides
 the choice. The catalog's source is `AndroidBuildSource` (AvoPackages);
-`defaults write dev.avo.Avo` with `AvoBuildAPIEndpoint`, `AvoBuildAPIKey`,
+`defaults write emu.avo.droid` with `AvoBuildAPIEndpoint`, `AvoBuildAPIKey`,
 `AvoBuildBranches` (comma-separated), `AvoBuildTarget` or
 `AvoBuildMinimumSDK` changes it, and `-AvoSkipSetupAssistant YES` keeps the
 assistant from opening by itself. `AVO_LIVE_BUILD_API=1 swift test --filter

@@ -175,6 +175,7 @@ let macMini8 = HostInfo(physicalMemoryBytes: 8 << 30, performanceCores: 4, effic
             return
         }
         #expect(text.contains("AVO_BUNDLE_ID_PREFIX = \(AvoIdentifiers.prefix)\n"))
+        #expect(text.contains("AVO_APP_BUNDLE_ID = \(AvoIdentifiers.app)\n"))
     }
 
     @Test func pathsUseShortRuntimeDirectory() throws {

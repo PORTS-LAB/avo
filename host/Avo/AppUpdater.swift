@@ -36,7 +36,7 @@ final class AppUpdater: NSObject {
 
     override init() {
         let info = Bundle.main.infoDictionary ?? [:]
-        // `defaults write dev.avo.Avo AvoUpdateFeedURL https://…` tries a staging feed (docs/releasing.md).
+        // `defaults write emu.avo.droid AvoUpdateFeedURL https://…` tries a staging feed (docs/releasing.md).
         let feed = UserDefaults.standard.string(forKey: Self.feedOverrideKey) ?? info["SUFeedURL"] as? String
         readiness = AppUpdate.readiness(feedURL: feed, publicKey: info["SUPublicEDKey"] as? String)
         super.init()

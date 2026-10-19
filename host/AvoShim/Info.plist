@@ -32,7 +32,7 @@
 	<key>NSSupportsAutomaticGraphicsSwitching</key>
 	<true/>
 	<key>AvoHostBundleIdentifier</key>
-	<string>$(AVO_BUNDLE_ID_PREFIX).Avo</string>
+	<string>$(AVO_APP_BUNDLE_ID)</string>
 	<key>NSCameraUsageDescription</key>
 	<string>The Android app in this window asked to use the camera.</string>
 	<key>NSMicrophoneUsageDescription</key>

@@ -171,17 +171,6 @@
 		1D53782E6B5857E8BE21FBDA /* Embed Dependencies */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
-			dstPath = Contents/Library/Shim;
-			dstSubfolderSpec = 1;
-			files = (
-				326B9CFA8AD399ABB0184081 /* AvoShim.app in Embed Dependencies */,
-			);
-			name = "Embed Dependencies";
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		9B5483BA2FEF5F7A9BECF5F2 /* Embed Dependencies */ = {
-			isa = PBXCopyFilesBuildPhase;
-			buildActionMask = 2147483647;
 			dstPath = Contents/Library/Helpers;
 			dstSubfolderSpec = 1;
 			files = (
@@ -190,13 +179,24 @@
 			name = "Embed Dependencies";
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		C7672177C149A74FB486AFCE /* Embed Dependencies */ = {
+		9B5483BA2FEF5F7A9BECF5F2 /* Embed Dependencies */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
 			dstPath = "";
 			dstSubfolderSpec = 6;
 			files = (
 				3B17A894C265E7F52B64E424 /* avoctl in Embed Dependencies */,
+			);
+			name = "Embed Dependencies";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		C7672177C149A74FB486AFCE /* Embed Dependencies */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = Contents/Library/Shim;
+			dstSubfolderSpec = 1;
+			files = (
+				326B9CFA8AD399ABB0184081 /* AvoShim.app in Embed Dependencies */,
 			);
 			name = "Embed Dependencies";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -1079,7 +1079,7 @@
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				INFOPLIST_FILE = Avo/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
-				PRODUCT_BUNDLE_IDENTIFIER = "$(AVO_BUNDLE_ID_PREFIX).Avo";
+				PRODUCT_BUNDLE_IDENTIFIER = "$(AVO_APP_BUNDLE_ID)";
 				PRODUCT_NAME = Avo;
 				SDKROOT = macosx;
 			};
@@ -1108,7 +1108,7 @@
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				INFOPLIST_FILE = Avo/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
-				PRODUCT_BUNDLE_IDENTIFIER = "$(AVO_BUNDLE_ID_PREFIX).Avo";
+				PRODUCT_BUNDLE_IDENTIFIER = "$(AVO_APP_BUNDLE_ID)";
 				PRODUCT_NAME = Avo;
 				SDKROOT = macosx;
 			};
