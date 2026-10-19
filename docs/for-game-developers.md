@@ -275,9 +275,8 @@ A player on Avo is almost always using a keyboard and a mouse or trackpad.
 ## Testing your game on Avo
 
 1. Get a Mac with Apple Silicon and macOS 15 or later, and Avo from its
-   GitHub Releases page (`https://github.com/OWNER/avo/releases`; the
-   address is a placeholder until the project's repository is public), or
-   build it from source (see the [README](../README.md)).
+   [GitHub Releases](https://github.com/nizwar/avo/releases) page, or build
+   it from source (see the [README](../README.md)).
 2. For the GPU renderer, install the Android Emulator 37 or later with
    Android Studio's SDK Manager. Avo uses its gfxstream libraries.
 3. Install your game: drop an `.apk`, `.xapk`, `.apkm` or `.apks` (with OBB

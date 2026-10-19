@@ -38,17 +38,17 @@ export default {
 
   // Public contact address (questions about Avo and support).
   contact: {
-    email: 'hello@example.org', // TODO(owner)
+    email: 'nizwar.id@gmail.com',
   },
 
   // Personal support for Avo's developer. `frequency`: 'monthly', 'once' or
   // 'monthly-or-once'. `details` is optional plain text (for example a bank
   // account); `url` may be null for a channel that only has details. An empty
-  // list shows "support links are coming soon".
+  // list shows "Support links are coming soon". Add a channel once its page
+  // is live, for example:
+  //   { name: 'GitHub Sponsors', url: 'https://github.com/sponsors/nizwar', currency: 'USD', frequency: 'monthly-or-once' },
+  //   { name: 'Saweria', url: 'https://saweria.co/<name>', currency: 'IDR', frequency: 'once' },
   support: {
-    channels: [
-      { name: 'GitHub Sponsors', url: 'https://github.com/sponsors/nizwar', currency: 'USD', frequency: 'monthly-or-once' },
-      { name: 'Saweria', url: 'https://saweria.co/OWNER', currency: 'IDR', frequency: 'once' }, // TODO(owner)
-    ],
+    channels: [],
   },
 };

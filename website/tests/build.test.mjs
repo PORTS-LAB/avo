@@ -125,13 +125,17 @@ test('support goes to the developer: one section with its channels', async () =>
   for (const page of ['index.html', 'id/index.html']) {
     const html = read(page);
     assert.match(html, /<section class="section support" id="support"/, page);
-    assert.match(html, /href="https:\/\/github\.com\/sponsors\/nizwar"/, page);
     assert.match(html, /<a href="[^"]*#support">/, `${page}: the menu links to it`);
   }
+  // No channel yet: said plainly.
+  assert.match(read('index.html'), /Support links are coming soon\./);
   const dir = await mkdtemp(path.join(tmpdir(), 'avo-site-'));
   try {
-    await build({ outDir: dir, quiet: true, overrides: { support: { channels: [] } } });
-    assert.match(readFileSync(path.join(dir, 'index.html'), 'utf8'), /Support links are coming soon\./);
+    const channel = { name: 'GitHub Sponsors', url: 'https://github.com/sponsors/nizwar', currency: 'USD', frequency: 'monthly-or-once' };
+    await build({ outDir: dir, quiet: true, overrides: { support: { channels: [channel] } } });
+    const html = readFileSync(path.join(dir, 'index.html'), 'utf8');
+    assert.match(html, /href="https:\/\/github\.com\/sponsors\/nizwar"/);
+    assert.match(html, /Monthly or one-time · USD/);
   } finally {
     await rm(dir, { recursive: true, force: true });
   }
@@ -189,5 +193,6 @@ test('the credit is one plain line in the footer', () => {
 });
 
 test('a strict build refuses placeholders', async () => {
-  await assert.rejects(build({ outDir: path.join(tmpdir(), 'avo-never'), quiet: true, strict: true }), /placeholders/);
+  const overrides = { contact: { email: 'hello@example.org' } };
+  await assert.rejects(build({ outDir: path.join(tmpdir(), 'avo-never'), quiet: true, strict: true, overrides }), /placeholders/);
 });
