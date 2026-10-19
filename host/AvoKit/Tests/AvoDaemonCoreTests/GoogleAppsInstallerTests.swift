@@ -463,6 +463,23 @@ final class Flag: @unchecked Sendable {
         #expect(!GoogleAppsProgress(id: id, phase: .cancelled).changesAndroid)
         #expect(GoogleAppsProgress(id: id, phase: .cancelled).isDone)
     }
+
+    @Test func theBarCoversTheWholeInstallInOrder() {
+        let id = UUID()
+        let steps: [GoogleAppsProgress] = [
+            .init(id: id, phase: .preparing), .init(id: id, phase: .downloading, fraction: 0.5),
+            .init(id: id, phase: .verifying), .init(id: id, phase: .disablingVerity), .init(id: id, phase: .remounting),
+            .init(id: id, phase: .transferring, fraction: 0), .init(id: id, phase: .transferring, fraction: 1),
+            .init(id: id, phase: .installing), .init(id: id, phase: .checking), .init(id: id, phase: .finished),
+        ]
+        let values = steps.compactMap(\.overall)
+        #expect(values.count == steps.count)
+        #expect(values == values.sorted())
+        #expect(values.first == 0 && values.last == 1)
+        // A restart can come twice: it says nothing, and the bar stays.
+        #expect(GoogleAppsProgress(id: id, phase: .restarting).overall == nil)
+        #expect(GoogleAppsProgress(id: id, phase: .disablingVerity).overall! < 0.4)
+    }
 }
 
 @Suite struct DeadlineTests {

@@ -81,6 +81,27 @@ public struct GoogleAppsProgress: Codable, Equatable, Sendable {
         self.message = message
     }
 
+    /// How far the whole install is, 0...1, for one bar across its steps:
+    /// each step has its share (the restarts the most, as they take the
+    /// longest), and downloading and copying move through theirs. Nil for a
+    /// step that does not say (a restart, starting Android, restoring),
+    /// which can come at more than one point: the bar stays where it is.
+    public var overall: Double? {
+        func within(_ start: Double, _ end: Double) -> Double { start + (end - start) * min(max(fraction ?? 0, 0), 1) }
+        switch phase {
+        case .preparing: return 0
+        case .downloading: return within(0, 0.30)
+        case .verifying: return 0.30
+        case .disablingVerity: return 0.34
+        case .remounting: return 0.56
+        case .transferring: return within(0.58, 0.78)
+        case .installing: return 0.80
+        case .checking: return 0.95
+        case .finished: return 1
+        case .startingVM, .restarting, .restoring, .failed, .cancelled: return nil
+        }
+    }
+
     /// Up to here nothing in Android has changed, so the install can stop.
     public var isCancellable: Bool { [.preparing, .downloading, .verifying].contains(phase) }
     public var isDone: Bool { [.finished, .failed, .cancelled].contains(phase) }

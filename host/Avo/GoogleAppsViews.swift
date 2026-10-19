@@ -554,13 +554,17 @@ private struct CustomLinkRow: View {
 struct GoogleAppsProgressRow: View {
     let progress: GoogleAppsProgress
     let stop: () -> Void
+    /// The bar: the whole install so far (`GoogleAppsProgress.overall`),
+    /// never going back while a step without its own share runs.
+    @State private var shown = 0.0
+    @State private var install: UUID?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 12) {
-                GlowBar(fraction: progress.fraction, moving: true)
+                GlowBar(fraction: shown, moving: true)
                     .accessibilityLabel(phase)
-                    .accessibilityValue(Text(percent))
+                    .accessibilityValue(Text(shown.formatted(.percent.precision(.fractionLength(0)))))
                 if progress.isCancellable { Button("Stop", action: stop) }
             }
             phase
@@ -574,6 +578,16 @@ struct GoogleAppsProgressRow: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
+        .onAppear { follow(progress) }
+        .onChange(of: progress) { _, new in follow(new) }
+    }
+
+    private func follow(_ progress: GoogleAppsProgress) {
+        if install != progress.id {
+            install = progress.id
+            shown = 0
+        }
+        if let overall = progress.overall { shown = max(shown, overall) }
     }
 
     private var percent: String {
