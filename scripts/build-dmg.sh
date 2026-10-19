@@ -89,7 +89,7 @@ codesign --verify --deep --strict "$MOUNT/Avo.app"
 hdiutil detach "$MOUNT" -quiet
 
 # Launch Services would otherwise keep the build copies as candidates for
-# emu.avo.droid next to the installed app.
+# com.avodroid.emulator next to the installed app.
 for app in "$DERIVED/Build/Products" "$STAGE"; do
   find "$app" -name "*.app" -type d -prune -exec "$LSREGISTER" -u {} \; 2>/dev/null || true
 done

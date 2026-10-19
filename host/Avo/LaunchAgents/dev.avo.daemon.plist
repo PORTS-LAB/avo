@@ -10,7 +10,7 @@
 	<string>Contents/Library/Helpers/AvoDaemon.app/Contents/MacOS/AvoDaemon</string>
 	<key>AssociatedBundleIdentifiers</key>
 	<array>
-		<string>emu.avo.droid</string>
+		<string>com.avodroid.emulator</string>
 	</array>
 	<key>MachServices</key>
 	<dict>

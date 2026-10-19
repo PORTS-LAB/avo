@@ -39,8 +39,8 @@ Sparkle reads the feed only over HTTPS.
 To try a staging feed with an installed build:
 
 ```sh
-defaults write emu.avo.droid AvoUpdateFeedURL https://…/appcast.xml
-defaults delete emu.avo.droid AvoUpdateFeedURL   # back to Info.plist's
+defaults write com.avodroid.emulator AvoUpdateFeedURL https://…/appcast.xml
+defaults delete com.avodroid.emulator AvoUpdateFeedURL   # back to Info.plist's
 ```
 
 ### The key

@@ -73,7 +73,7 @@ public struct AndroidBuildSource: Codable, Equatable, Sendable {
         return source
     }
 
-    /// Defaults keys that change `standard` (`defaults write emu.avo.droid …`):
+    /// Defaults keys that change `standard` (`defaults write com.avodroid.emulator …`):
     /// an https URL, a key, branches (an array, or one string with commas),
     /// a target and the lowest API level offered.
     public enum DefaultsKey {

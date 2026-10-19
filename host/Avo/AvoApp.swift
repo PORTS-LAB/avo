@@ -153,9 +153,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 }
 
-/// Avo.app's preferences under its former identifier (`dev.avo.Avo`, before
-/// 0.1.0 (33)) come along once, so a Mac that used Avo before keeps its
-/// choices: Setup Assistant done, remembered Android data, update checks.
+/// Avo.app's preferences under its former identifiers (AvoIdentifiers.formerApps)
+/// come along once, so a Mac that used Avo before keeps its choices: Setup
+/// Assistant done, remembered Android data, update checks. The newest of them wins.
 enum ControlPanelDefaults {
     static let migratedKey = "AvoMovedFromFormerIdentifier"
 
@@ -163,9 +163,13 @@ enum ControlPanelDefaults {
     static func migrate(_ defaults: UserDefaults = .standard) -> Bool {
         guard Bundle.main.bundleIdentifier == AvoIdentifiers.app, !defaults.bool(forKey: migratedKey) else { return false }
         defaults.set(true, forKey: migratedKey)
-        guard let former = defaults.persistentDomain(forName: AvoIdentifiers.formerApp), !former.isEmpty else { return false }
-        let current = defaults.persistentDomain(forName: AvoIdentifiers.app) ?? [:]
-        for (key, value) in former where current[key] == nil { defaults.set(value, forKey: key) }
-        return true
+        var moved = false
+        for name in AvoIdentifiers.formerApps.reversed() {
+            guard let former = defaults.persistentDomain(forName: name), !former.isEmpty else { continue }
+            let current = defaults.persistentDomain(forName: AvoIdentifiers.app) ?? [:]
+            for (key, value) in former where current[key] == nil { defaults.set(value, forKey: key) }
+            moved = true
+        }
+        return moved
     }
 }

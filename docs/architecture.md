@@ -8,7 +8,7 @@ left open. Protocol details are in [protocol.md](protocol.md), the VM engine in
 
 | Process | Bundle | Role |
 | --- | --- | --- |
-| `Avo` | `Avo.app` (`emu.avo.droid`) | Control Panel. Registers the daemon with `SMAppService`, handles `.apk/.xapk/.apkm/.apks` opens and drops. |
+| `Avo` | `Avo.app` (`com.avodroid.emulator`) | Control Panel. Registers the daemon with `SMAppService`, handles `.apk/.xapk/.apkm/.apks` opens and drops. |
 | `AvoDaemon` | `Avo.app/Contents/Library/Helpers/AvoDaemon.app` (`dev.avo.daemon`) | Runtime Daemon (LaunchAgent, Mach service `dev.avo.daemon`). Also hosts the menu bar item and posts notifications. |
 | `avo-vmm` | `Avo.app/Contents/MacOS/avo-vmm` | Engine VM, a child of the daemon (see engine.md). |
 | `<App>` | `~/Applications/Android Apps/<Label>.app` | App Shim, one per Android app; loads `AvoWindowHost.framework` from Avo.app. |

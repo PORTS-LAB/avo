@@ -10,10 +10,11 @@ public enum AvoIdentifiers {
 
     /// Avo.app: Control Panel and menu bar item. Its own identifier, apart
     /// from the prefix its helpers share (Base.xcconfig `AVO_APP_BUNDLE_ID`).
-    public static let app = "emu.avo.droid"
-    /// Avo.app's identifier in builds before 0.1.0 (33): its preferences
-    /// move to the new one at the first launch (ControlPanelDefaults).
-    public static let formerApp = "\(prefix).Avo"
+    public static let app = "com.avodroid.emulator"
+    /// Avo.app's identifiers in earlier builds (`dev.avo.Avo`, then
+    /// `emu.avo.droid` in one preview build): their preferences move to the
+    /// new one at the first launch (ControlPanelDefaults).
+    public static let formerApps = ["\(prefix).Avo", "emu.avo.droid"]
     /// AvoWindowHost.framework, loaded by every App Shim.
     public static let windowHost = "\(prefix).WindowHost"
     /// launchd label of the Runtime Daemon LaunchAgent.

@@ -74,7 +74,7 @@ Privacy & Security › Open Anyway).
 
 ### Notes for testers of internal builds
 
-- Avo.app's bundle identifier is now `emu.avo.droid` (it was `dev.avo.Avo`).
+- Avo.app's bundle identifier is now `com.avodroid.emulator` (it was `dev.avo.Avo`).
   Its preferences move over at the first launch; macOS may ask again for
   permissions the Control Panel had.
 
