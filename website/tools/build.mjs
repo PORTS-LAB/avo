@@ -297,13 +297,15 @@ export async function build({ outDir = path.join(ROOT, 'dist'), strict = false, 
         : `<p class="status-pill" title="${escapeHtml(stripTags(t('release.unreleasedNote')))}">${t('release.statusUnreleased')}</p>`;
       const heroCtas = release.available
         ? [
-            `<div class="cta-stack"><a class="btn btn-primary" href="${escapeHtml(downloadUrl)}"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-down"/></svg>${t('release.download')}</a><span class="cta-meta">${t('release.downloadMeta')}</span></div>`,
+            `<a class="btn btn-primary" href="${escapeHtml(downloadUrl)}"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-down"/></svg>${t('release.download')}</a>`,
             `<a class="btn btn-quiet" href="${escapeHtml(githubUrl)}">${t('release.watch')}<svg class="icon" aria-hidden="true" focusable="false"><use href="#i-arrow"/></svg></a>`,
           ].join('\n')
         : [
             `<a class="btn btn-primary" href="${escapeHtml(githubUrl)}">${t('release.watch')}<svg class="icon" aria-hidden="true" focusable="false"><use href="#i-arrow"/></svg></a>`,
             `<a class="btn btn-quiet" href="${escapeHtml(githubUrl)}#building">${t('release.build')}</a>`,
           ].join('\n');
+      // What the download is, under both buttons (beside one, it pushed the other away).
+      const heroMeta = release.available ? `<p class="cta-meta">${t('release.downloadMeta')}</p>` : '';
 
       const supportChannels = config.support.channels.length ? channelList(config.support.channels, t) : `<p class="note">${t('support.noChannels')}</p>`;
       const maintainer = config.maintainer?.name;
@@ -358,6 +360,7 @@ export async function build({ outDir = path.join(ROOT, 'dist'), strict = false, 
             .join('\n'),
           releasePill,
           heroCtas,
+          heroMeta,
           supportChannels,
           builtText,
           copyright: t('footer.copyright', { year }),
