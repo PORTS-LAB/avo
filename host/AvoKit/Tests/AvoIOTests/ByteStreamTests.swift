@@ -42,28 +42,25 @@ import Testing
 
 @Suite struct VsockBridgeTests {
     /// A fake engine that accepts one connection and runs `handler` on it,
-    /// on a thread of its own: its blocking accept and reads must not wait
-    /// for a turn in the concurrency pool, which other tests may fill (a
-    /// runner with few cores), or the handshake times out.
+    /// on a thread of its own started at once: its blocking accept and reads
+    /// must not wait for a turn in the concurrency pool, which other tests
+    /// may fill (a runner with few cores), or the handshake times out.
     private func fakeEngine(_ handler: @escaping @Sendable (Int32) throws -> Void) throws -> (path: String, done: Task<Void, any Error>) {
         let path = "/tmp/avo-test-\(UUID().uuidString.prefix(8)).sock"
         let listener = try UnixSocket.listen(path: path)
-        let task = Task<Void, any Error> {
-            try await withCheckedThrowingContinuation { (finished: CheckedContinuation<Void, any Error>) in
-                Thread {
-                    defer { close(listener); unlink(path) }
-                    do {
-                        let client = try UnixSocket.accept(listener)
-                        defer { close(client) }
-                        try handler(client)
-                        finished.resume()
-                    } catch {
-                        finished.resume(throwing: error)
-                    }
-                }.start()
+        let (outcome, finished) = AsyncThrowingStream<Void, any Error>.makeStream()
+        Thread {
+            defer { close(listener); unlink(path) }
+            do {
+                let client = try UnixSocket.accept(listener)
+                defer { close(client) }
+                try handler(client)
+                finished.finish()
+            } catch {
+                finished.finish(throwing: error)
             }
-        }
-        return (path, task)
+        }.start()
+        return (path, Task { for try await _ in outcome {} })
     }
 
     @Test func connectsThroughHybridVsockHandshake() async throws {
