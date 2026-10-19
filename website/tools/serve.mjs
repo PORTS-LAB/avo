@@ -42,7 +42,7 @@ const TYPES = {
 };
 
 const config = await loadConfig();
-const basePath = new URL(`${config.siteUrl.replace(/\/+$/, '')}/`).pathname; // e.g. /avo/
+const basePath = new URL(`${config.siteUrl.replace(/\/+$/, '')}/`).pathname; // `/` on the custom domain
 const siteUrl = `http://localhost:${SITE_PORT}${basePath.replace(/\/$/, '')}`;
 
 async function rebuild() {

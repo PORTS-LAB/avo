@@ -8,7 +8,7 @@
 Free and open source, for Macs with Apple silicon.</p>
 
 <p align="center">
-  <a href="https://nizwar.github.io/avo/">Website</a> ·
+  <a href="https://avodroid.com">Website</a> ·
   <a href="https://github.com/nizwar/avo/releases">Releases</a> ·
   <a href="docs/architecture.md">Architecture</a> ·
   <a href="docs/engine.md">Engine</a> ·

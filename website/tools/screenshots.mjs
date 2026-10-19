@@ -3,7 +3,7 @@
 // DevTools protocol (no Puppeteer). Uses a throwaway Chrome profile, so it
 // never touches your own browser windows.
 //
-//   node tools/screenshots.mjs --out DIR [--site http://localhost:8788/avo/]
+//   node tools/screenshots.mjs --out DIR [--site http://localhost:8788/]
 //                              [--chrome PATH] [--only NAME] [--views desktop,phone]
 //
 // For every page and width it saves a PNG, and reports content that sticks
@@ -22,7 +22,7 @@ const option = (name, fallback) => {
   return i >= 0 && args[i + 1] ? args[i + 1] : fallback;
 };
 const OUT = path.resolve(option('--out', 'screenshots'));
-const SITE = option('--site', 'http://localhost:8788/avo/');
+const SITE = option('--site', 'http://localhost:8788/');
 const CHROME = option('--chrome', '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome');
 const ONLY = option('--only', null);
 const VIEWS = option('--views', null);

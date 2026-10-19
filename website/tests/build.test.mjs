@@ -84,7 +84,7 @@ test('internal links and assets resolve', () => {
     }
   }
   // 404.html is served at any depth, so it links from the site root.
-  assert.match(read('404.html'), /href="\/avo\/assets\/css\/site\.css\?v=/);
+  assert.match(read('404.html'), /href="\/assets\/css\/site\.css\?v=/);
 });
 
 test('screenshots: AVIF and WebP with a JPEG fallback, translated alt text, lazy below the fold', () => {

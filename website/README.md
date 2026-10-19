@@ -43,7 +43,7 @@ the ones left and `npm run build:strict` refuses to build until none are.
 
 | Setting | What it is |
 | --- | --- |
-| `siteUrl` | Public address of the site (`https://nizwar.github.io/avo`, or a custom domain). Used for canonical links, the sitemap and social previews. |
+| `siteUrl` | Public address of the site (`https://avodroid.com`). Used for canonical links, the sitemap and social previews. |
 | `githubUrl`, `githubBranch` | The repository and its branch, for links into `docs/`. |
 | `release` | `available: false` says plainly that no build is published and offers "Build from source". Set `available: true`, `version` and `downloadUrl` when a release is out. |
 | `fonts` | The typeface set, one switch for the whole site: `'hubot-mona'` (A, default: Hubot Sans headings, Mona Sans text, Mona Sans Mono labels), `'geist'` (B), `'archivo'` (C), `'jakarta'` (D, Plus Jakarta Sans). Letters work too. Only the chosen set's files are published. |
@@ -62,14 +62,14 @@ or changes, update the wording in both languages.
 
 ```sh
 cd website
-npm run dev            # build, serve at http://localhost:8788/avo/ and rebuild on change
+npm run dev            # build, serve at http://localhost:8788/ and rebuild on change
 npm test               # build into a temporary folder and check it
 npm run build          # build dist/ only
 npm run build:strict   # the same, refusing any placeholder left in site.config.mjs
 ```
 
-The site is served under the path of `siteUrl` (here `/avo/`), exactly like a
-GitHub Pages project site.
+The site is served under the path of `siteUrl` (here the root, `/`), as GitHub
+Pages serves it on the custom domain.
 
 Screenshots and layout checks (content wider than the screen, console errors,
 HTTP status) with headless Chrome in a throwaway profile, while `npm run dev`
@@ -81,14 +81,18 @@ node tools/screenshots.mjs --out /tmp/avo-shots [--only home-en] [--views deskto
 
 ## Deploy
 
-The site is published on GitHub Pages at https://nizwar.github.io/avo by
+The site is published on GitHub Pages at https://avodroid.com (the
+repository's custom domain, with HTTPS enforced) by
 `.github/workflows/website.yml` (a copy is in `deploy/github-pages.yml`):
 every push to `main` that touches `website/` runs the tests, builds with
 `--strict` and publishes `website/dist`. The repository's Settings › Pages
 source is **GitHub Actions**. Check with `npm run build:strict` before
 pushing.
 
-For a custom domain, set it in Settings › Pages and set `siteUrl` to match.
+The custom domain's DNS (at the registrar) points the apex at GitHub Pages
+(A records 185.199.108.153, .109.153, .110.153, .111.153 and AAAA records
+2606:50c0:8000::153 to 8003::153) and `www` at `nizwar.github.io` (CNAME).
+`siteUrl` must match the domain.
 
 ## Checklist before going live
 

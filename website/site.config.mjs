@@ -9,7 +9,7 @@
 export default {
   // Public address of this website, without a trailing slash. Used for
   // canonical links, the sitemap and social previews.
-  siteUrl: 'https://nizwar.github.io/avo',
+  siteUrl: 'https://avodroid.com',
 
   // The GitHub repository, and its default branch (for links into docs/).
   githubUrl: 'https://github.com/nizwar/avo',

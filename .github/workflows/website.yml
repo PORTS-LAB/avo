@@ -1,4 +1,4 @@
-# GitHub Pages deployment for the Avo website (https://nizwar.github.io/avo).
+# GitHub Pages deployment for the Avo website (https://avodroid.com).
 # The repository's Settings > Pages source is "GitHub Actions". A copy of
 # this file stays in website/deploy/ so the website folder is self-contained.
 #
