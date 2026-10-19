@@ -2436,6 +2436,16 @@
         }
       }
     },
+    "Avo is made for Android 16 and newer. Older versions may not start, or may restart over and over; Google builds Android 13 and 14 for virtual devices only with 32-bit parts, which Apple silicon can’t run." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Avo dibuat untuk Android 16 dan yang lebih baru. Versi lama mungkin tidak bisa dimulai, atau terus memulai ulang; Google membuat Android 13 dan 14 untuk perangkat virtual hanya dengan komponen 32-bit, yang tidak dapat dijalankan Apple silicon."
+          }
+        }
+      }
+    },
     "Avo keeps the previous version, so you can switch back." : {
       "localizations" : {
         "id" : {
@@ -5711,6 +5721,16 @@
         }
       }
     },
+    "Looking for older Android versions…" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mencari versi Android lama…"
+          }
+        }
+      }
+    },
     "Mac windows" : {
       "localizations" : {
         "id" : {
@@ -5777,6 +5797,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Sesuai jendela"
+          }
+        }
+      }
+    },
+    "May Not Work" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mungkin Tidak Jalan"
+          }
+        }
+      }
+    },
+    "May not work on Apple silicon" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mungkin tidak jalan di Apple silicon"
           }
         }
       }
@@ -6428,6 +6468,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Nonaktif. Nyalakan Izinkan Notifikasi untuk Avo di Pengaturan Sistem; macOS tidak bertanya lagi."
+          }
+        }
+      }
+    },
+    "Older Versions" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Versi Lama"
           }
         }
       }
@@ -8575,6 +8625,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Jendela menampilkan lebih sedikit piksel daripada yang dirender Android. Resolusi lebih rendah terlihat sama dan berjalan lebih cepat."
+          }
+        }
+      }
+    },
+    "There are no older versions to download right now." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Saat ini tidak ada versi lama yang bisa diunduh."
           }
         }
       }

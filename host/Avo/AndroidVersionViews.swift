@@ -20,6 +20,9 @@ struct AndroidVersionRow: Identifiable, Hashable {
     let image: AndroidImageSummary?
     /// The newest offer.
     let recommended: Bool
+    /// Older than the Android versions Avo is made for (Older Versions):
+    /// it may not start on Apple silicon.
+    var older = false
 
     var id: String {
         switch kind {
@@ -51,14 +54,23 @@ struct AndroidVersionRow: Identifiable, Hashable {
 }
 
 extension AndroidImageManager {
+    /// The versions Avo is made for (Android 16 and newer).
+    var rows: [AndroidVersionRow] { allRows.filter { !$0.older } }
+    /// Older Versions: older Android that may not start on Apple silicon.
+    var olderRows: [AndroidVersionRow] { allRows.filter(\.older) }
+
     /// Offers first matched with what is installed, then images no offer
     /// covers; newest Android first.
-    var rows: [AndroidVersionRow] {
+    var allRows: [AndroidVersionRow] {
         var rows = offers.enumerated().map { index, offer in
             AndroidVersionRow(kind: .offer(offer), image: installedImage(for: offer), recommended: index == 0)
         }
+        rows += olderOffers.map { AndroidVersionRow(kind: .offer($0), image: installedImage(for: $0), recommended: false) }
         let covered = Set(rows.compactMap { $0.image?.path })
         rows += installed.filter { !covered.contains($0.path) }.map { AndroidVersionRow(kind: .image($0), image: $0, recommended: false) }
+        for index in rows.indices {
+            rows[index].older = rows[index].release.map { $0.sdk < minimumSDK } ?? false
+        }
         return rows.sorted { a, b in
             switch (a.release, b.release) {
             case let (x?, y?) where x.isOlder(than: y): return false
@@ -75,7 +87,7 @@ extension AndroidImageManager {
         if let data = dataRelease, current?.release.map({ $0.isOlder(than: data) }) ?? true, let fitting = rowFitting(data) {
             return fitting
         }
-        return rows.first { $0.image != nil && $0.image?.path == current?.path } ?? rows.first { $0.recommended } ?? rows.first
+        return allRows.first { $0.image != nil && $0.image?.path == current?.path } ?? rows.first { $0.recommended } ?? rows.first
     }
 
     /// The version to use Android's data from `data` with: the same Android
@@ -100,24 +112,15 @@ struct AndroidVersionList: View {
     /// Taller lists scroll (the Setup Assistant shows two cards at a time).
     var maxCardsHeight: CGFloat = 300
     @State private var chooseImage = false
+    @State private var showOlder = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             ScrollView {
                 VStack(spacing: 12) {
-                    ForEach(images.rows) { row in
-                        AndroidVersionRowView(row: row, inUse: row.image != nil && row.image?.path == images.current?.path,
-                                              selected: row.id == selection) {
-                            selection = row.id
-                        }
-                        .contextMenu {
-                            if let image = row.image, image.isManaged {
-                                Button("Remove from This Mac") { images.remove(image) }
-                                    .disabled(!canRemove(image))
-                            }
-                        }
-                    }
+                    ForEach(images.rows) { row in card(row) }
                     catalogState
+                    olderVersions
                 }
                 .padding(2)
             }
@@ -153,18 +156,81 @@ struct AndroidVersionList: View {
             defer { if accessing { url.stopAccessingSecurityScopedResource() } }
             guard let candidate = images.inspect(url) else { return }
             if let installed = candidate.installed {
-                selection = images.rows.first { $0.image?.path == installed.path }?.id
+                selection = images.allRows.first { $0.image?.path == installed.path }?.id
                 return
             }
             images.importImage(candidate, then: .nothing)
         }
         .onChange(of: images.job?.phase) { _, phase in
             // An import or download that finished: its row, selected.
-            if case .finished(let path)? = phase, let row = images.rows.first(where: { $0.image?.path == path }) {
+            if case .finished(let path)? = phase, let row = images.allRows.first(where: { $0.image?.path == path }) {
                 selection = row.id
             }
         }
         .task { await images.loadCatalog() }
+    }
+
+    private func card(_ row: AndroidVersionRow) -> some View {
+        AndroidVersionRowView(row: row, inUse: row.image != nil && row.image?.path == images.current?.path,
+                              selected: row.id == selection) {
+            selection = row.id
+        }
+        .contextMenu {
+            if let image = row.image, image.isManaged {
+                Button("Remove from This Mac") { images.remove(image) }
+                    .disabled(!canRemove(image))
+            }
+        }
+    }
+
+    /// Older Versions, folded away: Android older than Avo is made for,
+    /// listed once opened.
+    @ViewBuilder private var olderVersions: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Button {
+                withAnimation(Haze.Motion.hover) { showOlder.toggle() }
+                if showOlder { Task { await images.loadOlderCatalog() } }
+            } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 11, weight: .bold))
+                        .rotationEffect(.degrees(showOlder ? 90 : 0))
+                    Text("Older Versions").font(.mona(13.5, 600))
+                    Text("May not work on Apple silicon").font(.mona(12)).foregroundStyle(Haze.textTertiary)
+                    Spacer()
+                }
+                .foregroundStyle(Haze.textSecondary)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .padding(.top, 4)
+            .accessibilityAddTraits(.isHeader)
+            if showOlder {
+                Label("Avo is made for Android 16 and newer. Older versions may not start, or may restart over and over; Google builds Android 13 and 14 for virtual devices only with 32-bit parts, which Apple silicon can’t run.",
+                      systemImage: "exclamationmark.triangle")
+                    .font(.mona(12))
+                    .foregroundStyle(Haze.warning)
+                    .fixedSize(horizontal: false, vertical: true)
+                ForEach(images.olderRows) { row in card(row) }
+                switch images.olderCatalog {
+                case .idle, .loading:
+                    Text("Looking for older Android versions…").font(.mona(12.5)).foregroundStyle(Haze.textTertiary)
+                case .failed(let message):
+                    Text(verbatim: message).font(.mona(12)).foregroundStyle(Haze.textTertiary).lineLimit(3)
+                case .loaded where images.olderRows.isEmpty:
+                    Text("There are no older versions to download right now.").font(.mona(12.5)).foregroundStyle(Haze.textTertiary)
+                case .loaded:
+                    EmptyView()
+                }
+            }
+        }
+        .onAppear {
+            // An older version chosen or in use: open, so it shows.
+            if !showOlder, images.olderRows.contains(where: { $0.id == selection || ($0.image != nil && $0.image?.path == images.current?.path) }) {
+                showOlder = true
+                Task { await images.loadOlderCatalog() }
+            }
+        }
     }
 
     /// Not the image Android starts with, nor the one it runs now.
@@ -227,6 +293,7 @@ struct AndroidVersionRowView: View {
                     HStack(spacing: 8) {
                         Text(verbatim: row.name).font(.hubot(17, 700))
                         if row.recommended { Tag(text: "Newest", tint: Haze.accent) }
+                        if row.older { Tag(text: "May Not Work", tint: Haze.warning) }
                         if inUse {
                             Tag(text: "In Use", tint: Haze.running)
                         } else if row.image != nil {
@@ -650,13 +717,15 @@ struct GlowBar: View {
         GeometryReader { geometry in
             ZStack(alignment: .leading) {
                 Capsule().fill(Haze.text.opacity(0.10))
+                // No fraction (a step that cannot tell how far it is): a
+                // faint full bar with the sheen running, never a made-up amount.
                 Capsule()
                     .fill(LinearGradient(colors: [Color(haze: 0x7FA85C), Haze.accent], startPoint: .leading, endPoint: .trailing))
-                    .frame(width: max(8, geometry.size.width * (fraction ?? 0.3)))
-                    .shadow(color: Haze.accent.opacity(0.6), radius: 8)
+                    .frame(width: fraction.map { max(8, geometry.size.width * $0) } ?? geometry.size.width)
+                    .shadow(color: Haze.accent.opacity(fraction == nil ? 0 : 0.6), radius: 8)
                     // Over the glow, so the glow itself stays still.
                     .hazeSheen(moving, in: Capsule(), intensity: 0.5, period: 1.9)
-                    .opacity(fraction == nil ? 0.5 : 1)
+                    .opacity(fraction == nil ? 0.28 : 1)
             }
         }
         .frame(height: 8)
@@ -918,7 +987,7 @@ struct AndroidVersionSheet: View {
             images.problem = nil
             if selection == nil { selection = images.defaultRow?.id }
         }
-        .onChange(of: images.rows.map(\.id)) { _, ids in
+        .onChange(of: images.allRows.map(\.id)) { _, ids in
             if selection == nil || !ids.contains(selection ?? "") { selection = images.defaultRow?.id }
         }
         .confirmationDialog(confirming?.title ?? "", isPresented: Binding(get: { confirming != nil }, set: { if !$0 { confirming = nil } }),
@@ -932,7 +1001,7 @@ struct AndroidVersionSheet: View {
         }
     }
 
-    private var selected: AndroidVersionRow? { images.rows.first { $0.id == selection } }
+    private var selected: AndroidVersionRow? { images.allRows.first { $0.id == selection } }
 
     private var canChoose: Bool {
         guard let selected, images.job?.isRunning != true else { return false }

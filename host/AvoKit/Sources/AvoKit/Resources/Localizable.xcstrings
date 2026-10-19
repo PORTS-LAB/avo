@@ -1416,7 +1416,24 @@
         }
       }
     },
+    "It’s %@, and Avo needs Android %lld or newer." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "It’s %1$@, and Avo needs Android %2$lld or newer."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ini %1$@, dan Avo memerlukan Android %2$lld atau yang lebih baru."
+          }
+        }
+      }
+    },
     "It’s %@, and Avo needs Android 16 or newer." : {
+      "extractionState" : "stale",
       "localizations" : {
         "id" : {
           "stringUnit" : {

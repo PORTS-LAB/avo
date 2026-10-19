@@ -11,6 +11,17 @@ import Testing
 /// scratch folder (the original is only read).
 @Suite(.enabled(if: ProcessInfo.processInfo.environment["AVO_LIVE_BUILD_API"] == "1"))
 struct AndroidImageLiveTests {
+    @Test func listsTheOlderVersions() async throws {
+        let folder = try scratchFolder("live-older")
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let older = try await AndroidImageCatalog(source: .standard, cacheFile: folder.appending(path: "builds.json")).olderOffers()
+        print("older versions:")
+        for offer in older {
+            print("  \(offer.release.name) (API \(offer.release.sdk)) build \(offer.build) \(offer.target) \(offer.downloadSize) bytes")
+        }
+        #expect(older.allSatisfy { $0.release.sdk < 36 && $0.release.sdk >= AndroidImageCatalog.oldestSDK && $0.md5.count == 32 })
+    }
+
     @Test func listsTheBuildsAvoOffers() async throws {
         let folder = try scratchFolder("live")
         defer { try? FileManager.default.removeItem(at: folder) }

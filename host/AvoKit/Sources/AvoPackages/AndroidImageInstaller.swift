@@ -73,6 +73,8 @@ public struct AndroidImageInstaller: Sendable {
     /// against the API's MD5, unpacks it and installs it. Cancelling the
     /// calling task keeps what was downloaded (`discardDownload` removes it).
     public func download(_ offer: AndroidImageOffer, report: @escaping Report) async throws -> AndroidImageSummary {
+        // An older version's offer comes from another target (Older Versions).
+        let client = self.client.with(target: offer.target)
         report(.preparing)
         if let existing = store.managed().first(where: { $0.build == offer.build && $0.release?.version == offer.release.version }),
            (try? store.verify(existing)) != nil {

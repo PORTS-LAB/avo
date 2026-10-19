@@ -28,21 +28,50 @@ public struct AndroidBuildSource: Codable, Equatable, Sendable {
     public var minimumSDK: Int
     /// How many of a branch's newest builds are looked at.
     public var historyLimit: Int
+    /// Android versions older than `minimumSDK`, offered apart (Older
+    /// Versions). Google builds them only as `aosp_cf_arm64_phone`, with
+    /// 32-bit parts Apple silicon cannot run, so they may not start. Android
+    /// 11 and 12 are left out: their images have no init_boot, which Avo needs.
+    public var olderChannels: [Channel]
 
-    public init(endpoint: URL, apiKey: String, branches: [String], target: String, minimumSDK: Int = 36, historyLimit: Int = 100) {
+    /// A branch and the target to take from it.
+    public struct Channel: Codable, Equatable, Hashable, Sendable {
+        public var branch: String
+        public var target: String
+
+        public init(branch: String, target: String) {
+            self.branch = branch
+            self.target = target
+        }
+    }
+
+    public init(endpoint: URL, apiKey: String, branches: [String], target: String, minimumSDK: Int = 36, historyLimit: Int = 100,
+                olderChannels: [Channel] = []) {
         self.endpoint = endpoint
         self.apiKey = apiKey
         self.branches = branches
         self.target = target
         self.minimumSDK = minimumSDK
         self.historyLimit = historyLimit
+        self.olderChannels = olderChannels
     }
 
     public static let standard = AndroidBuildSource(
         endpoint: URL(string: "https://androidbuild-pa.googleapis.com/v4")!,
         apiKey: "AIzaSyBIelMvbjtNkpa5O96eqbm_IuSUA5WsO14",
         branches: ["aosp-android-latest-release"],
-        target: "aosp_cf_arm64_only_phone-userdebug")
+        target: "aosp_cf_arm64_only_phone-userdebug",
+        olderChannels: [
+            Channel(branch: "aosp-android14-gsi", target: "aosp_cf_arm64_phone-userdebug"),
+            Channel(branch: "aosp-android13-gsi", target: "aosp_cf_arm64_phone-userdebug"),
+        ])
+
+    /// The same API and key, for another target.
+    public func with(target: String) -> AndroidBuildSource {
+        var source = self
+        source.target = target
+        return source
+    }
 
     /// Defaults keys that change `standard` (`defaults write dev.avo.Avo …`):
     /// an https URL, a key, branches (an array, or one string with commas),
@@ -423,6 +452,11 @@ public struct AndroidBuildClient: Sendable {
         self.transport = transport
     }
 
+    /// The same API, key and transport, for another target (an offer's).
+    public func with(target: String) -> AndroidBuildClient {
+        target == source.target ? self : AndroidBuildClient(source: source.with(target: target), transport: transport)
+    }
+
     /// Successful builds of the target on `branch`, newest first.
     public func builds(branch: String, limit: Int) async throws -> [AndroidBuildAPI.Build] {
         let query: [(String, String)] = [
@@ -551,6 +585,12 @@ public struct AndroidImageCatalog: Sendable {
     }
 
     public func offers() async throws -> [AndroidImageOffer] {
+        try await offers(minimumSDK: source.minimumSDK, saveListing: true)
+    }
+
+    /// The source's branches, from `minimumSDK` up; `saveListing` keeps it
+    /// for the next time the picker opens (the source's own listing only).
+    func offers(minimumSDK: Int, saveListing: Bool) async throws -> [AndroidImageOffer] {
         let cache = ReleaseCache(file: cacheFile, target: source.target)
         let client = self.client
         let source = self.source
@@ -559,7 +599,7 @@ public struct AndroidImageCatalog: Sendable {
         for branch in source.branches {
             let builds = try await client.builds(branch: branch, limit: source.historyLimit)
             sawBuilds = sawBuilds || !builds.isEmpty
-            let groups = try await Self.newestPerVersion(builds, minimumSDK: source.minimumSDK) { build in
+            let groups = try await Self.newestPerVersion(builds, minimumSDK: minimumSDK) { build in
                 if let known = await cache.release(build.buildId) { return known }
                 let release = try await client.release(build: build.buildId)
                 if let release { await cache.store(release, for: build.buildId) }
@@ -589,12 +629,47 @@ public struct AndroidImageCatalog: Sendable {
         guard sawBuilds else { throw AndroidImageError.noBuilds(source.target) }
         let arranged = Self.arrange(offers)
         // Dates as numbers: exactly what was listed (ISO 8601 drops the milliseconds).
-        if let file = listingFile, let data = try? JSONEncoder().encode(Listing(source: source, date: Date(), offers: arranged)) {
+        if saveListing, let file = listingFile, let data = try? JSONEncoder().encode(Listing(source: source, date: Date(), offers: arranged)) {
             try? FileManager.default.createDirectory(at: file.deletingLastPathComponent(), withIntermediateDirectories: true)
             try? data.write(to: file, options: .atomic)
         }
         return arranged
     }
+
+    /// Older Android versions, below `minimumSDK`: those still in the
+    /// source's own branches (64-bit only, like the current ones), then the
+    /// newest build of each of `olderChannels`; newest Android first, one per
+    /// version. A branch or channel that cannot be read is left out.
+    public func olderOffers() async throws -> [AndroidImageOffer] {
+        let source = self.source
+        let base = client
+        let own = ((try? await offers(minimumSDK: Self.oldestSDK, saveListing: false)) ?? []).filter { $0.release.sdk < source.minimumSDK }
+        let offers = own + (await withTaskGroup(of: AndroidImageOffer?.self) { tasks in
+            for channel in source.olderChannels {
+                tasks.addTask {
+                    let client = base.with(target: channel.target)
+                    guard let builds = try? await client.builds(branch: channel.branch, limit: 3) else { return nil }
+                    for build in builds {
+                        guard let release = try? await client.release(build: build.buildId), release.sdk < source.minimumSDK else { continue }
+                        let name = client.source.imageArtifact(build: build.buildId)
+                        guard let artifact = try? await client.artifact(name, build: build.buildId), let md5 = artifact.md5 else { continue }
+                        return AndroidImageOffer(build: build.buildId, branch: channel.branch, target: channel.target, release: release,
+                                                 date: build.creationTimestamp ?? build.completionTimestamp, artifact: name,
+                                                 downloadSize: artifact.size, md5: md5)
+                    }
+                    return nil
+                }
+            }
+            var found: [AndroidImageOffer] = []
+            for await offer in tasks { if let offer { found.append(offer) } }
+            return found
+        })
+        try Task.checkCancellation()
+        return Self.arrange(offers)
+    }
+
+    /// Android 13: older images have no init_boot, which Avo needs.
+    public static let oldestSDK = 33
 
     /// Newest Android first, one offer per Android version (the newest
     /// build when several branches have it).

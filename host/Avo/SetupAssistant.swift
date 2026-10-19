@@ -237,7 +237,7 @@ struct SetupAssistantView: View {
         .overlay(alignment: .top) { Rectangle().fill(Haze.text.opacity(0.06)).frame(height: 1) }
     }
 
-    private var selectedRow: AndroidVersionRow? { images.rows.first { $0.id == assistant.selection } }
+    private var selectedRow: AndroidVersionRow? { images.allRows.first { $0.id == assistant.selection } }
 
     /// "Download Android 17": the chosen version is not on this Mac yet.
     private var downloadLabel: String? {
@@ -743,7 +743,7 @@ private struct AndroidStep: View {
             images.problem = nil
             if assistant.selection == nil { assistant.selection = images.defaultRow?.id }
         }
-        .onChange(of: images.rows.map(\.id)) { _, ids in
+        .onChange(of: images.allRows.map(\.id)) { _, ids in
             if assistant.selection == nil || !ids.contains(assistant.selection ?? "") { assistant.selection = images.defaultRow?.id }
         }
     }
@@ -814,7 +814,7 @@ private struct GoogleAppsStep: View {
 
     /// Which package fits the chosen Android.
     private var matchText: String {
-        let version = images.rows.first { $0.id == assistant.selection }?.release?.version ?? images.current?.release?.version
+        let version = images.allRows.first { $0.id == assistant.selection }?.release?.version ?? images.current?.release?.version
         guard let version else { return String(localized: "The package must match your Android version.") }
         return String(localized: "The package must match your Android: MindTheGapps \(version).0.0 for arm64, for Android \(version).")
     }

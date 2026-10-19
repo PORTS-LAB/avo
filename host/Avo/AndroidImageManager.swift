@@ -32,6 +32,9 @@ final class AndroidImageManager {
     }
 
     private(set) var catalog: Catalog = .idle
+    /// Android versions older than `minimumSDK` (Older Versions), listed
+    /// only when asked for.
+    private(set) var olderCatalog: Catalog = .idle
     private(set) var installed: [AndroidImageSummary] = []
     /// What Android starts with next.
     private(set) var current: AndroidImageSummary?
@@ -105,6 +108,14 @@ final class AndroidImageManager {
         return []
     }
 
+    var olderOffers: [AndroidImageOffer] {
+        if case .loaded(let offers) = olderCatalog { return offers }
+        return []
+    }
+
+    /// The oldest Android an image may be (Older Versions included).
+    var oldestSDK: Int { min(minimumSDK, AndroidImageCatalog.oldestSDK) }
+
     /// The installed image of an offer's build, if any.
     func installedImage(for offer: AndroidImageOffer) -> AndroidImageSummary? {
         installed.first { $0.build == offer.build && $0.release?.version == offer.release.version }
@@ -136,6 +147,21 @@ final class AndroidImageManager {
         } catch {
             logger.error("catalog: \(error.localizedDescription, privacy: .public)")
             catalog = .failed(error.localizedDescription)
+        }
+    }
+
+    func loadOlderCatalog(force: Bool = false) async {
+        guard !preview else { return }
+        if case .loading = olderCatalog { return }
+        if !force, case .loaded = olderCatalog { return }
+        olderCatalog = .loading
+        do {
+            olderCatalog = .loaded(try await AndroidImageCatalog(source: source).olderOffers())
+        } catch is CancellationError {
+            olderCatalog = .idle
+        } catch {
+            logger.error("older catalog: \(error.localizedDescription, privacy: .public)")
+            olderCatalog = .failed(error.localizedDescription)
         }
     }
 
@@ -174,7 +200,7 @@ final class AndroidImageManager {
     /// Checks a file or folder the user chose; nil (and `problem`) if it will not do.
     func inspect(_ url: URL) -> AndroidImageCandidate? {
         do {
-            return try installer.inspect(url, minimumSDK: minimumSDK)
+            return try installer.inspect(url, minimumSDK: oldestSDK)
         } catch {
             problem = error.localizedDescription
             return nil

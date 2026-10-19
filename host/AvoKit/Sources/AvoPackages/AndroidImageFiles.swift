@@ -75,7 +75,8 @@ public struct CuttlefishImageIdentity: Equatable, Sendable {
             return String(localized: "It’s a \(variant) build. Avo needs a userdebug build, which lets it set Android up as root.", bundle: .avoKit)
         }
         if release.sdk < minimumSDK {
-            return String(localized: "It’s \(release.name), and Avo needs Android 16 or newer.", bundle: .avoKit)
+            // API 33 is Android 13, 36 is Android 16.
+            return String(localized: "It’s \(release.name), and Avo needs Android \(minimumSDK - 20) or newer.", bundle: .avoKit)
         }
         return nil
     }

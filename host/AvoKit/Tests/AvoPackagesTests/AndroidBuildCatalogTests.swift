@@ -166,6 +166,21 @@ import Testing
         #expect(catalog(api).lastOffers() == nil)
     }
 
+    @Test func olderVersionsAreListedApart() async throws {
+        let api = try FixtureBuildAPI()
+        var source = AndroidBuildSource.standard
+        source.olderChannels = []
+        let older = try await catalog(api, source: source).olderOffers()
+        // Android 15 is still in the branch's history; 16 and 17 stay in the main list.
+        #expect(older.map(\.release.version) == ["15"])
+        #expect(older.first?.build == "13455678")
+        #expect(older.allSatisfy { $0.release.sdk < source.minimumSDK })
+        // The older ones are not the source's own listing.
+        #expect(catalog(api, source: source).lastOffers() == nil)
+        #expect(AndroidBuildSource.standard.olderChannels.map(\.branch) == ["aosp-android14-gsi", "aosp-android13-gsi"])
+        #expect(AndroidBuildSource.standard.olderChannels.allSatisfy { $0.target == "aosp_cf_arm64_phone-userdebug" })
+    }
+
     @Test func aLowerMinimumOffersOlderVersions() async throws {
         let api = try FixtureBuildAPI()
         var source = AndroidBuildSource.standard
