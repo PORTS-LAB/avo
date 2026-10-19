@@ -8,6 +8,13 @@
 Free and open source, for Macs with Apple silicon.</p>
 
 <p align="center">
+  <a href="https://github.com/nizwar/avo/releases"><img alt="Latest release" src="https://img.shields.io/github/v/release/nizwar/avo?include_prereleases&label=release&color=7FA85C"></a>
+  <a href="LICENSE"><img alt="License" src="https://img.shields.io/github/license/nizwar/avo?color=7FA85C"></a>
+  <img alt="macOS 15+ on Apple silicon" src="https://img.shields.io/badge/macOS-15%2B%20%C2%B7%20Apple%20silicon-7FA85C">
+  <a href="https://github.com/sponsors/nizwar"><img alt="Sponsor" src="https://img.shields.io/github/sponsors/nizwar?label=sponsor&color=EAA970"></a>
+</p>
+
+<p align="center">
   <a href="https://avodroid.com">Website</a> ·
   <a href="https://github.com/nizwar/avo/releases">Releases</a> ·
   <a href="docs/architecture.md">Architecture</a> ·
@@ -197,7 +204,8 @@ priority help.
 
 ## Contributing
 
-Contributions are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md).
+Contributions are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md), the
+[Code of Conduct](CODE_OF_CONDUCT.md) and [SUPPORT.md](SUPPORT.md).
 
 ## Acknowledgements
 

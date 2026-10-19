@@ -1,0 +1,17 @@
+# Sections for GitHub's generated release notes, by pull request label.
+changelog:
+  exclude:
+    labels: ["skip changelog"]
+  categories:
+    - title: New
+      labels: ["enhancement"]
+    - title: App compatibility
+      labels: ["app compatibility"]
+    - title: Fixes
+      labels: ["bug"]
+    - title: Documentation
+      labels: ["documentation"]
+    - title: Dependencies
+      labels: ["dependencies"]
+    - title: Other changes
+      labels: ["*"]

@@ -1,0 +1,61 @@
+name: App compatibility
+description: An Android app or game does not run, or runs badly, in Avo.
+labels: ["app compatibility", "needs triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Avo does not try to get around apps that refuse virtual machines (banking apps, some anti-cheat systems).
+        Reports still help: they tell other players what to expect.
+  - type: input
+    id: app
+    attributes:
+      label: App or game
+      description: Its name and package name (Avo's app info shows it), and where you installed it from.
+      placeholder: Garena Delta Force (com.garena.game.df), Google Play
+    validations:
+      required: true
+  - type: dropdown
+    id: problem
+    attributes:
+      label: What goes wrong
+      multiple: true
+      options:
+        - Does not install
+        - Crashes or closes
+        - Black or frozen screen
+        - Graphics look wrong
+        - No sound, or bad sound
+        - Keys, mouse or controller
+        - Refuses to run (detects a virtual machine)
+        - Slow
+        - Something else
+    validations:
+      required: true
+  - type: textarea
+    id: details
+    attributes:
+      label: Details
+      description: When it happens, graphics settings in the game, anything that helps.
+    validations:
+      required: true
+  - type: input
+    id: avo
+    attributes:
+      label: Avo version, Android version and Mac
+      placeholder: Avo 0.1.0 (35), Android 17, MacBook Air M2, macOS 15.5
+    validations:
+      required: true
+  - type: dropdown
+    id: renderer
+    attributes:
+      label: Renderer
+      options:
+        - GPU (Android Emulator installed)
+        - Software
+        - Not sure
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: Diagnostics
+      description: Help › Report a Problem saves a diagnostics archive with personal data removed. Drag it here.

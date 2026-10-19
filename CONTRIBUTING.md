@@ -3,12 +3,25 @@
 Thanks for helping. Avo is an early preview; bug reports with a diagnostics
 archive (Help › Report a Problem) are as valuable as code.
 
+Everyone taking part follows the [Code of Conduct](CODE_OF_CONDUCT.md).
+Questions belong in [Discussions](https://github.com/nizwar/avo/discussions),
+and security problems in a private report ([SECURITY.md](SECURITY.md)).
+
+## Issues
+
+- Use the forms on [New issue](https://github.com/nizwar/avo/issues/new/choose):
+  **Bug report** for Avo itself, **App compatibility** for an app or game
+  that does not run, **Feature request** for ideas.
+- Attach the diagnostics archive from **Help › Report a Problem**.
+- New issues are labelled `needs triage` until the maintainer has looked at
+  them; `good first issue` marks ones that suit a first contribution.
+
 ## Before you start
 
 - Read [README.md](README.md) for the build requirements and
   [docs/architecture.md](docs/architecture.md) for how the pieces fit.
-- For anything larger than a small fix, open an issue first so the approach
-  can be agreed on.
+- For anything larger than a small fix, open an issue or a discussion first so
+  the approach can be agreed on.
 
 ## Code
 
@@ -44,11 +57,20 @@ archive (Help › Report a Problem) are as valuable as code.
 
 Edit `branding/tools/generate.py`, not the generated files.
 
-## Commits and pull requests
+## Pull requests
 
-- One topic per commit, with an imperative subject line of 72 characters or
-  fewer, and a body that explains why.
-- Pull requests should say what was tested and how (unit tests, a manual run,
-  which app or game).
-- By contributing you agree that your contribution is licensed under the
-  project's license (Apache 2.0; BSD-3-Clause for `engine/hvf`).
+1. Fork the repository and branch from `main` (`fix/…`, `feature/…`, `docs/…`).
+2. Keep each commit to one topic, with an imperative subject line of 72
+   characters or fewer and a body that explains why.
+3. Run the tests for what you changed: `make test` (host), `cargo test` in
+   `engine/hvf` (engine), `npm test` in `website/` (website). Avo has no CI
+   for the apps: builds and releases are made on the release Mac, so these
+   local runs are the check.
+4. Open the pull request with the template filled in: what changed, why, and
+   how you tested it (which app or game, which Mac).
+5. `main` is protected: changes arrive through pull requests, reviewed by the
+   maintainer (CODEOWNERS), and are squash-merged; conversations must be
+   resolved first.
+
+By contributing you agree that your contribution is licensed under the
+project's license (Apache 2.0; BSD-3-Clause for `engine/hvf`).

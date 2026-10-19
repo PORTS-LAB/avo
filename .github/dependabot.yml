@@ -1,0 +1,24 @@
+# Monthly and grouped, so updates stay easy to review by hand.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    groups:
+      actions:
+        patterns: ["*"]
+  - package-ecosystem: cargo
+    directory: /engine/hvf
+    schedule:
+      interval: monthly
+    groups:
+      engine:
+        patterns: ["*"]
+  - package-ecosystem: swift
+    directory: /host/AvoKit
+    schedule:
+      interval: monthly
+    groups:
+      host:
+        patterns: ["*"]

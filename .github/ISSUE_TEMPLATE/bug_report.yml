@@ -1,0 +1,65 @@
+name: Bug report
+description: Something in Avo does not work as it should.
+labels: ["bug", "needs triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report this. One problem per issue, please.
+        An app or game that does not run is better reported with **App compatibility**.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you saw, and what you expected instead.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open …
+        2. Click …
+        3. …
+    validations:
+      required: true
+  - type: input
+    id: avo
+    attributes:
+      label: Avo version
+      description: Settings › About shows it, for example "0.1.0 (35)".
+    validations:
+      required: true
+  - type: input
+    id: macos
+    attributes:
+      label: macOS version and Mac
+      placeholder: macOS 15.5, Mac mini M4 Pro
+    validations:
+      required: true
+  - type: input
+    id: android
+    attributes:
+      label: Android version in Avo
+      placeholder: Android 17 (build 16644040)
+  - type: dropdown
+    id: renderer
+    attributes:
+      label: Renderer
+      options:
+        - GPU (Android Emulator installed)
+        - Software
+        - Not sure
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: Diagnostics
+      description: Help › Report a Problem saves a diagnostics archive with personal data removed. Drag it here.
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before you send
+      options:
+        - label: I searched the existing issues and this is not a duplicate.
+          required: true
