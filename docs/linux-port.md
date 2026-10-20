@@ -41,7 +41,7 @@ aarch64 KVM hardware (the `// verify:` marks say what to check there).
 | MoltenVK | done — off the Mac the loader picks the host ICD itself | 2 |
 | Metal shader-cache SPI (`virtio/gpu/cache.rs`, `MTLSetShaderCachePath`) | done — the Metal/CF machinery is macOS-only; prepare() no-ops and the cache root follows XDG off the Mac; the Control Panel's cache view follows in phase 3 | 2 |
 | Pause's vtimer offset (`hv_vcpu_set_vtimer_offset`; engine.md, "Pause") | done — the kvm backend turns nanosecond deltas into counter ticks (via CNTFRQ) and wait_for_interrupt reads the kernel's counter (`// verify:` on hardware) | 2 |
-| CoreAudio output and capture (`virtio/sound.rs`) | done for now: the null backend (audio dropped, timing kept; the tap ring stamps CLOCK_MONOTONIC ns); PipeWire/ALSA behind a small host-audio trait later | 2/3 |
+| CoreAudio output and capture (`virtio/sound.rs`) | done — the host's default PCM through libasound, dlopen'd (the GPU libraries' way): the clock writes each accepted period, the tap stamps the playhead's remaining distance as its host time; null-quiet where the library, device, or AVO_VMM_MUTE is absent. `AVO_TEST_ALSA=1 cargo test -p avo-vmm alsa` ran green on x86_64 against a live PipeWire server (playback, underrun recovery, freeze/thaw, capture); mic-time on real hardware — `// verify:` | 2/3 |
 | XPC Mach service + LaunchAgent/SMAppService | Unix-domain sockets + systemd user units | 3 |
 | AppKit Control Panel + AvoWindowHost app shims + CAMetalLayer windows | GTK4 or winit with Vulkan surfaces | 3 |
 | UNUserNotificationCenter | org.freedesktop.Notifications | 3 |
@@ -106,9 +106,10 @@ The device model runs on Linux end to end, still driven by hand:
 `avo-vmm cuttlefish <image dir>` (`scripts/fetch-cuttlefish.sh` still
 fetches the image). Frame rings in POSIX shared memory with a reader that
 maps them as ordinary memory; gfxstream 3D through the emulator's Linux
-libraries over the system Vulkan loader; the host-audio trait with the null
-backend first; the pause vtimer adjustment; the GPU's BAR2 mapped as KVM
-host memory.
+libraries over the system Vulkan loader; audio through the host's default
+PCM via dlopen'd libasound (usually the PipeWire server's ALSA emulation),
+the null backend where there is none; the pause vtimer adjustment; the
+GPU's BAR2 mapped as KVM host memory.
 
 **Done when:** Cuttlefish boots with software rendering and frames reach a
 reader through shared memory.

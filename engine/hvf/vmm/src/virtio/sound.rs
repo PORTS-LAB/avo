@@ -3,11 +3,13 @@
 //! Android's audio HAL opens as ALSA card 0, device 0.
 //!
 //! The enqueue path is a host-audio backend: the Mac's is Core Audio's
-//! AudioQueue (the rest of this comment describes it); off the Mac the null
-//! backend answers the clock and drops the audio, until PipeWire/ALSA lands
-//! (docs/linux-port.md).
+//! AudioQueue (the rest of this comment describes it); off the Mac it is
+//! ALSA's default device (usually a PipeWire or PulseAudio server's
+//! emulation, `alsa` below), loaded from libasound when the machine has it.
+//! A machine without audio — no library, no device, AVO_VMM_MUTE=1 — runs
+//! the null backend, which answers the clock and drops the audio.
 //!
-//! Playback goes to the Mac's default output and capture comes from its
+//! Playback goes to the host's default output and capture comes from its
 //! default input, both through Core Audio's AudioQueue, which converts rates
 //! and follows the default devices. Like a sound card's DMA, the device takes
 //! the guest's periods in real time, on a clock of its own: one playback
@@ -38,6 +40,9 @@
 //! played also goes to screen recordings (`tap`).
 
 pub mod tap;
+
+#[cfg(not(target_os = "macos"))]
+mod alsa;
 
 use super::queue::{Chain, Queue};
 use super::{Active, Interrupt, VirtioDevice};
@@ -396,8 +401,7 @@ impl Sound {
             }
             // Recording runs on a clock from the first moment; the microphone
             // joins in when it is up. Opening it can wait on macOS's permission
-            // prompt, which must not hold up this vCPU (and the null backend
-            // never opens one, so the guest records silence).
+            // prompt, which must not hold up this vCPU.
             self.install(stream, Audio::new(id, Some(tag.clone())));
             spawn_clock(&self.state, stream, id, params);
             #[cfg(target_os = "macos")]
@@ -405,7 +409,13 @@ impl Sound {
                 open_microphone(self.state.clone(), id, params, tag);
             }
             #[cfg(not(target_os = "macos"))]
-            drop(tag);
+            {
+                if muted() {
+                    drop(tag);
+                } else {
+                    open_microphone(self.state.clone(), id, params, tag);
+                }
+            }
         } else {
             self.install(stream, Audio::new(id, Some(tag.clone())));
             start_speaker(&self.state, id, params, tag);
@@ -444,8 +454,9 @@ impl Sound {
                 AudioQueueDispose(queue.0, 1);
             }
         }
-        // The null backend holds no host queue to dispose of (the sound was
-        // dropped as it was made).
+        // The host's queue closes with the handle's last reference (the
+        // clock thread is out of it by now); the null backend holds none
+        // (the sound was dropped as it was made).
         #[cfg(not(target_os = "macos"))]
         drop(audio);
     }
@@ -582,8 +593,8 @@ fn release_stale(active: &mut Active, queue: usize, stream: &mut Stream) {
 }
 
 /// One tick of the playback clock: the oldest waiting period is done, and
-/// its audio goes to the Mac's queue if that has room (MAX_QUEUED); otherwise,
-/// or with no queue yet, it is dropped (and, with no output device at all,
+/// its audio goes to the host's queue if that has room; otherwise, or with
+/// no queue yet, it is dropped (and, with no output device at all,
 /// still goes to recordings).
 fn play_period(active: &mut Active, stream: &mut Stream, id: u64, params: Params) {
     release_stale(active, TX, stream);
@@ -593,9 +604,9 @@ fn play_period(active: &mut Active, stream: &mut Stream, id: u64, params: Params
     #[cfg(target_os = "macos")]
     let mut queued = false;
     #[cfg(not(target_os = "macos"))]
-    let queued = false;
+    let mut queued = false;
     if let Some(audio) = stream.audio.as_mut().filter(|audio| audio.id == id) {
-        if let (Some(queue), false) = (audio.queue, pcm.is_empty()) {
+        if let (Some(queue), false) = (audio.queue.as_ref(), pcm.is_empty()) {
             // The Mac's queue gets the period; the null backend has no queue
             // and drops it.
             #[cfg(target_os = "macos")]
@@ -607,7 +618,7 @@ fn play_period(active: &mut Active, stream: &mut Stream, id: u64, params: Params
                             let len = pcm.len().min((*buffer.0).capacity as usize);
                             std::ptr::copy_nonoverlapping(pcm.as_ptr(), (*buffer.0).data as *mut u8, len);
                             (*buffer.0).size = len as u32;
-                            enqueue(queue, buffer.0, dry, params.rate) == 0
+                            enqueue(*queue, buffer.0, dry, params.rate) == 0
                         };
                         if !queued {
                             audio.idle.push(buffer);
@@ -615,8 +626,20 @@ fn play_period(active: &mut Active, stream: &mut Stream, id: u64, params: Params
                     }
                 }
             }
+            // The host's ALSA queue takes the period while its ring has
+            // room, and the tap stamps the playhead's distance as the host
+            // time the sound will have played at — what the Mac's callback
+            // sees at the buffer's return.
             #[cfg(not(target_os = "macos"))]
-            let _ = queue;
+            {
+                let budget = params.period() * 3 / 2;
+                if let Some(alsa::Accepted { delay }) = queue.0.accept(pcm, budget) {
+                    queued = true;
+                    let end = crate::pause::host_ticks() + delay * 1_000_000_000 / params.rate as u64;
+                    tap::ended_at(id, params.rate, params.channels, pcm, end);
+                    stream.stats.played += 1;
+                }
+            }
         } else if audio.queue.is_none() {
             tap::played(id, params.rate, params.channels, pcm);
         }
@@ -677,14 +700,46 @@ fn spawn_clock(state: &Arc<Mutex<State>>, stream: usize, id: u64, params: Params
         // guest's next period is then always there when the clock wants it
         // (starting at once left the clock waiting on the guest instead).
         let mut tick = std::time::Instant::now() + if stream == PLAYBACK { OPEN_GRACE } else { Duration::ZERO };
+        #[cfg(not(target_os = "macos"))]
+        let mut was_paused = false;
         loop {
             tick += params.period();
             std::thread::sleep(tick.saturating_duration_since(std::time::Instant::now()));
             // Android paused (pause.rs): its time stands still, so does this.
             if crate::pause::is_paused() {
+                // The host's queue is frozen too (each wake freezes whatever
+                // is current: the freeze is idempotent). It is this thread
+                // that freezes, by the queue's thread discipline.
+                #[cfg(not(target_os = "macos"))]
+                {
+                    let queue = state.upgrade().and_then(|state| {
+                        let state = state.lock().unwrap();
+                        state.streams[stream].audio.as_ref().filter(|audio| audio.id == id).and_then(|audio| audio.queue.clone())
+                    });
+                    if let Some(queue) = queue {
+                        queue.0.freeze();
+                    }
+                }
                 std::thread::sleep(Duration::from_millis(100));
                 tick = std::time::Instant::now();
+                #[cfg(not(target_os = "macos"))]
+                {
+                    was_paused = true;
+                }
                 continue;
+            }
+            // And wakes with it: the frozen queue rolls again before the
+            // first period goes.
+            #[cfg(not(target_os = "macos"))]
+            if was_paused {
+                was_paused = false;
+                let queue = state.upgrade().and_then(|state| {
+                    let state = state.lock().unwrap();
+                    state.streams[stream].audio.as_ref().filter(|audio| audio.id == id).and_then(|audio| audio.queue.clone())
+                });
+                if let Some(queue) = queue {
+                    queue.0.thaw();
+                }
             }
             // Woken late: carry on from now rather than hand the guest a burst
             // of periods, which would overrun its ring buffer.
@@ -729,7 +784,16 @@ fn start_speaker(state: &Arc<Mutex<State>>, id: u64, params: Params, tag: Arc<Ta
     #[cfg(target_os = "macos")]
     open_speaker(state.clone(), id, params, tag);
     #[cfg(not(target_os = "macos"))]
-    drop(tag);
+    {
+        // The host's queue joins in when it is up; muted (AVO_VMM_MUTE=1)
+        // there is no queue at all, and the clock's drops feed the tap
+        // (recordings still get the sound).
+        if muted() {
+            drop(tag);
+        } else {
+            open_speaker(state.clone(), id, params, tag);
+        }
+    }
 }
 
 /// Opens and starts the Mac's output for one playback run, off the vCPU
@@ -806,6 +870,53 @@ fn open_speaker(state: Arc<Mutex<State>>, id: u64, params: Params, tag: Arc<Tag>
     });
 }
 
+/// Opens and starts the host's output for one playback run, off the vCPU
+/// thread: the clock keeps the time from the first moment, and the queue
+/// joins in when it is up (an open can wait on a busy audio server; the
+/// periods it missed are the clock's drops). A machine without audio
+/// allows no queue and the run stays on the clock, like the Mac's.
+#[cfg(not(target_os = "macos"))]
+fn open_speaker(state: Arc<Mutex<State>>, id: u64, params: Params, tag: Arc<Tag>) {
+    let _ = std::thread::Builder::new().name("avo-speaker".into()).spawn(move || {
+        let began = Instant::now();
+        let opened = alsa::Handle::open(true, &params);
+        if began.elapsed() > SLOW_START {
+            eprintln!("[vmm] sound: the host's audio output took {} ms to start", began.elapsed().as_millis());
+        }
+        let mut guard = state.lock().unwrap();
+        let State { streams, .. } = &mut *guard;
+        let entry = &mut streams[PLAYBACK];
+        let current = entry.started && entry.audio.as_ref().is_some_and(|audio| audio.id == id);
+        match opened {
+            Ok(handle) if current => {
+                let audio = entry.audio.as_mut().unwrap();
+                audio.queue = Some(QueueRef(handle));
+                audio.total = 1; // the queue is there; the ring accounts for itself
+                audio.heard = Instant::now();
+                drop(guard);
+                if debug() {
+                    eprintln!("[vmm] sound: output queue up in {:.1} ms", began.elapsed().as_secs_f64() * 1000.0);
+                }
+                // Paused while it opened: the clock's next wake freezes it.
+                spawn_watchdog(&state, id);
+            }
+            Ok(_) => {
+                // The stream moved on; the handle drops closed.
+                drop(guard);
+                if debug() {
+                    eprintln!("[vmm] sound: output queue up in {:.1} ms, but late", began.elapsed().as_secs_f64() * 1000.0);
+                }
+            }
+            Err(reason) if debug() || current => {
+                drop(guard);
+                eprintln!("[vmm] sound: no audio output ({reason}); running on a clock");
+            }
+            Err(_) => {}
+        }
+        drop(tag);
+    });
+}
+
 /// Watches one playback run on a queue: a queue that stops handing buffers
 /// back while it has some to play (Core Audio lost its device, or its
 /// callbacks stalled) is replaced by a new one. The guest never waits for it
@@ -847,6 +958,45 @@ fn spawn_watchdog(state: &Arc<Mutex<State>>, id: u64) {
                 AudioQueueDispose(queue.0, 1);
             }
         }
+        drop(old);
+        return;
+    });
+}
+
+/// Watches one playback run on the host's queue: writes that keep failing
+/// long enough (a server that left, a device that went away) are answered
+/// by a new one. The guest never waits for it (the clock runs on); this
+/// brings the sound back.
+#[cfg(not(target_os = "macos"))]
+fn spawn_watchdog(state: &Arc<Mutex<State>>, id: u64) {
+    let weak = Arc::downgrade(state);
+    let _ = std::thread::Builder::new().name("avo-sound-watch".into()).spawn(move || loop {
+        std::thread::sleep(WATCH_INTERVAL);
+        let Some(state) = weak.upgrade() else { return };
+        let mut guard = state.lock().unwrap();
+        let State { active, streams, .. } = &mut *guard;
+        let entry = &mut streams[PLAYBACK];
+        let Some(audio) = entry.audio.as_mut().filter(|audio| audio.id == id) else { return };
+        if crate::pause::is_paused() {
+            audio.heard = Instant::now();
+            continue;
+        }
+        let failing = audio.queue.as_ref().and_then(|queue| queue.0.failing_since());
+        if let Some(active) = active.as_mut() {
+            release_stale(active, TX, entry);
+        }
+        report_stats(entry);
+        if !failing.is_some_and(|age| age >= STALL_LIMIT) {
+            continue;
+        }
+        let Some(params) = entry.params else { return };
+        eprintln!("[vmm] sound: the host's audio output failed for {} ms; opening it again", failing.unwrap().as_millis());
+        let next = NEXT_RUN.fetch_add(1, Ordering::Relaxed);
+        let tag = Arc::new(Tag { state: weak.clone(), stream: PLAYBACK, id: next });
+        let old = entry.audio.replace(Audio::new(next, Some(tag.clone())));
+        entry.stats.restarts += 1;
+        drop(guard);
+        start_speaker(&state, next, params, tag);
         drop(old);
         return;
     });
@@ -919,6 +1069,45 @@ fn open_microphone(state: Arc<Mutex<State>>, id: u64, params: Params, tag: Arc<T
             unsafe {
                 AudioQueueStop(queue.0, 1);
                 AudioQueueDispose(queue.0, 1);
+            }
+        }
+    });
+}
+
+/// Opens the host's microphone for one capture run, off the vCPU thread: a
+/// thread of its own reads period after period into the device's ring (the
+/// clock hands them to the guest, silence filling what falls short). On a
+/// machine without a source, capture stays what it started as: silence.
+#[cfg(not(target_os = "macos"))]
+fn open_microphone(state: Arc<Mutex<State>>, id: u64, params: Params, _tag: Arc<Tag>) {
+    let _ = std::thread::Builder::new().name("avo-microphone".into()).spawn(move || {
+        let Ok(handle) = alsa::Handle::open(false, &params) else {
+            eprintln!("[vmm] sound: no microphone on the host; recording silence");
+            return;
+        };
+        let mut period = vec![0u8; params.period_bytes as usize];
+        loop {
+            // Android paused (pause.rs): its time stands still, so does this.
+            if crate::pause::is_paused() {
+                std::thread::sleep(Duration::from_millis(100));
+                continue;
+            }
+            let read = handle.record(&mut period, Duration::from_millis(250));
+            let mut guard = state.lock().unwrap();
+            let entry = &mut guard.streams[CAPTURE];
+            if !entry.started || entry.audio.as_ref().map(|audio| audio.id) != Some(id) {
+                return;
+            }
+            if let Some(bytes) = read {
+                entry.captured.extend(&period[..bytes]);
+                // The clock hands it to the guest; keep no more than a few periods.
+                if let Some(params) = entry.params {
+                    let limit = params.period_bytes as usize * 4;
+                    if entry.captured.len() > limit {
+                        let excess = entry.captured.len() - limit;
+                        entry.captured.drain(..excess);
+                    }
+                }
             }
         }
     });
@@ -1043,15 +1232,13 @@ struct AudioTimeStamp {
 }
 
 /// kAudioTimeStampSampleTimeValid.
-const SAMPLE_TIME_VALID: u32 = 1;
-
-/// kAudioTimeStampSampleTimeValid.
 #[cfg(target_os = "macos")]
 const SAMPLE_TIME_VALID: u32 = 1;
 
-/// The device's handles for a host queue and its buffers: Core Audio's on
-/// the Mac; placeholders elsewhere, where the null backend never opens
-/// either (PipeWire/ALSA replaces both — docs/linux-port.md).
+/// The device's handles for a host queue and its buffers: Core Audio's
+/// references on the Mac; on the host's other side a queue is the ALSA
+/// handle's `Arc` (alsa.rs owns its thread discipline: the calls sit on the
+/// stream's clock thread, the drop comes after everything ended).
 #[cfg(target_os = "macos")]
 #[derive(Clone, Copy)]
 struct QueueRef(AudioQueueRef);
@@ -1064,8 +1251,8 @@ unsafe impl Send for QueueRef {}
 #[cfg(target_os = "macos")]
 unsafe impl Send for BufferRef {}
 #[cfg(not(target_os = "macos"))]
-#[derive(Clone, Copy)]
-struct QueueRef(());
+#[derive(Clone)]
+struct QueueRef(Arc<alsa::Handle>);
 #[cfg(not(target_os = "macos"))]
 #[derive(Clone, Copy)]
 struct BufferRef(());
@@ -1122,10 +1309,9 @@ unsafe extern "C" {
 #[cfg(target_os = "macos")]
 const QUEUE_VOLUME: u32 = 1;
 
-/// `AVO_VMM_MUTE=1` (tests on a Mac someone uses): the Mac plays nothing
-/// (recordings still get the sound) and its microphone stays closed (Android
-/// records silence).
-#[cfg(target_os = "macos")]
+/// `AVO_VMM_MUTE=1` (tests where someone is listening): the host plays
+/// nothing (recordings still get the sound) and the microphone stays
+/// closed (the guest records silence).
 fn muted() -> bool {
     std::env::var_os("AVO_VMM_MUTE").is_some_and(|value| value == "1")
 }

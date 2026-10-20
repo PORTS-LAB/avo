@@ -206,12 +206,20 @@ pub fn open(directory: &Path) -> Option<String> {
 }
 
 /// Audio of stream run `run` (S16, interleaved) that has just been played:
-/// its last frame ended now.
-pub fn played(run: u64, rate: u32, channels: u8, pcm: &[u8]) {
+/// its last frame ended at host time `end` (the ring's own clock). The
+/// host's backend stamps where it knows the playhead to be; ALSA's stamps
+/// the ring's remaining distance at the write.
+pub fn ended_at(run: u64, rate: u32, channels: u8, pcm: &[u8], end: u64) {
     if let Some(Some(ring)) = RING.get() {
-        let (now, _) = host_clock_and_base();
-        ring.lock().unwrap().write(run, rate, channels, pcm, now);
+        ring.lock().unwrap().write(run, rate, channels, pcm, end);
     }
+}
+
+/// Audio of stream run `run` that has just been played: its last frame
+/// ended now.
+pub fn played(run: u64, rate: u32, channels: u8, pcm: &[u8]) {
+    let (now, _) = host_clock_and_base();
+    ended_at(run, rate, channels, pcm, now);
 }
 
 #[cfg(test)]
