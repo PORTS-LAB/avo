@@ -120,10 +120,16 @@ pub fn linux_errno(error: &io::Error) -> i32 {
         libc::ENOSYS => 38,
         libc::ENOTEMPTY => 39,
         libc::ELOOP => 40,
+        #[cfg(target_os = "macos")]
         libc::ENOATTR => 61,
+        #[cfg(not(target_os = "macos"))]
+        libc::ENODATA => 61,
         libc::EOVERFLOW => 75,
         libc::EILSEQ => 84,
+        #[cfg(target_os = "macos")]
         libc::ENOTSUP | libc::EOPNOTSUPP => 95,
+        #[cfg(not(target_os = "macos"))]
+        libc::EOPNOTSUPP => 95,
         libc::ENOTCONN => 107,
         libc::ETIMEDOUT => 110,
         libc::EDQUOT => 122,
@@ -569,15 +575,28 @@ impl SharedDir {
         let new_name = reader.name()?.to_vec();
         let (old_host, old_relative) = self.child(parent, &old_name)?;
         let (new_host, new_relative) = self.child(new_parent, &new_name)?;
-        let host_flags = match flags {
-            0 => 0,
-            RENAME_NOREPLACE => libc::RENAME_EXCL,
-            RENAME_EXCHANGE => libc::RENAME_SWAP,
-            _ => return Err(libc_linux::EINVAL), // RENAME_WHITEOUT
-        };
         let (from, to) = (c_path(&old_host)?, c_path(&new_host)?);
-        if unsafe { libc::renamex_np(from.as_ptr(), to.as_ptr(), host_flags) } != 0 {
-            return Err(linux_errno(&io::Error::last_os_error()));
+        #[cfg(target_os = "macos")]
+        {
+            let host_flags = match flags {
+                0 => 0,
+                RENAME_NOREPLACE => libc::RENAME_EXCL,
+                RENAME_EXCHANGE => libc::RENAME_SWAP,
+                _ => return Err(libc_linux::EINVAL), // RENAME_WHITEOUT
+            };
+            if unsafe { libc::renamex_np(from.as_ptr(), to.as_ptr(), host_flags) } != 0 {
+                return Err(linux_errno(&io::Error::last_os_error()));
+            }
+        }
+        #[cfg(not(target_os = "macos"))]
+        {
+            // The guest's flag numbering is the kernel's own renameat2 one.
+            if flags & !(RENAME_NOREPLACE | RENAME_EXCHANGE) != 0 {
+                return Err(libc_linux::EINVAL); // RENAME_WHITEOUT
+            }
+            if unsafe { libc::renameat2(libc::AT_FDCWD, from.as_ptr(), libc::AT_FDCWD, to.as_ptr(), flags) } != 0 {
+                return Err(linux_errno(&io::Error::last_os_error()));
+            }
         }
         if flags == RENAME_EXCHANGE {
             self.moved(&old_relative, Path::new("\0swap"));

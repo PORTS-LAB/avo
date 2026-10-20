@@ -8,6 +8,8 @@ publish.workspace = true
 
 [dependencies]
 hvf = { path = "../hvf" }
+# The backend facade: `hvf` on macOS, `kvm` on Linux (docs/linux-port.md).
+hv = { path = "../hv" }
 # User-mode networking (net.rs): guest TCP ends in smoltcp and goes on over
 # host sockets; mio waits on both.
 smoltcp = { version = "0.14", default-features = false, features = ["std", "medium-ip", "proto-ipv4", "socket-tcp", "socket-tcp-pause-synack"] }

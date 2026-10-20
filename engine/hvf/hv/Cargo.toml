@@ -1,0 +1,13 @@
+[package]
+name = "hv"
+description = "Avo's engine facade: the `hvf` wrapper on macOS, the `kvm` wrapper on Linux (docs/linux-port.md)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+[target.'cfg(target_os = "macos")'.dependencies]
+hvf = { path = "../hvf" }
+[target.'cfg(not(target_os = "macos"))'.dependencies]
+kvm = { path = "../kvm" }

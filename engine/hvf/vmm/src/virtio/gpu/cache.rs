@@ -71,11 +71,19 @@ pub fn key(revision: &str, icd: &str, gpu: &str, os_build: &str) -> String {
 }
 
 fn sysctl_string(name: &CStr) -> Option<String> {
-    let mut buffer = [0u8; 256];
-    let mut len = buffer.len();
-    let ok = unsafe { libc::sysctlbyname(name.as_ptr(), buffer.as_mut_ptr().cast(), &mut len, std::ptr::null_mut(), 0) } == 0;
-    let text = CStr::from_bytes_until_nul(&buffer).ok()?.to_string_lossy().trim().to_string();
-    (ok && !text.is_empty()).then_some(text)
+    #[cfg(target_os = "macos")]
+    {
+        let mut buffer = [0u8; 256];
+        let mut len = buffer.len();
+        let ok = unsafe { libc::sysctlbyname(name.as_ptr(), buffer.as_mut_ptr().cast(), &mut len, std::ptr::null_mut(), 0) } == 0;
+        let text = CStr::from_bytes_until_nul(&buffer).ok()?.to_string_lossy().trim().to_string();
+        (ok && !text.is_empty()).then_some(text)
+    }
+    #[cfg(not(target_os = "macos"))]
+    {
+        let _ = name;
+        None
+    }
 }
 
 /// Bytes under `path` (symbolic links not followed).
@@ -133,7 +141,7 @@ pub fn prune(root: &Path, keep: &str, limit: u64, unused: Duration, now: SystemT
     removed
 }
 
-#[link(name = "CoreFoundation", kind = "framework")]
+#[cfg_attr(target_os = "macos", link(name = "CoreFoundation", kind = "framework"))]
 unsafe extern "C" {
     fn CFStringCreateWithBytes(alloc: *const c_void, bytes: *const u8, len: isize, encoding: u32, external: u8) -> *const c_void;
     fn CFStringGetCString(string: *const c_void, buffer: *mut c_char, size: isize, encoding: u32) -> u8;

@@ -2,7 +2,7 @@
 //! address. vCPU threads and device threads share it, like crosvm's
 //! GuestMemory; virtqueue code adds the memory barriers the protocol needs.
 
-use hvf::GuestRegion;
+use hv::GuestRegion;
 
 pub struct GuestMemory {
     region: GuestRegion,

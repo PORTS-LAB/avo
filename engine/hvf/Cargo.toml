@@ -1,8 +1,8 @@
-# Avo's VM engine (docs/engine.md): Hypervisor.framework bindings, a safe
-# wrapper, bring-up probes and avo-vmm.
+# Avo's VM engine (docs/engine.md): hypervisor backends (Hypervisor.framework,
+# KVM), the hv facade over them, bring-up probes and avo-vmm.
 [workspace]
 resolver = "3"
-members = ["hvf-sys", "hvf", "probe", "vmm"]
+members = ["hvf-sys", "hvf", "kvm", "hv", "probe", "vmm"]
 
 [workspace.package]
 version = "0.1.0"

@@ -5,7 +5,28 @@ pub enum Exit {
     Canceled,
     /// The virtual timer fired; it stays masked until the guest handles it.
     VtimerActivated,
-    Exception { syndrome: u64, virtual_address: u64, physical_address: u64 },
+    /// A trapped load or store to guest physical memory with no mapping:
+    /// the caller emulates it against the device model. On writes `data`
+    /// carries the stored value (the backend filled it from the guest
+    /// register); on loads `complete_mmio` hands the read value back.
+    /// `advance_pc` says whether the caller still has to skip the trapped
+    /// instruction (Hypervisor.framework: always; KVM: no — the kernel
+    /// emulates and skips on re-entry).
+    Mmio(MmioAccess),
+    /// Data abort without syndrome information (e.g. load/store pair):
+    /// cannot be emulated; the caller decides whether to skip or fail.
+    DataAbortWithoutSyndrome { address: u64 },
+    /// HVC #imm (PSCI calls). The PC already points past the instruction.
+    Hvc(u16),
+    /// SMC #imm (also used for PSCI by some guests). The PC must be advanced.
+    Smc(u16),
+    /// WFI or WFE: idle until an interrupt is pending.
+    WaitForInterrupt { wfe: bool },
+    /// MSR/MRS to a trapped system register.
+    SystemRegister { read: bool, op0: u8, op1: u8, crn: u8, crm: u8, op2: u8, register: u32 },
+    /// The kernel's PSCI reported power off or reset (KVM only).
+    SystemEvent { reset: bool },
+    Other { class: u8, syndrome: u64 },
     Unknown(u32),
 }
 
@@ -22,6 +43,10 @@ pub struct MmioAccess {
     pub sign_extend: bool,
     /// The register is 64-bit (otherwise 32-bit).
     pub sixty_four: bool,
+    /// The stored value (writes; the backend filled it from the register).
+    pub data: u64,
+    /// Whether the caller must advance the PC past the trapped instruction.
+    pub advance_pc: bool,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -58,6 +83,8 @@ pub fn decode_exception(syndrome: u64, physical_address: u64) -> ExceptionClass 
                 register: ((iss >> 16) & 0x1f) as u32,
                 sixty_four: iss & (1 << 15) != 0,
                 write: iss & (1 << 6) != 0,
+                data: 0,
+                advance_pc: false,
             })
         }
         0x16 => ExceptionClass::Hvc((iss & 0xffff) as u16),
@@ -92,7 +119,9 @@ mod tests {
                 write: true,
                 register: 2,
                 sign_extend: false,
-                sixty_four: true
+                sixty_four: true,
+                data: 0,
+                advance_pc: false,
             })
         );
     }

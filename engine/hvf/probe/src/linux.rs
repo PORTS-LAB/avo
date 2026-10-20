@@ -1,10 +1,10 @@
 //! Milestone 2: boot an arm64 Linux kernel Image to its console.
 //!
-//! Machine: RAM at 0x8000_0000, in-kernel GICv3 (Hypervisor.framework), a
-//! PL011 UART at 0x0900_0000 (enough for earlycon), PSCI over HVC, one vCPU.
+//! Machine: RAM at 0x8000_0000, the backend's in-kernel GICv3, a PL011 UART
+//! at 0x0900_0000 (enough for earlycon), PSCI, one vCPU.
 
 use crate::fdt::{Fdt, Value};
-use hvf::{ExceptionClass, Exit, GuestRegion, Protection, Vcpu, Vm, decode_exception};
+use hv::{Exit, GuestRegion, Protection, Vcpu, Vm};
 use std::io::Write;
 use std::time::{Duration, Instant};
 
@@ -38,7 +38,7 @@ pub fn boot(options: Options) -> Result<(), String> {
     if GIC_DIST % dist_align != 0 || GIC_REDIST % redist_align != 0 {
         return Err(format!("GIC bases misaligned (need {dist_align:#x} / {redist_align:#x})"));
     }
-    let gic = vm.create_gic(GIC_DIST, GIC_REDIST).map_err(|e| e.to_string())?;
+    let gic = vm.create_gic(GIC_DIST, GIC_REDIST, 1).map_err(|e| e.to_string())?;
     eprintln!("[probe] GICv3: dist {:#x}+{:#x}, redist {:#x}+{:#x}, SPIs {}..{}, vtimer intid {}",
               gic.distributor_base, gic.distributor_size, gic.redistributor_base, gic.redistributor_region_size,
               gic.spi_base, gic.spi_base + gic.spi_count, gic.virtual_timer_intid);
@@ -73,8 +73,8 @@ pub fn boot(options: Options) -> Result<(), String> {
     eprintln!("[probe] kernel {:.1} MiB at {kernel_address:#x}, dtb {} bytes at {dtb_address:#x}",
               image.len() as f64 / 1048576.0, dtb.len());
 
-    let mut vcpu = Vcpu::new(&vm).map_err(|e| e.to_string())?;
-    vcpu.set_sys_reg(hvf::HV_SYS_REG_MPIDR_EL1, 1 << 31).map_err(|e| e.to_string())?;
+    let mut vcpu = Vcpu::new(&vm, 0).map_err(|e| e.to_string())?;
+    vcpu.set_sys_reg(hv::SYS_REG_MPIDR_EL1, 1 << 31).map_err(|e| e.to_string())?;
     vcpu.set_pc(kernel_address).map_err(|e| e.to_string())?;
     vcpu.set_x(0, dtb_address).map_err(|e| e.to_string())?;
     for register in 1..4 {
@@ -95,61 +95,62 @@ pub fn boot(options: Options) -> Result<(), String> {
         let exit = vcpu.run().map_err(|e| e.to_string())?;
         exits += 1;
         match exit {
-            Exit::Exception { syndrome, physical_address, .. } => match decode_exception(syndrome, physical_address) {
-                ExceptionClass::Mmio(access) => {
-                    if access.address >= UART_BASE && access.address < UART_BASE + 0x1000 {
-                        let offset = access.address - UART_BASE;
-                        if access.write {
-                            let value = vcpu.x(access.register).map_err(|e| e.to_string())?;
-                            if let Some(byte) = uart.write(offset, value) {
-                                let _ = stdout.write_all(&[byte]);
-                                if byte == b'\n' {
-                                    let _ = stdout.flush();
-                                }
-                            }
-                        } else {
-                            vcpu.set_x(access.register, uart.read(offset)).map_err(|e| e.to_string())?;
-                        }
-                        if let Some(expect) = &options.expect {
-                            if uart.output.contains(expect.as_str()) {
+            Exit::Mmio(access) => {
+                if access.address >= UART_BASE && access.address < UART_BASE + 0x1000 {
+                    let offset = access.address - UART_BASE;
+                    if access.write {
+                        if let Some(byte) = uart.write(offset, access.data) {
+                            let _ = stdout.write_all(&[byte]);
+                            if byte == b'\n' {
                                 let _ = stdout.flush();
-                                eprintln!("\n[probe] saw \"{expect}\" after {:.2?} ({exits} exits)", started.elapsed());
-                                return Ok(());
                             }
                         }
-                    } else if !access.write {
-                        // Unbacked device memory reads as zero; writes are dropped.
-                        vcpu.set_x(access.register, 0).map_err(|e| e.to_string())?;
+                    } else {
+                        vcpu.complete_mmio(&access, uart.read(offset)).map_err(|e| e.to_string())?;
                     }
-                    vcpu.advance_pc().map_err(|e| e.to_string())?;
-                }
-                ExceptionClass::Hvc(_) => {
-                    if let Some(stop) = psci(&vcpu)? {
-                        let _ = stdout.flush();
-                        eprintln!("\n[probe] guest requested {stop} after {:.2?}", started.elapsed());
-                        return Ok(());
+                    if let Some(expect) = &options.expect {
+                        if uart.output.contains(expect.as_str()) {
+                            let _ = stdout.flush();
+                            eprintln!("\n[probe] saw \"{expect}\" after {:.2?} ({exits} exits)", started.elapsed());
+                            return Ok(());
+                        }
                     }
+                } else if !access.write {
+                    // Unbacked device memory reads as zero; writes are dropped.
+                    vcpu.complete_mmio(&access, 0).map_err(|e| e.to_string())?;
                 }
-                ExceptionClass::Smc(_) => {
-                    vcpu.set_x(0, u64::MAX).map_err(|e| e.to_string())?; // NOT_SUPPORTED
+                if access.advance_pc {
                     vcpu.advance_pc().map_err(|e| e.to_string())?;
                 }
-                ExceptionClass::WaitForInterrupt { .. } => {
-                    // Idle: the in-kernel GIC and timer wake the vCPU on the next run.
-                    std::thread::sleep(Duration::from_micros(200));
-                    vcpu.advance_pc().map_err(|e| e.to_string())?;
-                }
-                ExceptionClass::SystemRegister { read, register, .. } => {
-                    if read {
-                        vcpu.set_x(register, 0).map_err(|e| e.to_string())?;
-                    }
-                    vcpu.advance_pc().map_err(|e| e.to_string())?;
-                }
-                other => {
+            }
+            Exit::Hvc(_) => {
+                if let Some(stop) = psci(&vcpu)? {
                     let _ = stdout.flush();
-                    return Err(format!("unhandled {other:?} at pc {:#x} (after {exits} exits)", vcpu.pc().unwrap_or(0)));
+                    eprintln!("\n[probe] guest requested {stop} after {:.2?}", started.elapsed());
+                    return Ok(());
                 }
-            },
+            }
+            Exit::SystemEvent { .. } => {
+                // The kernel's PSCI handled SYSTEM_OFF/SYSTEM_RESET.
+                let _ = stdout.flush();
+                eprintln!("\n[probe] guest powered off via the kernel's PSCI after {:.2?}", started.elapsed());
+                return Ok(());
+            }
+            Exit::Smc(_) => {
+                vcpu.set_x(0, u64::MAX).map_err(|e| e.to_string())?; // NOT_SUPPORTED
+                vcpu.advance_pc().map_err(|e| e.to_string())?;
+            }
+            Exit::WaitForInterrupt { .. } => {
+                // Idle: the in-kernel GIC and timer wake the vCPU on the next run.
+                std::thread::sleep(Duration::from_micros(200));
+                vcpu.advance_pc().map_err(|e| e.to_string())?;
+            }
+            Exit::SystemRegister { read, register, .. } => {
+                if read {
+                    vcpu.set_x(register, 0).map_err(|e| e.to_string())?;
+                }
+                vcpu.advance_pc().map_err(|e| e.to_string())?;
+            }
             Exit::VtimerActivated => {
                 // With the in-kernel GIC the timer interrupt is delivered by the
                 // GIC; unmask so the next expiry is reported again.
@@ -157,7 +158,10 @@ pub fn boot(options: Options) -> Result<(), String> {
                 vcpu.set_vtimer_mask(false).map_err(|e| e.to_string())?;
             }
             Exit::Canceled => {}
-            Exit::Unknown(reason) => return Err(format!("unknown exit reason {reason}")),
+            other => {
+                let _ = stdout.flush();
+                return Err(format!("unhandled {other:?} at pc {:#x} (after {exits} exits)", vcpu.pc().unwrap_or(0)));
+            }
         }
     }
 }
@@ -218,7 +222,7 @@ impl Pl011 {
     }
 }
 
-fn device_tree(cmdline: &str, ram_size: u64, gic: &hvf::GicLayout, initrd: Option<(u64, u64)>) -> Vec<u8> {
+fn device_tree(cmdline: &str, ram_size: u64, gic: &hv::GicLayout, initrd: Option<(u64, u64)>) -> Vec<u8> {
     const GIC_PHANDLE: u32 = 1;
     const CLOCK_PHANDLE: u32 = 2;
     let split = |v: u64| [(v >> 32) as u32, v as u32];

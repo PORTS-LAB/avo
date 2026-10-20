@@ -29,7 +29,9 @@ use crate::frames::FrameHandle;
 use crate::virtio::Active;
 use crate::virtio::queue::Chain;
 use std::collections::{HashMap, HashSet};
-use std::ffi::{CStr, c_void};
+#[cfg(target_os = "macos")]
+use std::ffi::CStr;
+use std::ffi::c_void;
 use std::path::Path;
 use std::sync::mpsc::{self, Receiver, RecvTimeoutError, Sender};
 use std::sync::{Arc, Mutex, MutexGuard};
@@ -271,15 +273,24 @@ fn can_scan_out(args: &ResourceCreateArgs) -> bool {
         && args.nr_samples <= 1
 }
 
-/// The Mac's chip, when gfxstream did not name its Vulkan device.
+/// The host chip, when gfxstream did not name its Vulkan device.
 fn chip_name() -> String {
-    let mut buffer = [0u8; 128];
-    let mut len = buffer.len();
-    let found = unsafe {
-        libc::sysctlbyname(c"machdep.cpu.brand_string".as_ptr(), buffer.as_mut_ptr().cast(), &mut len, std::ptr::null_mut(), 0)
-    } == 0;
-    let name = CStr::from_bytes_until_nul(&buffer).map(|s| s.to_string_lossy().into_owned()).unwrap_or_default();
-    if found && !name.is_empty() { name } else { "Apple GPU".into() }
+    #[cfg(target_os = "macos")]
+    {
+        let mut buffer = [0u8; 128];
+        let mut len = buffer.len();
+        let found = unsafe {
+            libc::sysctlbyname(c"machdep.cpu.brand_string".as_ptr(), buffer.as_mut_ptr().cast(), &mut len, std::ptr::null_mut(), 0)
+        } == 0;
+        let name = CStr::from_bytes_until_nul(&buffer).map(|s| s.to_string_lossy().into_owned()).unwrap_or_default();
+        if found && !name.is_empty() { name } else { "Apple GPU".into() }
+    }
+    #[cfg(not(target_os = "macos"))]
+    {
+        // verify: once this runs on aarch64 Linux, read the device's model
+        // (/proc/device-tree/model) or the DRM driver's name instead.
+        "Host GPU".into()
+    }
 }
 
 /// Reads a whole `width`×`height` color buffer into `buffer` (tight rows:

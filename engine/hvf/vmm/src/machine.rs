@@ -20,7 +20,10 @@ use crate::pause::{self, Pass, Seat};
 use crate::pci::{self, DevFn, PciConfigWindow, PciMemory64Window, PciMemoryWindow, PciRoot, Slot};
 use crate::serial::{Pl011, Pl031};
 use crate::virtio::{Interrupt, VirtioDevice, VirtioPci};
-use hvf::{ExceptionClass, Exit, GicLayout, GuestRegion, Protection, Vcpu, VcpuHandle, Vm, decode_exception};
+use hv::{
+    PSCI_IN_KERNEL, SYS_REG_CNTV_CVAL_EL0, SYS_REG_CNTV_CTL_EL0, SYS_REG_MPIDR_EL1, Exit, GicLayout, GuestRegion,
+    Protection, Vcpu, VcpuHandle, Vm,
+};
 use std::io::Write;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{Arc, Condvar, Mutex};
@@ -85,7 +88,7 @@ impl Machine {
         if GIC_DIST % dist_align != 0 || GIC_REDIST % redist_align != 0 {
             return Err(format!("GIC bases misaligned (need {dist_align:#x} / {redist_align:#x})"));
         }
-        let gic = vm.create_gic(GIC_DIST, GIC_REDIST).map_err(|e| e.to_string())?;
+        let gic = vm.create_gic(GIC_DIST, GIC_REDIST, cpus as u32).map_err(|e| e.to_string())?;
         if GIC_REDIST + gic.redistributor_region_size > 0x1000_0000 {
             return Err(format!("unexpected GIC redistributor region size {:#x}", gic.redistributor_region_size));
         }
@@ -462,11 +465,12 @@ impl Running {
     }
 
     fn vcpu_thread(self: Arc<Self>, index: usize, mut seat: Seat<'static>) -> Result<(), String> {
-        let vcpu = Vcpu::new(&self.vm).map_err(|e| e.to_string())?;
+        let vcpu = Vcpu::new(&self.vm, index as u32).map_err(|e| e.to_string())?;
         // CNTVCT = host counter - offset; a pause adds what the guest did not see.
         let offset = vcpu.vtimer_offset().map_err(|e| e.to_string())?;
-        // Affinity must be final before any vCPU runs (Hypervisor.framework GIC).
-        vcpu.set_sys_reg(hvf::HV_SYS_REG_MPIDR_EL1, 1 << 31 | index as u64).map_err(|e| e.to_string())?;
+        // Affinity must be final before any vCPU runs (Hypervisor.framework
+        // GIC; on KVM the MPIDR set here overrides the kernel's default).
+        vcpu.set_sys_reg(SYS_REG_MPIDR_EL1, 1 << 31 | index as u64).map_err(|e| e.to_string())?;
         self.handles.lock().unwrap().push(vcpu.handle());
         {
             let mut power = self.power.lock().unwrap();
@@ -477,6 +481,35 @@ impl Running {
             }
         }
         let mut vcpu = vcpu;
+        let start_registers = |vcpu: &Vcpu, entry: u64, context: u64| -> Result<(), String> {
+            let e = |r: hv::Result<()>| r.map_err(|e| e.to_string());
+            e(vcpu.set_pc(entry))?;
+            e(vcpu.set_x(0, context))?;
+            for register in 1..4 {
+                e(vcpu.set_x(register, 0))?;
+            }
+            e(vcpu.set_cpsr(0x3c5))?; // EL1h, DAIF masked
+            Ok(())
+        };
+        if PSCI_IN_KERNEL {
+            // The kernel owns PSCI: the boot vCPU runs from the same entry
+            // state, the others were created stopped and park inside KVM_RUN
+            // until the guest's CPU_ON, and CPU_OFF parks them again — no
+            // user-space power table.
+            if let Some((entry, context)) = self.power.lock().unwrap().start[index].take() {
+                start_registers(&vcpu, entry, context)?;
+            }
+            loop {
+                match self.run_vcpu(&mut vcpu, index, &mut seat, offset)? {
+                    Some(stop) => {
+                        self.stop_all(stop);
+                        return Ok(());
+                    }
+                    // CPU_OFF parked the vCPU inside the kernel.
+                    None => return Ok(()),
+                }
+            }
+        }
         loop {
             // Wait for CPU_ON (the boot vCPU starts right away).
             let (entry, context) = {
@@ -492,13 +525,7 @@ impl Running {
                     power = self.power_changed.wait(power).unwrap();
                 }
             };
-            let e = |r: hvf::Result<()>| r.map_err(|e| e.to_string());
-            e(vcpu.set_pc(entry))?;
-            e(vcpu.set_x(0, context))?;
-            for register in 1..4 {
-                e(vcpu.set_x(register, 0))?;
-            }
-            e(vcpu.set_cpsr(0x3c5))?; // EL1h, DAIF masked
+            start_registers(&vcpu, entry, context)?;
             match self.run_vcpu(&mut vcpu, index, &mut seat, offset)? {
                 Some(stop) => {
                     self.stop_all(stop);
@@ -516,7 +543,7 @@ impl Running {
 
     /// Runs until CPU_OFF (None) or a machine-wide stop.
     fn run_vcpu(&self, vcpu: &mut Vcpu, index: usize, seat: &mut Seat, offset: u64) -> Result<Option<Stop>, String> {
-        let e = |r: hvf::Result<()>| r.map_err(|e| e.to_string());
+        let e = |r: hv::Result<()>| r.map_err(|e| e.to_string());
         loop {
             match seat.before_run(&self.stopped) {
                 Pass::Run => {}
@@ -526,65 +553,60 @@ impl Running {
             let exit = vcpu.run().map_err(|e| e.to_string())?;
             self.exits.fetch_add(1, Ordering::Relaxed);
             match exit {
-                Exit::Exception { syndrome, physical_address, .. } => match decode_exception(syndrome, physical_address) {
-                    ExceptionClass::Mmio(access) => {
-                        self.stats.mmio.fetch_add(1, Ordering::Relaxed);
-                        let size = access.size as usize;
-                        if access.write {
-                            let value = vcpu.x(access.register).map_err(|e| e.to_string())?;
-                            self.bus.write(access.address, &value.to_le_bytes()[..size]);
-                        } else {
-                            let mut data = [0u8; 8];
-                            self.bus.read(access.address, &mut data[..size]);
-                            let mut value = u64::from_le_bytes(data);
-                            if access.sign_extend && size < 8 {
-                                let shift = 64 - size * 8;
-                                value = (((value << shift) as i64) >> shift) as u64;
-                                if !access.sixty_four {
-                                    value &= 0xffff_ffff;
-                                }
-                            }
-                            e(vcpu.set_x(access.register, value))?;
-                        }
+                Exit::Mmio(access) => {
+                    self.stats.mmio.fetch_add(1, Ordering::Relaxed);
+                    let size = access.size as usize;
+                    if access.write {
+                        self.bus.write(access.address, &access.data.to_le_bytes()[..size]);
+                    } else {
+                        let mut data = [0u8; 8];
+                        self.bus.read(access.address, &mut data[..size]);
+                        e(vcpu.complete_mmio(&access, u64::from_le_bytes(data)))?;
+                    }
+                    if access.advance_pc {
                         e(vcpu.advance_pc())?;
                     }
-                    ExceptionClass::Hvc(_) => match self.psci(vcpu, index)? {
-                        Psci::Return(value) => e(vcpu.set_x(0, value as u64))?,
-                        Psci::Off => return Ok(None),
-                        Psci::Stop(stop) => return Ok(Some(stop)),
-                    },
-                    ExceptionClass::Smc(_) => {
-                        e(vcpu.set_x(0, u64::MAX))?; // SMCCC: NOT_SUPPORTED
-                        e(vcpu.advance_pc())?;
-                    }
-                    ExceptionClass::WaitForInterrupt { .. } => {
-                        self.stats.wfi.fetch_add(1, Ordering::Relaxed);
-                        self.wait_for_interrupt(vcpu)?;
-                        e(vcpu.advance_pc())?;
-                    }
-                    ExceptionClass::SystemRegister { read, register, .. } => {
-                        self.stats.sysreg.fetch_add(1, Ordering::Relaxed);
-                        if read {
-                            e(vcpu.set_x(register, 0))?;
-                        }
-                        e(vcpu.advance_pc())?;
-                    }
-                    // MARK: GPU — a load/store pair or vector access to a part
-                    // of the GPU's host-visible BAR with no memory behind it
-                    // (a blob the guest still touches after unmapping it)
-                    // cannot be emulated; skip it rather than stop Android.
-                    ExceptionClass::DataAbortWithoutSyndrome { address }
-                        if (pci::MEM64_BASE..pci::MEM64_BASE + pci::MEM64_SIZE).contains(&address) =>
-                    {
-                        if self.stats.skipped.fetch_add(1, Ordering::Relaxed) == 0 {
-                            eprintln!("[vmm] vCPU {index}: skipped an access without syndrome at {address:#x} (unmapped GPU memory)");
-                        }
-                        e(vcpu.advance_pc())?;
-                    }
-                    other => {
-                        return Err(format!("vCPU {index}: unhandled {other:?} at pc {:#x}", vcpu.pc().unwrap_or(0)));
-                    }
+                }
+                Exit::Hvc(_) => match self.psci(vcpu, index)? {
+                    Psci::Return(value) => e(vcpu.set_x(0, value as u64))?,
+                    Psci::Off => return Ok(None),
+                    Psci::Stop(stop) => return Ok(Some(stop)),
                 },
+                Exit::Smc(_) => {
+                    e(vcpu.set_x(0, u64::MAX))?; // SMCCC: NOT_SUPPORTED
+                    e(vcpu.advance_pc())?;
+                }
+                Exit::WaitForInterrupt { .. } => {
+                    self.stats.wfi.fetch_add(1, Ordering::Relaxed);
+                    self.wait_for_interrupt(vcpu)?;
+                    e(vcpu.advance_pc())?;
+                }
+                Exit::SystemRegister { read, register, .. } => {
+                    self.stats.sysreg.fetch_add(1, Ordering::Relaxed);
+                    if read {
+                        e(vcpu.set_x(register, 0))?;
+                    }
+                    e(vcpu.advance_pc())?;
+                }
+                // MARK: GPU — a load/store pair or vector access to a part
+                // of the GPU's host-visible BAR with no memory behind it
+                // (a blob the guest still touches after unmapping it)
+                // cannot be emulated; skip it rather than stop Android.
+                Exit::DataAbortWithoutSyndrome { address }
+                    if (pci::MEM64_BASE..pci::MEM64_BASE + pci::MEM64_SIZE).contains(&address) =>
+                {
+                    if self.stats.skipped.fetch_add(1, Ordering::Relaxed) == 0 {
+                        eprintln!("[vmm] vCPU {index}: skipped an access without syndrome at {address:#x} (unmapped GPU memory)");
+                    }
+                    e(vcpu.advance_pc())?;
+                }
+                Exit::DataAbortWithoutSyndrome { address } => {
+                    return Err(format!("vCPU {index}: unhandled access without syndrome at {address:#x}"));
+                }
+                Exit::SystemEvent { reset } => {
+                    // The kernel's PSCI handled SYSTEM_OFF/SYSTEM_RESET.
+                    return Ok(Some(if reset { Stop::Reset } else { Stop::PowerOff }));
+                }
                 Exit::VtimerActivated => {
                     self.stats.vtimer.fetch_add(1, Ordering::Relaxed);
                     e(vcpu.set_vtimer_mask(false))?;
@@ -595,6 +617,12 @@ impl Running {
                         return Ok(Some(Stop::PowerOff));
                     }
                 }
+                Exit::Other { class, syndrome } => {
+                    return Err(format!(
+                        "vCPU {index}: unhandled exception class {class:#x} (syndrome {syndrome:#x}) at pc {:#x}",
+                        vcpu.pc().unwrap_or(0)
+                    ));
+                }
                 Exit::Unknown(reason) => return Err(format!("vCPU {index}: unknown exit reason {reason}")),
             }
         }
@@ -603,10 +631,10 @@ impl Running {
     /// WFI that reached user space: sleep until the virtual timer is due, a
     /// device interrupt arrives, or 1 ms passes (IPIs are delivered in-kernel).
     fn wait_for_interrupt(&self, vcpu: &Vcpu) -> Result<(), String> {
-        let control = vcpu.sys_reg(hvf::HV_SYS_REG_CNTV_CTL_EL0).map_err(|e| e.to_string())?;
+        let control = vcpu.sys_reg(SYS_REG_CNTV_CTL_EL0).map_err(|e| e.to_string())?;
         let mut timeout = Duration::from_millis(1);
         if control & 1 != 0 && control & 2 == 0 {
-            let compare = vcpu.sys_reg(hvf::HV_SYS_REG_CNTV_CVAL_EL0).map_err(|e| e.to_string())?;
+            let compare = vcpu.sys_reg(SYS_REG_CNTV_CVAL_EL0).map_err(|e| e.to_string())?;
             let offset = vcpu.vtimer_offset().map_err(|e| e.to_string())?;
             let now = mach_time().wrapping_sub(offset);
             if compare <= now {

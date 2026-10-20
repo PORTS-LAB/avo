@@ -6,13 +6,14 @@ version = 4
 name = "avo-hvf-probe"
 version = "0.1.0"
 dependencies = [
- "hvf",
+ "hv",
 ]
 
 [[package]]
 name = "avo-vmm"
 version = "0.1.0"
 dependencies = [
+ "hv",
  "hvf",
  "libc",
  "mio",
@@ -88,6 +89,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "hv"
+version = "0.1.0"
+dependencies = [
+ "hvf",
+ "kvm",
+]
+
+[[package]]
 name = "hvf"
 version = "0.1.0"
 dependencies = [
@@ -97,6 +106,13 @@ dependencies = [
 [[package]]
 name = "hvf-sys"
 version = "0.1.0"
+
+[[package]]
+name = "kvm"
+version = "0.1.0"
+dependencies = [
+ "libc",
+]
 
 [[package]]
 name = "libc"

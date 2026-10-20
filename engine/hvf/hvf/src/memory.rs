@@ -79,7 +79,9 @@ impl Drop for GuestRegion {
     }
 }
 
-#[cfg(test)]
+// The allocation goes through Darwin's mmap (MAP_ANON); on other targets
+// the type is here for the facade's type-checking only.
+#[cfg(all(test, target_os = "macos"))]
 mod tests {
     use super::*;
 

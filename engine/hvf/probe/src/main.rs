@@ -6,7 +6,7 @@
 mod fdt;
 mod linux;
 
-use hvf::{ExceptionClass, Exit, GuestRegion, Protection, Vcpu, Vm, decode_exception};
+use hv::{Exit, GuestRegion, Protection, Vcpu, Vm};
 use std::process::ExitCode;
 
 const RAM_BASE: u64 = 0x8000_0000;
@@ -25,6 +25,16 @@ const TINY_GUEST: [u32; 7] = [
     0x1400_0000, // b    .
 ];
 
+/// The guest's SYSTEM_OFF ends milestone 1: the MMIO write must have landed.
+fn milestone(mmio_value: Option<u64>) -> Result<(), String> {
+    if mmio_value == Some(0x1234) {
+        println!("milestone 1 passed: guest code ran, MMIO trapped, PSCI SYSTEM_OFF handled");
+        Ok(())
+    } else {
+        Err(format!("unexpected MMIO value {mmio_value:?}"))
+    }
+}
+
 fn tiny() -> Result<(), String> {
     let vm = Vm::new(None).map_err(|e| e.to_string())?;
     let ram = GuestRegion::new(RAM_BASE, 16 * 1024 * 1024).map_err(|e| e.to_string())?;
@@ -32,37 +42,34 @@ fn tiny() -> Result<(), String> {
     ram.write(RAM_BASE, &code);
     vm.map(&ram, Protection::RWX).map_err(|e| e.to_string())?;
 
-    let mut vcpu = Vcpu::new(&vm).map_err(|e| e.to_string())?;
+    let mut vcpu = Vcpu::new(&vm, 0).map_err(|e| e.to_string())?;
     vcpu.set_pc(RAM_BASE).map_err(|e| e.to_string())?;
     vcpu.set_cpsr(0x3c5).map_err(|e| e.to_string())?; // EL1h, interrupts masked
 
     let mut mmio_value = None;
     for _ in 0..16 {
         match vcpu.run().map_err(|e| e.to_string())? {
-            Exit::Exception { syndrome, physical_address, .. } => match decode_exception(syndrome, physical_address) {
-                ExceptionClass::Mmio(access) if access.write => {
-                    let value = vcpu.x(access.register).map_err(|e| e.to_string())?;
-                    println!("mmio write: {:#x} <- {:#x} ({} bytes)", access.address, value, access.size);
-                    if access.address == MMIO_PROBE {
-                        mmio_value = Some(value);
-                    }
+            Exit::Mmio(access) if access.write => {
+                println!("mmio write: {:#x} <- {:#x} ({} bytes)", access.address, access.data, access.size);
+                if access.address == MMIO_PROBE {
+                    mmio_value = Some(access.data);
+                }
+                if access.advance_pc {
                     vcpu.advance_pc().map_err(|e| e.to_string())?;
                 }
-                ExceptionClass::Hvc(_) => {
-                    let function = vcpu.x(0).map_err(|e| e.to_string())?;
-                    println!("hvc: PSCI function {function:#x}");
-                    if function == PSCI_SYSTEM_OFF {
-                        return if mmio_value == Some(0x1234) {
-                            println!("milestone 1 passed: guest code ran, MMIO trapped, PSCI SYSTEM_OFF handled");
-                            Ok(())
-                        } else {
-                            Err(format!("unexpected MMIO value {mmio_value:?}"))
-                        };
-                    }
+            }
+            Exit::Hvc(_) => {
+                let function = vcpu.x(0).map_err(|e| e.to_string())?;
+                println!("hvc: PSCI function {function:#x}");
+                if function == PSCI_SYSTEM_OFF {
+                    return milestone(mmio_value);
                 }
-                other => return Err(format!("unexpected exception {other:?} at pc {:#x}", vcpu.pc().unwrap_or(0))),
-            },
-            other => return Err(format!("unexpected exit {other:?}")),
+            }
+            Exit::SystemEvent { .. } => {
+                // The kernel's PSCI answered SYSTEM_OFF (KVM).
+                return milestone(mmio_value);
+            }
+            other => return Err(format!("unexpected exit {other:?} at pc {:#x}", vcpu.pc().unwrap_or(0))),
         }
     }
     Err("guest did not finish".into())

@@ -1,6 +1,7 @@
-//! Native ASTC on the Mac: a Vulkan layer between gfxstream and MoltenVK
-//! (layer/native_astc.c, built by build.rs) that keeps gfxstream from
-//! decompressing every guest ASTC texture into RGBA8 itself.
+//! Native ASTC: a Vulkan layer between gfxstream and the host driver
+//! (MoltenVK on the Mac; layer/native_astc.c, built by build.rs for the
+//! host OS) that keeps gfxstream from decompressing every guest ASTC
+//! texture into RGBA8 itself.
 //!
 //! gfxstream emulates ASTC unless the driver samples linear-tiled ASTC, which
 //! Metal never does, so on the Mac it always emulated it: an ASTC texture then
@@ -19,9 +20,10 @@ use std::ffi::OsStr;
 use std::path::{Path, PathBuf};
 
 pub const LAYER: &str = "VK_LAYER_AVO_native_astc";
-const LIBRARY: &str = "libVkLayer_avo_native_astc.dylib";
+/// The layer's artifact, named for the host OS by build.rs (`AVO_ASTC_LAYER`).
+const LIBRARY: &str = env!("AVO_ASTC_LAYER");
 const MANIFEST: &str = "VkLayer_avo_native_astc.json";
-static DYLIB: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/libVkLayer_avo_native_astc.dylib"));
+static DYLIB: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/", env!("AVO_ASTC_LAYER")));
 
 fn manifest() -> String {
     format!(

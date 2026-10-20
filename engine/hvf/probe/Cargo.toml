@@ -1,10 +1,10 @@
 [package]
 name = "avo-hvf-probe"
-description = "Milestone checks for Avo's Hypervisor.framework backend"
+description = "Milestone checks for Avo's engine backends (Hypervisor.framework, KVM)"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
 publish.workspace = true
 
 [dependencies]
-hvf = { path = "../hvf" }
+hv = { path = "../hv" }

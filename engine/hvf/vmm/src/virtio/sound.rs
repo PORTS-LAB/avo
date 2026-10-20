@@ -637,6 +637,7 @@ fn deliver_capture(active: &mut Option<Active>, stream: &mut Stream) {
 fn spawn_clock(state: &Arc<Mutex<State>>, stream: usize, id: u64, params: Params) {
     let state = Arc::downgrade(state);
     let _ = std::thread::Builder::new().name("avo-sound-clock".into()).spawn(move || {
+        #[cfg(target_os = "macos")]
         unsafe { libc::pthread_set_qos_class_self_np(libc::qos_class_t::QOS_CLASS_USER_INTERACTIVE, 0) };
         // Playback starts OPEN_GRACE late, then keeps that distance: the
         // guest's next period is then always there when the clock wants it
@@ -1006,7 +1007,7 @@ unsafe impl Send for BufferRef {}
 type OutputCallback = extern "C" fn(*mut c_void, AudioQueueRef, *mut AudioQueueBuffer);
 type InputCallback = extern "C" fn(*mut c_void, AudioQueueRef, *mut AudioQueueBuffer, *const c_void, u32, *const c_void);
 
-#[link(name = "AudioToolbox", kind = "framework")]
+#[cfg_attr(target_os = "macos", link(name = "AudioToolbox", kind = "framework"))]
 unsafe extern "C" {
     fn AudioQueueNewOutput(
         format: *const AudioStreamBasicDescription,

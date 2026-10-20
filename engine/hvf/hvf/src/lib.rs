@@ -126,8 +126,10 @@ impl Vm {
         check("hv_vm_protect", unsafe { sys::hv_vm_protect(guest_address, len, protection.flags()) })
     }
 
-    /// Creates the in-kernel GICv3 (macOS 15+). Must run before any vCPU exists.
-    pub fn create_gic(&self, distributor_base: u64, redistributor_base: u64) -> Result<GicLayout> {
+    /// Creates the in-kernel GICv3 (macOS 15+). Must run before any vCPU
+    /// exists. KVM sizes the redistributor region for `vcpu_count` vCPUs;
+    /// Hypervisor.framework ignores the count.
+    pub fn create_gic(&self, distributor_base: u64, redistributor_base: u64, _vcpu_count: u32) -> Result<GicLayout> {
         unsafe {
             let config = sys::hv_gic_config_create();
             check("hv_gic_config_set_distributor_base", sys::hv_gic_config_set_distributor_base(config, distributor_base))?;
@@ -236,7 +238,9 @@ impl VcpuHandle {
 }
 
 impl Vcpu {
-    pub fn new(_vm: &Vm) -> Result<Vcpu> {
+    /// Creates a vCPU on the calling thread. KVM needs `index` (0 = boot; it
+    /// drives MPIDR and GIC affinity); Hypervisor.framework ignores it.
+    pub fn new(_vm: &Vm, _index: u32) -> Result<Vcpu> {
         let mut handle = 0;
         let mut exit = std::ptr::null_mut();
         check("hv_vcpu_create", unsafe { sys::hv_vcpu_create(&mut handle, &mut exit, std::ptr::null_mut()) })?;
@@ -254,11 +258,27 @@ impl Vcpu {
         Ok(match exit.reason {
             sys::HV_EXIT_REASON_CANCELED => Exit::Canceled,
             sys::HV_EXIT_REASON_VTIMER_ACTIVATED => Exit::VtimerActivated,
-            sys::HV_EXIT_REASON_EXCEPTION => Exit::Exception {
-                syndrome: exit.exception.syndrome,
-                virtual_address: exit.exception.virtual_address,
-                physical_address: exit.exception.physical_address,
-            },
+            sys::HV_EXIT_REASON_EXCEPTION => {
+                match decode_exception(exit.exception.syndrome, exit.exception.physical_address) {
+                    ExceptionClass::Mmio(mut access) => {
+                        // The trapped instruction is still live: the caller
+                        // emulates it and then skips it.
+                        access.advance_pc = true;
+                        if access.write {
+                            access.data = self.x(access.register)?;
+                        }
+                        Exit::Mmio(access)
+                    }
+                    ExceptionClass::DataAbortWithoutSyndrome { address } => Exit::DataAbortWithoutSyndrome { address },
+                    ExceptionClass::Hvc(value) => Exit::Hvc(value),
+                    ExceptionClass::Smc(value) => Exit::Smc(value),
+                    ExceptionClass::WaitForInterrupt { wfe } => Exit::WaitForInterrupt { wfe },
+                    ExceptionClass::SystemRegister { read, op0, op1, crn, crm, op2, register } => {
+                        Exit::SystemRegister { read, op0, op1, crn, crm, op2, register }
+                    }
+                    ExceptionClass::Other { class, syndrome } => Exit::Other { class, syndrome },
+                }
+            }
             other => Exit::Unknown(other),
         })
     }
@@ -336,6 +356,24 @@ impl Vcpu {
     /// Moves past the instruction that trapped (MMIO, system register access).
     pub fn advance_pc(&self) -> Result<()> {
         self.set_pc(self.pc()? + 4)
+    }
+
+    /// Hands the read value of an `Exit::Mmio` load back to the guest:
+    /// applies the load's sign/width (raw device data in, register value
+    /// out) and stores it in the trapped register. A no-op for stores.
+    pub fn complete_mmio(&self, access: &MmioAccess, mut value: u64) -> Result<()> {
+        if access.write {
+            return Ok(());
+        }
+        let size = access.size as usize;
+        if access.sign_extend && size < 8 {
+            let shift = 64 - size * 8;
+            value = (((value << shift) as i64) >> shift) as u64;
+            if !access.sixty_four {
+                value &= 0xffff_ffff;
+            }
+        }
+        self.set_x(access.register, value)
     }
 }
 

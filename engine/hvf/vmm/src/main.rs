@@ -160,7 +160,8 @@ fn main() -> ExitCode {
     // The daemon that starts the engine runs at utility QoS, where macOS
     // coalesces timers by tens of milliseconds and schedules behind apps;
     // the engine is the device the user is using. Threads started from here
-    // on inherit the class.
+    // on inherit the class. (macOS only; Linux has no QoS classes.)
+    #[cfg(target_os = "macos")]
     unsafe { libc::pthread_set_qos_class_self_np(libc::qos_class_t::QOS_CLASS_USER_INITIATED, 0) };
     let args: Vec<String> = std::env::args().skip(1).collect();
     let result = match args.first().map(String::as_str) {

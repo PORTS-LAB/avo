@@ -81,7 +81,9 @@ pub struct hv_vcpu_exit_t {
     pub exception: hv_vcpu_exit_exception_t,
 }
 
-#[link(name = "Hypervisor", kind = "framework")]
+// The framework link is Apple-only; elsewhere the declarations exist for
+// type-checking alone (the hv facade routes calls to the KVM backend).
+#[cfg_attr(target_os = "macos", link(name = "Hypervisor", kind = "framework"))]
 unsafe extern "C" {
     pub fn hv_vm_config_create() -> os_object_t;
     pub fn hv_vm_config_get_max_ipa_size(ipa_bit_length: *mut u32) -> hv_return_t;
@@ -121,7 +123,7 @@ unsafe extern "C" {
     pub fn hv_gic_set_spi(intid: u32, level: bool) -> hv_return_t;
 }
 
-#[link(name = "System")]
+#[cfg_attr(target_os = "macos", link(name = "System"))]
 unsafe extern "C" {
     pub fn os_release(object: os_object_t);
 }
