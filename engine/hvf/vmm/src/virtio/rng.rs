@@ -1,12 +1,40 @@
-//! virtio-rng: entropy from the host's arc4random.
+//! virtio-rng: entropy from the host's CSPRNG (arc4random on the Mac,
+//! getrandom elsewhere).
 
 use super::queue::Queue;
 use super::{Active, Interrupt, TYPE_RNG, VirtioDevice};
 use crate::memory::GuestMemory;
 use std::sync::Arc;
 
+/// Fills the bytes with the host's entropy: arc4random on the Mac,
+/// getrandom(2) elsewhere (the kernel's own pool, no fd to open).
+#[cfg(target_os = "macos")]
 unsafe extern "C" {
     fn arc4random_buf(buf: *mut u8, nbytes: usize);
+}
+
+#[cfg(target_os = "macos")]
+fn fill(buf: &mut [u8]) {
+    unsafe { arc4random_buf(buf.as_mut_ptr(), buf.len()) };
+}
+
+#[cfg(not(target_os = "macos"))]
+fn fill(buf: &mut [u8]) {
+    let mut done = 0;
+    while done < buf.len() {
+        let n = unsafe { libc::getrandom(buf[done..].as_mut_ptr().cast(), buf.len() - done, 0) };
+        if n >= 0 {
+            done += n as usize;
+        } else if std::io::Error::last_os_error().raw_os_error() == Some(libc::EINTR) {
+            continue;
+        } else {
+            // No getrandom syscall (kernel < 3.17): read the urandom file.
+            use std::io::Read;
+            let mut file = std::fs::File::open("/dev/urandom").expect("no entropy source on this host");
+            file.read_exact(&mut buf[done..]).expect("/dev/urandom returned short");
+            return;
+        }
+    }
 }
 
 #[derive(Default)]
@@ -39,7 +67,7 @@ impl VirtioDevice for Rng {
         let Some(active) = self.active.as_mut() else { return };
         while let Some(chain) = active.queues[0].pop(&active.memory) {
             let mut bytes = vec![0u8; chain.writable_len().min(64 * 1024)];
-            unsafe { arc4random_buf(bytes.as_mut_ptr(), bytes.len()) };
+            fill(&mut bytes);
             let written = chain.write_all(&active.memory, &bytes);
             active.complete(0, chain.head, written as u32);
         }
