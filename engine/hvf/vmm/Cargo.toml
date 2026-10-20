@@ -14,4 +14,6 @@ hv = { path = "../hv" }
 # host sockets; mio waits on both.
 smoltcp = { version = "0.14", default-features = false, features = ["std", "medium-ip", "proto-ipv4", "socket-tcp", "socket-tcp-pause-synack"] }
 mio = { version = "1", features = ["os-poll", "net"] }
+# AVB partition hashes (CommonCrypto on the Mac was the previous source).
+sha2 = "0.10"
 libc = "0.2"

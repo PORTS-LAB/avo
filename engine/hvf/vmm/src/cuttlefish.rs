@@ -124,16 +124,33 @@ fn prepare_instance(options: &Options) -> Result<(), String> {
     Ok(())
 }
 
-/// APFS copy-on-write clone (falls back to a copy).
+/// Copy-on-write clone (APFS clonefile, FICLONE), falling back to a plain
+/// copy where the filesystem does not share blocks.
 fn clone_file(source: &Path, target: &Path) -> Result<(), String> {
-    use std::ffi::CString;
-    unsafe extern "C" {
-        fn clonefile(src: *const i8, dst: *const i8, flags: u32) -> i32;
+    #[cfg(target_os = "macos")]
+    {
+        use std::ffi::CString;
+        unsafe extern "C" {
+            fn clonefile(src: *const i8, dst: *const i8, flags: u32) -> i32;
+        }
+        let s = CString::new(source.as_os_str().as_encoded_bytes()).unwrap();
+        let t = CString::new(target.as_os_str().as_encoded_bytes()).unwrap();
+        if unsafe { clonefile(s.as_ptr(), t.as_ptr(), 0) } == 0 {
+            return Ok(());
+        }
     }
-    let s = CString::new(source.as_os_str().as_encoded_bytes()).unwrap();
-    let t = CString::new(target.as_os_str().as_encoded_bytes()).unwrap();
-    if unsafe { clonefile(s.as_ptr(), t.as_ptr(), 0) } == 0 {
-        return Ok(());
+    #[cfg(not(target_os = "macos"))]
+    {
+        use std::os::fd::AsRawFd;
+        // FICLONE shares blocks whole or not at all (btrfs, XFS, recent
+        // ext4); anything else falls through to the copy.
+        if let Ok(source_file) = std::fs::File::open(source) {
+            if let Ok(target_file) = std::fs::File::create(target) {
+                if unsafe { libc::ioctl(target_file.as_raw_fd(), libc::FICLONE, source_file.as_raw_fd() as libc::c_ulong) } == 0 {
+                    return Ok(());
+                }
+            }
+        }
     }
     std::fs::copy(source, target).map(|_| ()).map_err(|e| format!("{}: {e}", source.display()))
 }

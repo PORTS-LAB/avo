@@ -193,13 +193,13 @@ pub fn parse_bootconfig(text: &str) -> Vec<(String, String)> {
 
 // MARK: AVB
 
-unsafe extern "C" {
-    fn CC_SHA256(data: *const u8, len: u32, md: *mut u8) -> *mut u8;
-}
-
+/// SHA-256 of a partition image, for vbmeta signatures and rollback checks.
 pub fn sha256(data: &[u8]) -> [u8; 32] {
+    use sha2::{Digest, Sha256};
+    let mut hasher = Sha256::new();
+    hasher.update(data);
     let mut digest = [0u8; 32];
-    unsafe { CC_SHA256(data.as_ptr(), data.len() as u32, digest.as_mut_ptr()) };
+    digest.copy_from_slice(&hasher.finalize());
     digest
 }
 
