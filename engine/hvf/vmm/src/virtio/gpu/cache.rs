@@ -24,8 +24,9 @@
 //! place. The daemon's "Clear GPU cache" removes the root
 //! (`GPUCache.swift` in AvoDaemonCore).
 
-use std::ffi::{CStr, c_char, c_void};
 use std::path::{Path, PathBuf};
+#[cfg(target_os = "macos")]
+use std::ffi::{CStr, c_char, c_void};
 use std::time::{Duration, SystemTime};
 
 /// Everything under the cache root, at most (enforced when the engine starts).
@@ -37,12 +38,22 @@ pub const UNUSED: Duration = Duration::from_secs(30 * 24 * 3600);
 /// Touched at every start: when a key was last used.
 const STAMP: &str = "last-used";
 
-/// `~/Library/Caches/Avo/gpu-cache`, `$AVO_GPU_CACHE_DIR`, or None (`off`).
+/// `~/Library/Caches/Avo/gpu-cache` on the Mac, `~/.cache/avo/gpu-cache`
+/// elsewhere (XDG), `$AVO_GPU_CACHE_DIR`, or None (`off`).
 pub fn root() -> Option<PathBuf> {
     match std::env::var_os("AVO_GPU_CACHE_DIR") {
         Some(dir) if dir == "off" => None,
         Some(dir) if !dir.is_empty() => Some(PathBuf::from(dir)),
-        _ => std::env::var_os("HOME").map(|home| Path::new(&home).join("Library/Caches/Avo/gpu-cache")),
+        _ => std::env::var_os("HOME").map(|home| {
+            if cfg!(target_os = "macos") {
+                Path::new(&home).join("Library/Caches/Avo/gpu-cache")
+            } else {
+                match std::env::var_os("XDG_CACHE_HOME") {
+                    Some(dir) if !dir.is_empty() => Path::new(&dir).join("avo/gpu-cache"),
+                    _ => Path::new(&home).join(".cache/avo/gpu-cache"),
+                }
+            }
+        }),
     }
 }
 
@@ -70,20 +81,13 @@ pub fn key(revision: &str, icd: &str, gpu: &str, os_build: &str) -> String {
     format!("emulator-{}_{}_{}_macos-{}", part(revision), part(icd), part(gpu), part(os_build))
 }
 
+#[cfg(target_os = "macos")]
 fn sysctl_string(name: &CStr) -> Option<String> {
-    #[cfg(target_os = "macos")]
-    {
-        let mut buffer = [0u8; 256];
-        let mut len = buffer.len();
-        let ok = unsafe { libc::sysctlbyname(name.as_ptr(), buffer.as_mut_ptr().cast(), &mut len, std::ptr::null_mut(), 0) } == 0;
-        let text = CStr::from_bytes_until_nul(&buffer).ok()?.to_string_lossy().trim().to_string();
-        (ok && !text.is_empty()).then_some(text)
-    }
-    #[cfg(not(target_os = "macos"))]
-    {
-        let _ = name;
-        None
-    }
+    let mut buffer = [0u8; 256];
+    let mut len = buffer.len();
+    let ok = unsafe { libc::sysctlbyname(name.as_ptr(), buffer.as_mut_ptr().cast(), &mut len, std::ptr::null_mut(), 0) } == 0;
+    let text = CStr::from_bytes_until_nul(&buffer).ok()?.to_string_lossy().trim().to_string();
+    (ok && !text.is_empty()).then_some(text)
 }
 
 /// Bytes under `path` (symbolic links not followed).
@@ -141,17 +145,20 @@ pub fn prune(root: &Path, keep: &str, limit: u64, unused: Duration, now: SystemT
     removed
 }
 
-#[cfg_attr(target_os = "macos", link(name = "CoreFoundation", kind = "framework"))]
+#[cfg(target_os = "macos")]
+#[link(name = "CoreFoundation", kind = "framework")]
 unsafe extern "C" {
     fn CFStringCreateWithBytes(alloc: *const c_void, bytes: *const u8, len: isize, encoding: u32, external: u8) -> *const c_void;
     fn CFStringGetCString(string: *const c_void, buffer: *mut c_char, size: isize, encoding: u32) -> u8;
     fn CFRelease(object: *const c_void);
 }
 
+#[cfg(target_os = "macos")]
 const UTF8: u32 = 0x0800_0100;
 
 /// Metal's SPI for its shader cache folder (Metal.framework exports both;
 /// they take and give an NSString, toll-free bridged to CFString).
+#[cfg(target_os = "macos")]
 fn metal_functions() -> Option<(unsafe extern "C" fn(*const c_void), unsafe extern "C" fn() -> *const c_void)> {
     let metal = unsafe { libc::dlopen(c"/System/Library/Frameworks/Metal.framework/Metal".as_ptr(), libc::RTLD_NOW | libc::RTLD_GLOBAL) };
     if metal.is_null() {
@@ -167,6 +174,7 @@ fn metal_functions() -> Option<(unsafe extern "C" fn(*const c_void), unsafe exte
 }
 
 /// Metal's shader cache folder for this process, if Metal says.
+#[cfg(target_os = "macos")]
 pub fn metal_cache_path() -> Option<PathBuf> {
     let (_, get) = metal_functions()?;
     let string = unsafe { get() };
@@ -180,6 +188,7 @@ pub fn metal_cache_path() -> Option<PathBuf> {
 
 /// Points Metal's shader cache at `dir`; must run before this process uses
 /// Metal (Metal keeps the folder it first used).
+#[cfg(target_os = "macos")]
 pub fn set_metal_cache_path(dir: &Path) -> Result<(), String> {
     let (set, _) = metal_functions().ok_or("Metal has no MTLSetShaderCachePath")?;
     let bytes = dir.as_os_str().as_encoded_bytes();
@@ -205,38 +214,49 @@ pub fn set_metal_cache_path(dir: &Path) -> Result<(), String> {
 /// # Safety
 /// Changes the process environment: call it before any thread starts.
 pub unsafe fn prepare(emulator: &Path) -> Option<PathBuf> {
-    let root = root()?;
-    let revision = emulator_revision(emulator).unwrap_or_default();
-    let icd = std::env::var("ANDROID_EMU_VK_ICD").unwrap_or_default();
-    let gpu = sysctl_string(c"machdep.cpu.brand_string").unwrap_or_default();
-    let os = sysctl_string(c"kern.osversion").unwrap_or_default();
-    let key = key(&revision, &icd, &gpu, &os);
-    let removed = prune(&root, &key, LIMIT, UNUSED, SystemTime::now());
-    for path in &removed {
-        eprintln!("[gpu] shader cache: removed {}", path.display());
-    }
-    let dir = root.join(&key);
-    let metal = dir.join("metal");
-    if let Err(e) = std::fs::create_dir_all(&metal) {
-        eprintln!("[gpu] shader cache: {}: {e}", metal.display());
+    #[cfg(not(target_os = "macos"))]
+    {
+        // Off the Mac, gfxstream keeps its own caches; picking a folder for
+        // the platform's own cache and pruning it comes back with the
+        // Control Panel's cache work.
+        let _ = emulator;
         return None;
     }
-    let about = format!(
-        "Avo's GPU shader cache (avo-vmm, docs/engine.md)\nemulator: {} ({revision})\nvulkan driver: {icd}\ngpu: {gpu}\nmacos: {os}\n",
-        emulator.display()
-    );
-    let _ = std::fs::write(dir.join(STAMP), about);
-    if std::env::var_os("MTL_SHADER_CACHE_SIZE").is_none() {
-        unsafe { std::env::set_var("MTL_SHADER_CACHE_SIZE", METAL_FILE_LIMIT.to_string()) };
-    }
-    match set_metal_cache_path(&metal) {
-        Ok(()) => {
-            eprintln!("[gpu] shader cache {} ({} MiB)", dir.display(), size(&dir) >> 20);
-            Some(metal)
+    #[cfg(target_os = "macos")]
+    {
+        let root = root()?;
+        let revision = emulator_revision(emulator).unwrap_or_default();
+        let icd = std::env::var("ANDROID_EMU_VK_ICD").unwrap_or_default();
+        let gpu = sysctl_string(c"machdep.cpu.brand_string").unwrap_or_default();
+        let os = sysctl_string(c"kern.osversion").unwrap_or_default();
+        let key = key(&revision, &icd, &gpu, &os);
+        let removed = prune(&root, &key, LIMIT, UNUSED, SystemTime::now());
+        for path in &removed {
+            eprintln!("[gpu] shader cache: removed {}", path.display());
         }
-        Err(e) => {
-            eprintln!("[gpu] shader cache: {e}");
-            None
+        let dir = root.join(&key);
+        let metal = dir.join("metal");
+        if let Err(e) = std::fs::create_dir_all(&metal) {
+            eprintln!("[gpu] shader cache: {}: {e}", metal.display());
+            return None;
+        }
+        let about = format!(
+            "Avo's GPU shader cache (avo-vmm, docs/engine.md)\nemulator: {} ({revision})\nvulkan driver: {icd}\ngpu: {gpu}\nmacos: {os}\n",
+            emulator.display()
+        );
+        let _ = std::fs::write(dir.join(STAMP), about);
+        if std::env::var_os("MTL_SHADER_CACHE_SIZE").is_none() {
+            unsafe { std::env::set_var("MTL_SHADER_CACHE_SIZE", METAL_FILE_LIMIT.to_string()) };
+        }
+        match set_metal_cache_path(&metal) {
+            Ok(()) => {
+                eprintln!("[gpu] shader cache {} ({} MiB)", dir.display(), size(&dir) >> 20);
+                Some(metal)
+            }
+            Err(e) => {
+                eprintln!("[gpu] shader cache: {e}");
+                None
+            }
         }
     }
 }
@@ -306,12 +326,13 @@ mod tests {
         unsafe { std::env::set_var("AVO_GPU_CACHE_DIR", "off") };
         assert_eq!(root(), None);
         unsafe { std::env::remove_var("AVO_GPU_CACHE_DIR") };
-        assert!(root().unwrap().ends_with("Library/Caches/Avo/gpu-cache"));
+        assert!(root().unwrap().ends_with(if cfg!(target_os = "macos") { "Library/Caches/Avo/gpu-cache" } else { ".cache/avo/gpu-cache" }));
         if let Some(value) = before {
             unsafe { std::env::set_var("AVO_GPU_CACHE_DIR", value) };
         }
     }
 
+    #[cfg(target_os = "macos")]
     #[test]
     fn metal_takes_the_cache_folder() {
         let dir = scratch("metal");

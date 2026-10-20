@@ -134,11 +134,15 @@ pub struct Library {
 /// The backend's `@rpath` dependencies in `lib64`. avo-vmm has no rpath into
 /// the user's SDK (one into a home folder could not ship anyway): loading
 /// each by absolute path first makes the backend's references resolve to
-/// the images already loaded.
+/// the images already loaded. The emulator names its component libraries
+/// alike on all hosts (`lib64/*.dylib` on the Mac, `lib64/*.so` elsewhere;
+/// verify: a Linux package's glib name in particular is not confirmed yet).
+const GLIB_LIBRARY: &str = if cfg!(target_os = "macos") { "libglib2_darwin-aarch64" } else { "libglib2_linux-aarch64" };
+const LIBRARY_EXTENSION: &str = if cfg!(target_os = "macos") { "dylib" } else { "so" };
 const DEPENDENCIES: [&str; 10] = [
     "libabseil_dll",
     "libprotobuf.28.4.0",
-    "libglib2_darwin-aarch64",
+    GLIB_LIBRARY,
     "libandroid-emu-base-logging",
     "libandroid-emu-tracing",
     "libandroid-emu-curl",
@@ -164,7 +168,7 @@ macro_rules! symbol {
         let name = concat!("stream_renderer_", $name, "\0");
         let pointer = unsafe { libc::dlsym($handle, name.as_ptr().cast()) };
         if pointer.is_null() {
-            return Err(format!("libgfxstream_backend.dylib has no {}", name.trim_end_matches('\0')));
+            return Err(format!("libgfxstream_backend.{} has no {}", LIBRARY_EXTENSION, name.trim_end_matches('\0')));
         }
         // SAFETY: the field's type is the symbol's prototype in the header.
         unsafe { std::mem::transmute::<*mut c_void, _>(pointer) }
@@ -175,9 +179,10 @@ impl Library {
     /// Loads the dependencies, then the backend, from `<emulator>/lib64`.
     pub fn load(emulator: &Path) -> Result<Library, String> {
         let lib64 = emulator.join("lib64");
+        let ext = LIBRARY_EXTENSION;
         let mut left: Vec<&str> = DEPENDENCIES.to_vec();
         for name in &left {
-            let path = lib64.join(format!("{name}.dylib"));
+            let path = lib64.join(format!("{name}.{ext}"));
             if !path.exists() {
                 return Err(format!("{} is missing", path.display()));
             }
@@ -186,7 +191,7 @@ impl Library {
         let mut error = String::new();
         loop {
             let before = left.len();
-            left.retain(|name| match dlopen(&lib64.join(format!("{name}.dylib")), libc::RTLD_NOW | libc::RTLD_GLOBAL) {
+            left.retain(|name| match dlopen(&lib64.join(format!("{name}.{ext}")), libc::RTLD_NOW | libc::RTLD_GLOBAL) {
                 Ok(_) => false,
                 Err(e) => {
                     error = e;
@@ -198,9 +203,9 @@ impl Library {
             }
         }
         if let Some(name) = left.first() {
-            return Err(format!("cannot load {name}.dylib: {error}"));
+            return Err(format!("cannot load {name}.{ext}: {error}"));
         }
-        let backend = dlopen(&lib64.join("libgfxstream_backend.dylib"), libc::RTLD_NOW | libc::RTLD_LOCAL)?;
+        let backend = dlopen(&lib64.join(format!("libgfxstream_backend.{ext}")), libc::RTLD_NOW | libc::RTLD_LOCAL)?;
         Ok(Library {
             init: symbol!(backend, "init"),
             get_cap_set: symbol!(backend, "get_cap_set"),
@@ -268,12 +273,19 @@ impl Library {
 /// # Safety
 /// Changes the process environment: call it before any thread starts.
 pub unsafe fn set_environment(emulator: &Path) {
-    let defaults = [("ANDROID_EMU_VK_ICD", "moltenvk"), ("ANDROID_EMU_HEADLESS", "1")];
+    let ext = LIBRARY_EXTENSION;
+    // Vulkan's loader hint: on the Mac it is MoltenVK; elsewhere the loader
+    // picks (the host's ICD; verify: a Linux emulator's own default).
+    let defaults: &[(&str, &str)] = if cfg!(target_os = "macos") {
+        &[("ANDROID_EMU_VK_ICD", "moltenvk"), ("ANDROID_EMU_HEADLESS", "1")]
+    } else {
+        &[("ANDROID_EMU_HEADLESS", "1")]
+    };
     unsafe {
         std::env::set_var("ANDROID_EMULATOR_LAUNCHER_DIR", emulator);
-        std::env::set_var("ANDROID_EMU_VK_LOADER_PATH", emulator.join("lib64/vulkan/libvulkan.dylib"));
+        std::env::set_var("ANDROID_EMU_VK_LOADER_PATH", emulator.join(format!("lib64/vulkan/libvulkan.{ext}")));
         super::astc::enable();
-        for (key, value) in defaults {
+        for &(key, value) in defaults {
             if std::env::var_os(key).is_none() {
                 std::env::set_var(key, value);
             }
@@ -376,7 +388,7 @@ mod tests {
     #[test]
     fn a_missing_library_is_named() {
         let error = Library::load(Path::new("/nonexistent/emulator")).err().unwrap();
-        assert!(error.contains("libabseil_dll.dylib is missing"), "{error}");
+        assert!(error.contains(format!("libabseil_dll.{LIBRARY_EXTENSION} is missing").as_str()), "{error}");
     }
 
     /// With AVO_GFXSTREAM_DIR set to an Android Emulator directory: the

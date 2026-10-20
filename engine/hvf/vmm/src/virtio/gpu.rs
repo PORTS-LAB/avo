@@ -11,6 +11,9 @@
 //! its EDID (edid.rs).
 
 mod astc;
+// Everything but `prepare` is the Mac's Metal-cache story (the daemon's
+// Control Panel picks it up again in phase 3).
+#[cfg_attr(not(target_os = "macos"), allow(dead_code))]
 mod cache;
 pub mod edid;
 mod fence;
