@@ -4,8 +4,10 @@ Avo is macOS-only today: the engine (`avo-vmm`) is Rust on Apple's
 Hypervisor.framework ([engine.md](engine.md)) and the host side is
 Swift/AppKit ([architecture.md](architecture.md)). A Linux port brings the
 same product to aarch64 Linux hosts: the same arm64 Cuttlefish guests on
-KVM, then the daemon plumbing, then the UI. Status: planning; phase 1 has
-started.
+KVM, then the daemon plumbing, then the UI. Status: the engine code for
+phase 1 and the host-side part of phase 2 is in (the `linux-port` branch —
+both targets compile, host tests green); runtime bring-up waits for real
+aarch64 KVM hardware (the `// verify:` marks say what to check there).
 
 ## Scope
 
@@ -27,18 +29,18 @@ started.
 | --- | --- | --- |
 | Hypervisor.framework ([hvf-sys](../engine/hvf/hvf-sys), [hvf](../engine/hvf/hvf)) | KVM (aarch64); the `kvm` crate mirrors hvf's surface (`Vm`, `GuestRegion`, thread-bound `Vcpu`, exit decoding) behind `hv` | 1 |
 | In-kernel GICv3 (macOS 15) | KVM's in-kernel VGIC v3 | 1 |
-| mach_absolute_time + mach timebase | CLOCK_MONOTONIC nanoseconds via a small platform module | 1 |
-| arc4random_buf | getrandom(2) | 1 |
-| APFS clonefile | FICLONE ioctl, with a plain-copy fallback | 1 |
-| CommonCrypto CC_SHA256 | the sha2 crate | 1 |
-| pthread_set_qos_class_self_np (engine threads to user-initiated) | no-op, optionally nice/ioprio | 1 |
+| mach_absolute_time + mach timebase | done — CLOCK_MONOTONIC nanoseconds (`pause::host_ticks`); the vtimer and tap math read it | 1 |
+| arc4random_buf | done — getrandom(2), the urandom file behind it | 1 |
+| APFS clonefile | done — FICLONE ioctl, with a plain-copy fallback | 1 |
+| CommonCrypto CC_SHA256 | done — the sha2 crate | 1 |
+| pthread_set_qos_class_self_np (engine threads to user-initiated) | done — no-op off the Mac (nice/ioprio if wanted later) | 1 |
 | hypervisor entitlement + codesign + run-signed.sh (engine/hvf/README.md) | /dev/kvm access via the kvm group, no signing | 1 |
 | macOS 15+ on Apple silicon | any aarch64 host with arm64 KVM (in-kernel VGIC, PSCI 0.2+) — Ampere, Graviton, Snapdragon X, Raspberry Pi 5 class | 1 |
-| IOSurface frame sharing (`vmm/src/frames.rs`) | POSIX shared memory with the same ring protocol; the reader maps it as plain memory, no Metal | 2 |
-| gfxstream host dylibs from the Android Emulator (`lib64/*.dylib`, loaded by absolute path) | the emulator's Linux `.so` equivalents, loaded the same way, without the signing gate | 2 |
-| MoltenVK | the system Vulkan loader | 2 |
-| Metal shader-cache SPI (`virtio/gpu/cache.rs`, `MTLSetShaderCachePath`) | gfxstream's own caching; the Control Panel's cache view and Clear follow in phase 3 | 2 |
-| Pause's vtimer offset (`hv_vcpu_set_vtimer_offset`; engine.md, "Pause") | KVM one-reg write of the guest vtimer count while the vCPUs are stopped | 2 |
+| IOSurface frame sharing (`vmm/src/frames.rs`) | no engine change needed — the ring is a plain mmap'd shared file already (verified); the reader side follows in phase 3 | 2 |
+| gfxstream host dylibs from the Android Emulator (`lib64/*.dylib`, loaded by absolute path) | done — the loader takes `.so` the same way (`// verify:` against a real Linux emulator package) | 2 |
+| MoltenVK | done — off the Mac the loader picks the host ICD itself | 2 |
+| Metal shader-cache SPI (`virtio/gpu/cache.rs`, `MTLSetShaderCachePath`) | done — the Metal/CF machinery is macOS-only; prepare() no-ops and the cache root follows XDG off the Mac; the Control Panel's cache view follows in phase 3 | 2 |
+| Pause's vtimer offset (`hv_vcpu_set_vtimer_offset`; engine.md, "Pause") | done — the kvm backend turns nanosecond deltas into counter ticks (via CNTFRQ) and wait_for_interrupt reads the kernel's counter (`// verify:` on hardware) | 2 |
 | CoreAudio output and capture (`virtio/sound.rs`) | done for now: the null backend (audio dropped, timing kept; the tap ring stamps CLOCK_MONOTONIC ns); PipeWire/ALSA behind a small host-audio trait later | 2/3 |
 | XPC Mach service + LaunchAgent/SMAppService | Unix-domain sockets + systemd user units | 3 |
 | AppKit Control Panel + AvoWindowHost app shims + CAMetalLayer windows | GTK4 or winit with Vulkan surfaces | 3 |
@@ -52,10 +54,10 @@ Notes:
   feature, so a build for one OS always has exactly one backend.
 - The frame rings are already plain shared files on the writer side
   ([engine.md](engine.md), "Frames"); only the macOS reader changes.
-- The host-audio trait exists to keep the device's own-clock playback logic
-  platform-free ([engine.md](engine.md), "Sound"); only the enqueue path is
-  a backend, and the null one answers every period on time with its
-  simulated clock, as the MMAP stubs already do.
+- The device's own-clock playback logic is platform-free: the split sits at
+  the queue, not the clock. Linux's null backend drops the audio as it is
+  made and answers the tap with what the clock consumed; the trait-ization
+  comes with PipeWire/ALSA.
 - Phase 3 is the largest chunk by far: the Swift/AppKit code does not port;
   GTK4 or winit is a rewrite, not an adaptation.
 
@@ -134,8 +136,9 @@ on the Linux side.
   granularity or becomes a runtime constant.
 - **CNTFRQ variation.** arm64 SoCs set the counter frequency differently
   (19.2 MHz on many Qualcomm platforms, 54 MHz on Raspberry Pi, other rates
-  elsewhere). Timer math — sound period pacing, the pause offset — must
-  read the guest's counter frequency rather than hardcode 24 MHz.
+  elsewhere). Addressed in code: the kvm backend converts offset deltas
+  with the host's real rate and wait_for_interrupt reads it per vCPU; only
+  the Mac keeps 24 MHz. Confirm the numbers on hardware.
 - **Gfxstream .so availability.** Whether arm64 Linux builds of the Android
   Emulator with the gfxstream host libraries exist and which versions carry
   them; until then the port is software-rendered.
