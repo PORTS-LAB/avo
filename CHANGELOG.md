@@ -4,6 +4,33 @@ All notable changes to Avo are listed here. Versions follow
 [Semantic Versioning](https://semver.org); preview builds carry a build
 number (`CFBundleVersion`) that only goes up.
 
+## 0.1.0 Preview 2 (build 40)
+
+A preview for testers, signed ad hoc and not notarized like Preview 1: macOS
+asks you to confirm the first launch (System Settings › Privacy & Security ›
+Open Anyway).
+
+### Added
+
+- **Remove Google apps.** Settings › Google Apps › Remove takes Google apps
+  out again without Reset Android, keeping your other apps and their data,
+  so you can install them again, for example when Google sign-in stopped
+  working. It also cleans up when only Google Play's updates of them are
+  left, which the pane now points out.
+
+### Fixed
+
+- Apps that get their location from Google Play services (most maps,
+  delivery and ride apps) got none, the Mac's or a chosen place alike:
+  Android never gave Play services location when Google apps were added
+  after setup. Avo now grants it, unless you changed it yourself.
+- Closing an app's last window no longer sends Avo's other windows behind
+  other apps: the window behind it comes forward.
+- An app that `flutter run` or Android Studio restarts over adb opens in its
+  window again, instead of staying on Android's own screen without one.
+- The Setup Assistant opens at the first launch (it appeared only once
+  Settings was opened), and each step fits its window.
+
 ## 0.1.0 Preview 1 (build 35)
 
 The first public preview, for testers. It is signed ad hoc and not
