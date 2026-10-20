@@ -113,7 +113,31 @@ final class ShimAppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidati
         // (DaemonCore.closeDisplay; quitting asks for the stop as well).
         if windows.isEmpty {
             appEnded = byGuest
+            // Left to itself, macOS activates whichever app it last saw
+            // active, which is often not the one whose window was right
+            // behind (a window Android opened in the background never was):
+            // every other window would drop behind it.
+            if NSApp.isActive { Self.activateWindowBehind() }
             NSApp.terminate(nil)
+        }
+    }
+
+    /// Hands activation to the app owning the frontmost window of another
+    /// process, as closing a window within one app brings up the next.
+    private static func activateWindowBehind() {
+        let own = ProcessInfo.processInfo.processIdentifier
+        guard let windows = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID) as? [[String: Any]] else {
+            return
+        }
+        for info in windows {
+            guard (info[kCGWindowLayer as String] as? Int) == 0,
+                  let pid = info[kCGWindowOwnerPID as String] as? pid_t, pid != own,
+                  (info[kCGWindowAlpha as String] as? Double ?? 1) > 0,
+                  let bounds = info[kCGWindowBounds as String] as? [String: Double],
+                  (bounds["Width"] ?? 0) > 1, (bounds["Height"] ?? 0) > 1,
+                  let app = NSRunningApplication(processIdentifier: pid), app.activationPolicy == .regular else { continue }
+            _ = app.activate(from: .current)
+            return
         }
     }
 
