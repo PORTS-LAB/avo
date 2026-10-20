@@ -1,0 +1,10 @@
+[package]
+name = "avod"
+description = "Avo's Linux host daemon, begun with the control channel's transport and envelopes (phase 3 of docs/linux-port.md; the Mac's AvoDaemon/AvoKit are the reference)"
+version = "0.1.0"
+edition = "2024"
+license = "BSD-3-Clause"
+publish = false
+
+[dependencies]
+prost = "0.13"

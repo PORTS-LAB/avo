@@ -123,6 +123,14 @@ unit where the LaunchAgent was. The Control Panel and the per-app window
 shims rewritten on GTK4 or winit, presenting the frame rings; org.freedesktop.Notifications; `.desktop` entries; packaging as
 distro packages or an AppImage.
 
+Begun: `host/avod` carries the daemon's engine-facing foundation — the
+`vsock.sock` transport client (the Firecracker hybrid convention, matching
+the engine's device byte for byte) and the control channel's varint
+framing plus the full `avo.v1` envelope set, hand-transcribed from
+[proto/avo/v1/control.proto](../proto/avo/v1/control.proto) with prost's
+wire derives. Its pinned-byte tests hold the wire still against the Swift
+and Java peers; 13 tests, buildable on any Linux box without hardware.
+
 **Done when:** the daemon and UI run apps end to end — an installed app
 opens in its own window, input and sound reach it, and notifications arrive
 on the Linux side.
