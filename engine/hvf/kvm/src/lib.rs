@@ -664,9 +664,9 @@ impl Vcpu {
     }
 
     /// The guest counter ticks at the host's clock rate, which KVM passes
-    /// through; the nanosecond deltas the pause arithmetic produces
-    /// convert against it.
-    pub fn counter_frequency(&self) -> Result<u64> {
+    /// through; the vtimer arithmetic's nanosecond deltas translate
+    /// against it (machine.rs keeps its own CNTFRQ read).
+    fn counter_frequency(&self) -> Result<u64> {
         if let Some(frequency) = self.state.counter_frequency.get() {
             return Ok(*frequency);
         }

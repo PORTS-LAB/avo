@@ -314,6 +314,7 @@ impl Machine {
             vm: self.vm.clone(),
             bus,
             cpus: self.cpus,
+            counter_frequency: host_counter_frequency(),
             power: Mutex::new(Power { ready: 0, on: vec![false; self.cpus], start: vec![None; self.cpus], stop: None }),
             power_changed: Condvar::new(),
             handles: Mutex::new(Vec::new()),
@@ -391,6 +392,7 @@ struct Running {
     vm: Arc<Vm>,
     bus: Bus,
     cpus: usize,
+    counter_frequency: u64,
     power: Mutex<Power>,
     power_changed: Condvar,
     handles: Mutex<Vec<VcpuHandle>>,
@@ -646,12 +648,8 @@ impl Running {
                 return Ok(());
             }
             // The counter's rate: 24 MHz on Apple Silicon under hvf, the
-            // host's own clock rate under KVM.
-            #[cfg(target_os = "macos")]
-            let ticks_per_second = APPLE_SILICON_COUNTER_FREQUENCY;
-            #[cfg(not(target_os = "macos"))]
-            let ticks_per_second = vcpu.counter_frequency().map_err(|e| e.to_string())?;
-            timeout = timeout.min(ticks_to_duration(compare - now, ticks_per_second));
+            // host's own clock rate under KVM — fixed when the run starts.
+            timeout = timeout.min(ticks_to_duration(compare - now, self.counter_frequency));
         }
         self.waker.sleep(timeout);
         Ok(())
@@ -715,16 +713,36 @@ fn ticks_to_duration(ticks: u64, ticks_per_second: u64) -> Duration {
 }
 
 /// Apple Silicon's generic timer: hvf hands the guest the host's rate.
-#[cfg(target_os = "macos")]
+#[cfg(all(target_arch = "aarch64", target_os = "macos"))]
 const APPLE_SILICON_COUNTER_FREQUENCY: u64 = 24_000_000;
 
-// The live run needs a real machine on a real hypervisor: arm64 Macs is
-// where it is settled (Hypervisor.framework allows one process VM).
-// verify: on aarch64 KVM the probe's reference is CLOCK_MONOTONIC
-// nanoseconds while the guest counters in counter ticks — rebase the
-// probe's bookkeeping on the machine's own counter read before running
-// it on Linux hardware.
-#[cfg(all(test, target_arch = "aarch64", target_os = "macos"))]
+#[cfg(all(target_arch = "aarch64", target_os = "macos"))]
+fn host_counter_frequency() -> u64 {
+    APPLE_SILICON_COUNTER_FREQUENCY
+}
+
+/// KVM passes the host's own rate through to the guest: CNTFRQ is
+/// architecturally EL0-readable, and reading it here — once per machine —
+/// gives the same number the kernel would report for any vCPU.
+#[cfg(all(target_arch = "aarch64", not(target_os = "macos")))]
+fn host_counter_frequency() -> u64 {
+    let mut frequency: u64;
+    // SAFETY: only the counter rate register is touched, an EL0 read.
+    unsafe { std::arch::asm!("mrs {}, cntfrq_el0", out(reg) frequency) };
+    frequency
+}
+
+/// Never executed: the machine cannot run off aarch64 hardware.
+#[cfg(not(target_arch = "aarch64"))]
+fn host_counter_frequency() -> u64 {
+    24_000_000
+}
+
+// The live run needs a real machine on a real hypervisor: it runs on
+// arm64 Macs (hvf) and aarch64 KVM hardware. The probe anchors itself in
+// the counter's own domain on each — see host_anchor. (verify: it has
+// not yet run under KVM.)
+#[cfg(all(test, target_arch = "aarch64"))]
 mod pause_tests {
     use super::*;
     use crate::bus::MmioHandler;
@@ -753,6 +771,23 @@ mod pause_tests {
         backwards: AtomicBool,
     }
 
+    /// The host that the guests' counter hangs from: mach time under hvf
+    /// (the vtimer offset arithmetic's space), the host's own counter
+    /// under KVM — kvm guest counters start from it, offset 0, and every
+    /// rewind shifts them back by exactly the pause.
+    #[cfg(target_os = "macos")]
+    fn host_anchor() -> u64 {
+        crate::pause::host_ticks()
+    }
+
+    #[cfg(not(target_os = "macos"))]
+    fn host_anchor() -> u64 {
+        let mut value: u64;
+        // SAFETY: only the counter register is touched, an EL0 read.
+        unsafe { std::arch::asm!("mrs {}, cntvct_el0", out(reg) value) };
+        value
+    }
+
     impl MmioHandler for Probe {
         fn read(&self, _: u64, _: &mut [u8]) {}
 
@@ -761,7 +796,7 @@ mod pause_tests {
             let mut bytes = [0u8; 8];
             bytes[..data.len().min(8)].copy_from_slice(&data[..data.len().min(8)]);
             let value = u64::from_le_bytes(bytes);
-            let host = crate::pause::host_ticks();
+            let host = host_anchor();
             let mut seen = self.seen.lock().unwrap();
             if let Some(entry) = seen.get_mut(cpu) {
                 if value < entry.1 {
@@ -772,14 +807,16 @@ mod pause_tests {
         }
     }
 
-    fn ms(ticks: u64) -> f64 {
-        ticks as f64 / 24_000.0
+    /// Milliseconds for a span of counter ticks at the machine's rate.
+    fn ms(ticks: u64, ticks_per_second: u64) -> f64 {
+        ticks as f64 / (ticks_per_second as f64 / 1000.0)
     }
 
-    /// The process's only VM in the tests (Hypervisor.framework allows one).
+    /// The process's single VM while this test runs.
     #[test]
     fn a_pause_stops_the_vcpus_and_their_counter() {
         let mut machine = Machine::new(2, 256, Box::new(std::io::sink())).unwrap();
+        let frequency = host_counter_frequency();
         let probe = Arc::new(Probe::default());
         machine.bus.insert(PROBE, 0x1000, probe.clone());
         let mut kernel = vec![0u8; 64];
@@ -795,9 +832,9 @@ mod pause_tests {
         }
         let before = *probe.seen.lock().unwrap();
         assert!(before.iter().all(|cpu| cpu.0 > 100), "both vCPUs run: {before:?}");
-        // Both vCPUs start with the same counter (HVF's offset at creation).
-        assert!(ms(before[0].2.abs_diff(before[1].2)) < 1.0, "{before:?}");
-        eprintln!("HVF's default vtimer offset: host - guest = {:.1} ms", ms(before[0].2));
+        // Both vCPUs start from the same counter state.
+        assert!(ms(before[0].2.abs_diff(before[1].2), frequency) < 1.0, "{before:?}");
+        eprintln!("Default vtimer offset, host - guest = {:.1} ms", ms(before[0].2, frequency));
 
         assert_eq!(pause::GATE.pause(Duration::from_secs(2)), Ok(true));
         let paused = *probe.seen.lock().unwrap();
@@ -811,9 +848,9 @@ mod pause_tests {
         assert!(after.iter().zip(&paused).all(|(a, p)| a.0 > p.0), "both run again: {after:?}");
         // The counter stood still for exactly the pause: the guest is that
         // much further behind the host, on both vCPUs, and never went back.
-        let shifted = ms(after[0].2 - before[0].2);
+        let shifted = ms(after[0].2 - before[0].2, frequency);
         assert!((shifted - stood.as_secs_f64() * 1000.0).abs() < 5.0, "shifted {shifted:.1} ms for a {stood:?} pause");
-        assert!(ms(after[0].2.abs_diff(after[1].2)) < 1.0, "{after:?}");
+        assert!(ms(after[0].2.abs_diff(after[1].2), frequency) < 1.0, "{after:?}");
         assert!(!probe.backwards.load(Ordering::SeqCst));
 
         // The machine stops (its timeout) while paused: the vCPUs let go.

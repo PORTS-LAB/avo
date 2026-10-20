@@ -136,9 +136,12 @@ on the Linux side.
   granularity or becomes a runtime constant.
 - **CNTFRQ variation.** arm64 SoCs set the counter frequency differently
   (19.2 MHz on many Qualcomm platforms, 54 MHz on Raspberry Pi, other rates
-  elsewhere). Addressed in code: the kvm backend converts offset deltas
-  with the host's real rate and wait_for_interrupt reads it per vCPU; only
-  the Mac keeps 24 MHz. Confirm the numbers on hardware.
+  elsewhere). Addressed in code: the host's rate is read once per run
+  (`mrs cntfrq_el0`, cached on `Running`), the kvm backend converts offset
+  deltas with it and wait_for_interrupt sleeps against it, and the Mac keeps
+  24 MHz. The pause probe anchors itself in the counter's own domain on each
+  (mach time under hvf, the host's own counter under KVM) — the test has not
+  yet run on KVM hardware.
 - **Gfxstream .so availability.** Whether arm64 Linux builds of the Android
   Emulator with the gfxstream host libraries exist and which versions carry
   them; until then the port is software-rendered.
