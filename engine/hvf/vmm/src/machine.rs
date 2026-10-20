@@ -127,7 +127,7 @@ impl Machine {
             let intid = self.gic.spi_base + spi;
             let waker = self.waker.clone();
             let interrupt = Interrupt::new(move |level| {
-                let _ = hvf::set_spi(intid, level);
+                let _ = hv::set_spi(intid, level);
                 if level {
                     waker.wake();
                 }

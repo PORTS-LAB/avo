@@ -1154,7 +1154,7 @@ extern "C" fn recorded(user: *mut c_void, queue: AudioQueueRef, buffer: *mut Aud
 #[cfg(test)]
 mod tests {
     use super::*;
-    use hvf::GuestRegion;
+    use hv::GuestRegion;
 
     #[test]
     fn describes_one_playback_and_one_capture_stream() {

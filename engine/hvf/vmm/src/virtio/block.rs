@@ -240,7 +240,7 @@ impl VirtioDevice for Block {
 mod tests {
     use super::*;
     use crate::virtio::queue::Descriptor;
-    use hvf::GuestRegion;
+    use hv::GuestRegion;
     use std::sync::Mutex;
 
     const RAM: u64 = 0x8000_0000;

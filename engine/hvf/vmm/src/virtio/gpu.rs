@@ -613,7 +613,7 @@ impl Drop for Gpu {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use hvf::GuestRegion;
+    use hv::GuestRegion;
 
     const BGRA: u32 = 1;
 

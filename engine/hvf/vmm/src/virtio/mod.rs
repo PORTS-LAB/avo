@@ -398,7 +398,7 @@ mod tests {
     }
 
     fn transport(shared_memory: Option<u64>) -> VirtioPci {
-        let memory = Arc::new(GuestMemory::new(hvf::GuestRegion::new(0x8000_0000, 1 << 16).unwrap()));
+        let memory = Arc::new(GuestMemory::new(hv::GuestRegion::new(0x8000_0000, 1 << 16).unwrap()));
         VirtioPci::new(Box::new(Device(shared_memory)), memory, Interrupt::new(|_| {}))
     }
 
@@ -471,7 +471,7 @@ mod tests {
 
     #[test]
     fn a_machine_that_goes_lets_go_of_the_guest_memory() {
-        let memory = Arc::new(GuestMemory::new(hvf::GuestRegion::new(0x8000_0000, 1 << 16).unwrap()));
+        let memory = Arc::new(GuestMemory::new(hv::GuestRegion::new(0x8000_0000, 1 << 16).unwrap()));
         let held = Arc::new(Mutex::new(None));
         let mut pci = VirtioPci::new(Box::new(Shared(held.clone())), memory.clone(), Interrupt::new(|_| {}));
         pci.bar_write(0, 0x14, &[STATUS_DRIVER_OK]);

@@ -189,7 +189,7 @@ impl Queue {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use hvf::GuestRegion;
+    use hv::GuestRegion;
 
     const RAM: u64 = 0x8000_0000;
 

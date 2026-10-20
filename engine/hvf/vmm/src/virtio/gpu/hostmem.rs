@@ -26,11 +26,11 @@ impl Mapper for Hvf {
     fn map(&mut self, host: usize, guest: u64, len: u64) -> Result<(), String> {
         // SAFETY: the renderer keeps the blob's memory until its resource is
         // unreferenced, and `HostVisible` unmaps it before that (render.rs).
-        unsafe { hvf::map_host(host as *mut u8, guest, len as usize, hvf::Protection::RW) }.map_err(|e| e.to_string())
+        unsafe { hv::map_host(host as *mut u8, guest, len as usize, hv::Protection::RW) }.map_err(|e| e.to_string())
     }
 
     fn unmap(&mut self, guest: u64, len: u64) -> Result<(), String> {
-        hvf::unmap(guest, len as usize).map_err(|e| e.to_string())
+        hv::unmap(guest, len as usize).map_err(|e| e.to_string())
     }
 }
 
