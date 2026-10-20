@@ -1034,7 +1034,8 @@ actor HostAgent: DisplayResizing {
 
     /// An installed app in front on Android's own screen was started by
     /// adb, another app or the system: ask the host for a window (once per
-    /// time it comes to the front).
+    /// time it comes to the front), or move it into the app's window whose
+    /// task just ended (`moveIntoEndedWindow`).
     /// `output`: `am stack list` (`lookAround`).
     private func checkDefaultDisplay(_ output: String) async {
         guard isReady else { return }
@@ -1044,10 +1045,12 @@ actor HostAgent: DisplayResizing {
         // activities (permission dialogs, share sheets) are not installed apps
         // and stay where they are.
         var moved: Set<Int> = []
+        var taken: Set<UInt32> = []
         for display in displays.values where !resizing.contains(display.id) {
             guard let androidID = display.androidID else { continue }
             for task in Self.visibleRootTasks(onDisplay: androidID, in: output)
             where task.package != display.package && known[task.package] != nil {
+                if await moveIntoEndedWindow(task.root, of: task.package, in: output, taken: &taken) { continue }
                 _ = try? await shell("am display move-stack \(task.root) 0")
                 moved.insert(task.root)
                 var started = Avo_V1_TaskStarted()
@@ -1058,13 +1061,52 @@ actor HostAgent: DisplayResizing {
         }
         frontOnDefault.formUnion(moved)
         let front = Self.visibleTasks(onDisplay: 0, in: output)
+        let frontRoots = Self.visibleRootTasks(onDisplay: 0, in: output)
+        var movedIn: Set<Int> = []
         for task in front where !frontOnDefault.contains(task.id) && known[task.package] != nil {
+            if let root = frontRoots.first(where: { $0.package == task.package })?.root,
+               await moveIntoEndedWindow(root, of: task.package, in: output, taken: &taken) {
+                movedIn.insert(task.id)
+                continue
+            }
             var started = Avo_V1_TaskStarted()
             started.package = task.package
             started.taskID = Int32(task.id)
             await send(Avo_V1_Envelope(.taskStarted(started)))
         }
-        frontOnDefault = Set(front.map(\.id))
+        // An app adb installed a moment ago is not known until the next
+        // package poll: its task gets a window at the look after that. A task
+        // moved into a window that closed meanwhile is back here by the next
+        // look and gets a window of its own then.
+        frontOnDefault = Set(front.filter { known[$0.package] != nil && !movedIn.contains($0.id) }.map(\.id))
+    }
+
+    /// `flutter run` and Android Studio force-stop the app, install it and
+    /// start it again over adb, often before the task watch has closed the
+    /// app's window, which is empty since the stop (`checkTasks`). That
+    /// window takes the new task: asked for a window instead, the app's shim
+    /// would quit with the old one right after, and the app would stay on
+    /// Android's own screen. True when the task was moved to such a window.
+    private func moveIntoEndedWindow(_ root: Int, of package: String, in output: String,
+                                     taken: inout Set<UInt32>) async -> Bool {
+        let window = displays.values.first { display in
+            // Windows still starting their app are not empty, only early.
+            guard display.package == package, !taken.contains(display.id), !resizing.contains(display.id),
+                  let androidID = display.androidID,
+                  let started = startedAt[display.id], ContinuousClock.now - started > .seconds(3) else { return false }
+            return !Self.hasVisibleTask(onDisplay: androidID, in: output)
+        }
+        guard let window, let androidID = window.androidID,
+              let result = try? await shell("am display move-stack \(root) \(androidID)"),
+              !result.contains("Exception"), !result.contains("Error") else { return false }
+        taken.insert(window.id)
+        // Closed meanwhile: Android sent the task back to its own screen.
+        guard displays[window.id] != nil else { return true }
+        // As after a launch, the task gets a moment to show before the window is checked again.
+        startedAt[window.id] = .now
+        emptyChecks[window.id] = 0
+        focusedDisplay = window.id
+        return true
     }
 
     /// The root task holding one of the package's tasks on a display.

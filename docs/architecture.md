@@ -110,6 +110,12 @@ force-stops the package before its display is unplugged
 (`DaemonCore.closeDisplay`). Unplugged first, the app's task would move to
 Android's own screen, where the task watch (`checkDefaultDisplay`) takes a
 known app's visible task for a new start and opens its window again.
+`flutter run` and Android Studio force-stop the app, install it and start it
+again over adb, usually before the watch closed the window the stop left
+empty: that window takes the new task (`moveIntoEndedWindow`), since its
+shim would otherwise quit with it right after being asked for a new one. An
+app adb starts right after installing it gets its window once the package
+poll has found it.
 
 Frames: the engine renders each display into a small swapchain of IOSurfaces,
 hands them to the daemon once (`engineSetSurfaces`) and then only announces

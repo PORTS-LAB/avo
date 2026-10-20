@@ -24,6 +24,22 @@ import Testing
         #expect(!HostAgent.hasVisibleTask(onDisplay: 5, in: Self.stacks))
     }
 
+    @Test func aForceStoppedAppsWindowIsEmptyWhileItsNewTaskWaitsOnAndroidsOwnScreen() {
+        // `flutter run`: force-stop, install, `am start`. The old task stays in the window, hidden and
+        // without activities; the new one starts on display 0 and moves into that window.
+        let stacks = """
+            RootTask id=134 bounds=[0,0][720,1280] displayId=0 userId=0
+              taskId=134: id.suruhkami/id.suruhkami.MainActivity bounds=[0,0][720,1280] userId=0 visible=true topActivity=ComponentInfo{id.suruhkami/id.suruhkami.MainActivity}
+            RootTask id=1 bounds=[0,0][720,1280] displayId=0 userId=0
+              taskId=7: com.android.launcher3/com.android.launcher3.uioverrides.QuickstepLauncher bounds=[0,0][720,1280] userId=0 visible=false topActivity=ComponentInfo{com.android.launcher3/com.android.launcher3.uioverrides.QuickstepLauncher}
+            RootTask id=133 bounds=[0,0][416,936] displayId=6 userId=0
+              taskId=133: id.suruhkami/id.suruhkami.MainActivity bounds=[0,0][416,936] userId=0 visible=false
+            """
+        #expect(!HostAgent.hasVisibleTask(onDisplay: 6, in: stacks))
+        #expect(HostAgent.visibleTasks(onDisplay: 0, in: stacks).map(\.id) == [134])
+        #expect(HostAgent.visibleRootTasks(onDisplay: 0, in: stacks).map(\.root) == [134])
+    }
+
     @Test func findsAppsInFrontOfAndroidsOwnScreen() {
         let stacks = """
             RootTask id=1 bounds=[0,0][720,1280] displayId=0 userId=0
