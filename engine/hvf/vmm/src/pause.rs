@@ -45,7 +45,8 @@ struct State {
     paused: bool,
     /// When the last vCPU stopped: host counter ticks and the instant.
     stopped_at: Option<(u64, Instant)>,
-    /// Counter ticks the guests of this process did not see (every pause).
+    /// Host ticks (see host_ticks) the guests of this process did not see
+    /// (every pause).
     frozen_ticks: u64,
     /// Makes the current machine's vCPUs leave `hv_vcpu_run`.
     kick: Option<Kick>,
@@ -250,13 +251,26 @@ impl Drop for Seat<'_> {
     }
 }
 
+#[cfg(target_os = "macos")]
 unsafe extern "C" {
     fn mach_absolute_time() -> u64;
 }
 
-/// The host counter, which CNTVCT follows (minus the vCPU's offset).
-fn host_ticks() -> u64 {
+/// The host reference the guest's counter follows: hypervisor.framework keeps
+/// the guest's CNTVCT at mach time less the vCPU's offset; the kvm backend
+/// does its offset arithmetic in CLOCK_MONOTONIC nanoseconds (its backend
+/// turns deltas into counter ticks). Only deltas are meaningful.
+#[cfg(target_os = "macos")]
+pub fn host_ticks() -> u64 {
     unsafe { mach_absolute_time() }
+}
+
+#[cfg(not(target_os = "macos"))]
+pub fn host_ticks() -> u64 {
+    let mut now = libc::timespec { tv_sec: 0, tv_nsec: 0 };
+    let ok = unsafe { libc::clock_gettime(libc::CLOCK_MONOTONIC, &mut now) } == 0;
+    assert!(ok, "clock_gettime(CLOCK_MONOTONIC)");
+    (now.tv_sec as u64).wrapping_mul(1_000_000_000).wrapping_add(now.tv_nsec as u64)
 }
 
 #[cfg(test)]

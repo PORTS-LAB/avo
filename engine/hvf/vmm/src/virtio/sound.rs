@@ -2,6 +2,11 @@
 //! playback and a capture stream, S16 at 8–48 kHz, mono or stereo, which
 //! Android's audio HAL opens as ALSA card 0, device 0.
 //!
+//! The enqueue path is a host-audio backend: the Mac's is Core Audio's
+//! AudioQueue (the rest of this comment describes it); off the Mac the null
+//! backend answers the clock and drops the audio, until PipeWire/ALSA lands
+//! (docs/linux-port.md).
+//!
 //! Playback goes to the Mac's default output and capture comes from its
 //! default input, both through Core Audio's AudioQueue, which converts rates
 //! and follows the default devices. Like a sound card's DMA, the device takes
@@ -221,26 +226,35 @@ impl Sound {
         // While Android is paused (pause.rs) the Mac's queues pause too.
         let paused = Arc::downgrade(&state);
         crate::pause::GATE.observe(Box::new(move |pause| {
-            let Some(state) = paused.upgrade() else { return false };
-            let queues: Vec<QueueRef> = {
-                let mut state = state.lock().unwrap();
-                let audios = state.streams.iter_mut().filter_map(|s| s.audio.as_mut());
-                // The watchdog counts from now: a paused queue plays nothing.
-                audios.filter_map(|audio| {
-                    audio.heard = Instant::now();
-                    audio.queue
-                })
-                .collect()
-            };
-            // No vCPU runs now (one stopping a stream would dispose its queue).
-            for queue in queues {
-                unsafe {
-                    if pause {
-                        AudioQueuePause(queue.0);
-                    } else {
-                        AudioQueueStart(queue.0, std::ptr::null());
+            // The null backend has no host queue to pause.
+            #[cfg(target_os = "macos")]
+            {
+                let Some(state) = paused.upgrade() else { return false };
+                let queues: Vec<QueueRef> = {
+                    let mut state = state.lock().unwrap();
+                    let audios = state.streams.iter_mut().filter_map(|s| s.audio.as_mut());
+                    // The watchdog counts from now: a paused queue plays nothing.
+                    audios.filter_map(|audio| {
+                        audio.heard = Instant::now();
+                        audio.queue
+                    })
+                    .collect()
+                };
+                // No vCPU runs now (one stopping a stream would dispose its queue).
+                for queue in queues {
+                    unsafe {
+                        if pause {
+                            AudioQueuePause(queue.0);
+                        } else {
+                            AudioQueueStart(queue.0, std::ptr::null());
+                        }
                     }
                 }
+            }
+            #[cfg(not(target_os = "macos"))]
+            {
+                let _ = pause;
+                let _ = paused;
             }
             true
         }));
@@ -382,12 +396,16 @@ impl Sound {
             }
             // Recording runs on a clock from the first moment; the microphone
             // joins in when it is up. Opening it can wait on macOS's permission
-            // prompt, which must not hold up this vCPU.
+            // prompt, which must not hold up this vCPU (and the null backend
+            // never opens one, so the guest records silence).
             self.install(stream, Audio::new(id, Some(tag.clone())));
             spawn_clock(&self.state, stream, id, params);
+            #[cfg(target_os = "macos")]
             if !muted() {
                 open_microphone(self.state.clone(), id, params, tag);
             }
+            #[cfg(not(target_os = "macos"))]
+            drop(tag);
         } else {
             self.install(stream, Audio::new(id, Some(tag.clone())));
             start_speaker(&self.state, id, params, tag);
@@ -418,13 +436,18 @@ impl Sound {
             entry.started = false;
             entry.audio.take()
         };
+        // Never under the lock: callbacks in flight take it.
+        #[cfg(target_os = "macos")]
         if let Some(Audio { queue: Some(queue), .. }) = audio {
-            // Never under the lock: callbacks in flight take it.
             unsafe {
                 AudioQueueStop(queue.0, 1);
                 AudioQueueDispose(queue.0, 1);
             }
         }
+        // The null backend holds no host queue to dispose of (the sound was
+        // dropped as it was made).
+        #[cfg(not(target_os = "macos"))]
+        drop(audio);
     }
 
     /// Hands every pending message back (virtio 1.2 §5.14.6.6.5.2).
@@ -567,23 +590,33 @@ fn play_period(active: &mut Active, stream: &mut Stream, id: u64, params: Params
     let Some(chain) = stream.pending.pop_front() else { return };
     let data = chain.read_all(&active.memory).unwrap_or_default();
     let pcm = data.get(4..).unwrap_or(&[]);
+    #[cfg(target_os = "macos")]
     let mut queued = false;
+    #[cfg(not(target_os = "macos"))]
+    let queued = false;
     if let Some(audio) = stream.audio.as_mut().filter(|audio| audio.id == id) {
         if let (Some(queue), false) = (audio.queue, pcm.is_empty()) {
-            if audio.queued() < params.max_queued_periods() {
-                let dry = audio.queued() == 0;
-                if let Some(buffer) = audio.idle.pop() {
-                    queued = unsafe {
-                        let len = pcm.len().min((*buffer.0).capacity as usize);
-                        std::ptr::copy_nonoverlapping(pcm.as_ptr(), (*buffer.0).data as *mut u8, len);
-                        (*buffer.0).size = len as u32;
-                        enqueue(queue, buffer.0, dry, params.rate) == 0
-                    };
-                    if !queued {
-                        audio.idle.push(buffer);
+            // The Mac's queue gets the period; the null backend has no queue
+            // and drops it.
+            #[cfg(target_os = "macos")]
+            {
+                if audio.queued() < params.max_queued_periods() {
+                    let dry = audio.queued() == 0;
+                    if let Some(buffer) = audio.idle.pop() {
+                        queued = unsafe {
+                            let len = pcm.len().min((*buffer.0).capacity as usize);
+                            std::ptr::copy_nonoverlapping(pcm.as_ptr(), (*buffer.0).data as *mut u8, len);
+                            (*buffer.0).size = len as u32;
+                            enqueue(queue, buffer.0, dry, params.rate) == 0
+                        };
+                        if !queued {
+                            audio.idle.push(buffer);
+                        }
                     }
                 }
             }
+            #[cfg(not(target_os = "macos"))]
+            let _ = queue;
         } else if audio.queue.is_none() {
             tap::played(id, params.rate, params.channels, pcm);
         }
@@ -599,6 +632,7 @@ fn play_period(active: &mut Active, stream: &mut Stream, id: u64, params: Params
 /// the last one ended, which the queue's timeline has passed, and AudioQueue
 /// drops the frames due in the past (all of a short period) yet hands the
 /// buffer back as played.
+#[cfg(target_os = "macos")]
 unsafe fn enqueue(queue: QueueRef, buffer: *mut AudioQueueBuffer, dry: bool, rate: u32) -> i32 {
     if dry {
         let mut now = AudioTimeStamp::default();
@@ -685,16 +719,22 @@ fn spawn_clock(state: &Arc<Mutex<State>>, stream: usize, id: u64, params: Params
     });
 }
 
-/// Starts one playback run: its clock, and the Mac's queue, which joins in
-/// when it is up (the first queue of a process can take seconds; until then
-/// the clock drops the periods' sound, and the guest never backs up).
+/// Starts one playback run: its clock, and (on the Mac) the queue, which
+/// joins in when it is up (the first queue of a process can take seconds;
+/// until then the clock drops the periods' sound, and the guest never backs
+/// up).
 fn start_speaker(state: &Arc<Mutex<State>>, id: u64, params: Params, tag: Arc<Tag>) {
     spawn_clock(state, PLAYBACK, id, params);
+    // The null backend runs on the clock alone: sound dropped, timing kept.
+    #[cfg(target_os = "macos")]
     open_speaker(state.clone(), id, params, tag);
+    #[cfg(not(target_os = "macos"))]
+    drop(tag);
 }
 
 /// Opens and starts the Mac's output for one playback run, off the vCPU
 /// thread: the lead-in first, then the periods that waited.
+#[cfg(target_os = "macos")]
 fn open_speaker(state: Arc<Mutex<State>>, id: u64, params: Params, tag: Arc<Tag>) {
     let _ = std::thread::Builder::new().name("avo-speaker".into()).spawn(move || {
         let began = Instant::now();
@@ -770,6 +810,7 @@ fn open_speaker(state: Arc<Mutex<State>>, id: u64, params: Params, tag: Arc<Tag>
 /// back while it has some to play (Core Audio lost its device, or its
 /// callbacks stalled) is replaced by a new one. The guest never waits for it
 /// (the clock runs on); this brings the sound back.
+#[cfg(target_os = "macos")]
 fn spawn_watchdog(state: &Arc<Mutex<State>>, id: u64) {
     let weak = Arc::downgrade(state);
     let _ = std::thread::Builder::new().name("avo-sound-watch".into()).spawn(move || loop {
@@ -845,6 +886,7 @@ fn report_stats(stream: &mut Stream) {
 }
 
 /// Opens the Mac's microphone for one capture run, off the vCPU thread.
+#[cfg(target_os = "macos")]
 fn open_microphone(state: Arc<Mutex<State>>, id: u64, params: Params, tag: Arc<Tag>) {
     let _ = std::thread::Builder::new().name("avo-microphone".into()).spawn(move || {
         let (queue, buffers) = match open_queue(CAPTURE, &params, &tag) {
@@ -886,6 +928,7 @@ fn open_microphone(state: Arc<Mutex<State>>, id: u64, params: Params, tag: Arc<T
 /// its components and connects to its daemons): do that once in the
 /// background, so that Android's first sound does not wait for it. The queue
 /// never starts and plays nothing.
+#[cfg(target_os = "macos")]
 fn prewarm() {
     static ONCE: std::sync::Once = std::sync::Once::new();
     ONCE.call_once(|| {
@@ -919,6 +962,8 @@ impl VirtioDevice for Sound {
 
     fn activate(&mut self, memory: Arc<GuestMemory>, queues: Vec<Queue>, interrupt: Interrupt, _features: u64) {
         self.state.lock().unwrap().active = Some(Active { memory, queues, interrupt });
+        // Core Audio's first queue takes seconds to set up; get it going early.
+        #[cfg(target_os = "macos")]
         prewarm();
     }
 
@@ -954,6 +999,7 @@ impl VirtioDevice for Sound {
 
 // MARK: Core Audio
 
+#[cfg(target_os = "macos")]
 #[repr(C)]
 struct AudioStreamBasicDescription {
     sample_rate: f64,
@@ -967,6 +1013,7 @@ struct AudioStreamBasicDescription {
     reserved: u32,
 }
 
+#[cfg(target_os = "macos")]
 #[repr(C)]
 struct AudioQueueBuffer {
     capacity: u32,
@@ -978,9 +1025,11 @@ struct AudioQueueBuffer {
     packet_description_count: u32,
 }
 
+#[cfg(target_os = "macos")]
 type AudioQueueRef = *mut c_void;
 
 /// `AudioTimeStamp`; its SMPTE time is not used.
+#[cfg(target_os = "macos")]
 #[repr(C)]
 #[derive(Default)]
 struct AudioTimeStamp {
@@ -996,18 +1045,38 @@ struct AudioTimeStamp {
 /// kAudioTimeStampSampleTimeValid.
 const SAMPLE_TIME_VALID: u32 = 1;
 
+/// kAudioTimeStampSampleTimeValid.
+#[cfg(target_os = "macos")]
+const SAMPLE_TIME_VALID: u32 = 1;
+
+/// The device's handles for a host queue and its buffers: Core Audio's on
+/// the Mac; placeholders elsewhere, where the null backend never opens
+/// either (PipeWire/ALSA replaces both — docs/linux-port.md).
+#[cfg(target_os = "macos")]
 #[derive(Clone, Copy)]
 struct QueueRef(AudioQueueRef);
+#[cfg(target_os = "macos")]
 #[derive(Clone, Copy)]
 struct BufferRef(*mut AudioQueueBuffer);
 // AudioQueue objects may be used from any thread.
+#[cfg(target_os = "macos")]
 unsafe impl Send for QueueRef {}
+#[cfg(target_os = "macos")]
 unsafe impl Send for BufferRef {}
+#[cfg(not(target_os = "macos"))]
+#[derive(Clone, Copy)]
+struct QueueRef(());
+#[cfg(not(target_os = "macos"))]
+#[derive(Clone, Copy)]
+struct BufferRef(());
 
+#[cfg(target_os = "macos")]
 type OutputCallback = extern "C" fn(*mut c_void, AudioQueueRef, *mut AudioQueueBuffer);
+#[cfg(target_os = "macos")]
 type InputCallback = extern "C" fn(*mut c_void, AudioQueueRef, *mut AudioQueueBuffer, *const c_void, u32, *const c_void);
 
-#[cfg_attr(target_os = "macos", link(name = "AudioToolbox", kind = "framework"))]
+#[cfg(target_os = "macos")]
+#[link(name = "AudioToolbox", kind = "framework")]
 unsafe extern "C" {
     fn AudioQueueNewOutput(
         format: *const AudioStreamBasicDescription,
@@ -1050,18 +1119,23 @@ unsafe extern "C" {
 }
 
 /// kAudioQueueParam_Volume.
+#[cfg(target_os = "macos")]
 const QUEUE_VOLUME: u32 = 1;
 
 /// `AVO_VMM_MUTE=1` (tests on a Mac someone uses): the Mac plays nothing
 /// (recordings still get the sound) and its microphone stays closed (Android
 /// records silence).
+#[cfg(target_os = "macos")]
 fn muted() -> bool {
     std::env::var_os("AVO_VMM_MUTE").is_some_and(|value| value == "1")
 }
 
+#[cfg(target_os = "macos")]
 const LINEAR_PCM: u32 = u32::from_be_bytes(*b"lpcm");
+#[cfg(target_os = "macos")]
 const SIGNED_PACKED: u32 = (1 << 2) | (1 << 3);
 
+#[cfg(target_os = "macos")]
 fn open_queue(stream: usize, params: &Params, tag: &Arc<Tag>) -> Result<(QueueRef, Vec<BufferRef>), i32> {
     let format = AudioStreamBasicDescription {
         sample_rate: params.rate as f64,
@@ -1106,6 +1180,7 @@ fn open_queue(stream: usize, params: &Params, tag: &Arc<Tag>) -> Result<(QueueRe
 }
 
 /// An AudioQueue played a buffer: refill it with the next period.
+#[cfg(target_os = "macos")]
 extern "C" fn played(user: *mut c_void, _queue: AudioQueueRef, buffer: *mut AudioQueueBuffer) {
     let tag = unsafe { &*(user as *const Tag) };
     let Some(state) = tag.state.upgrade() else { return };
@@ -1130,6 +1205,7 @@ extern "C" fn played(user: *mut c_void, _queue: AudioQueueRef, buffer: *mut Audi
 }
 
 /// An AudioQueue recorded a buffer: pass it to the guest and record on.
+#[cfg(target_os = "macos")]
 extern "C" fn recorded(user: *mut c_void, queue: AudioQueueRef, buffer: *mut AudioQueueBuffer, _: *const c_void, _: u32, _: *const c_void) {
     let tag = unsafe { &*(user as *const Tag) };
     let Some(state) = tag.state.upgrade() else { return };
@@ -1299,12 +1375,14 @@ mod tests {
         assert_eq!(short.lead_in_periods(), 2);
     }
 
+    #[cfg(target_os = "macos")]
     #[test]
     fn audio_time_stamps_are_laid_out_as_in_core_audio() {
         assert_eq!(std::mem::size_of::<AudioTimeStamp>(), 64);
         assert_eq!(std::mem::offset_of!(AudioTimeStamp, flags), 56);
     }
 
+    #[cfg(target_os = "macos")]
     #[link(name = "AudioToolbox", kind = "framework")]
     unsafe extern "C" {
         fn AudioQueueSetProperty(queue: AudioQueueRef, id: u32, data: *const c_void, size: u32) -> i32;
@@ -1314,6 +1392,7 @@ mod tests {
     /// Core Audio itself, on the Mac's output at volume 0 (its level meter
     /// measures before the volume; `cargo test -- --ignored`): periods that
     /// follow a queue that ran dry are played, not dropped as past due.
+    #[cfg(target_os = "macos")]
     #[test]
     #[ignore = "needs the Mac's audio output"]
     fn periods_after_the_queue_ran_dry_are_played() {

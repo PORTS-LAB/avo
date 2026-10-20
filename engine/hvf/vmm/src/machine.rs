@@ -635,12 +635,23 @@ impl Running {
         let mut timeout = Duration::from_millis(1);
         if control & 1 != 0 && control & 2 == 0 {
             let compare = vcpu.sys_reg(SYS_REG_CNTV_CVAL_EL0).map_err(|e| e.to_string())?;
-            let offset = vcpu.vtimer_offset().map_err(|e| e.to_string())?;
-            let now = mach_time().wrapping_sub(offset);
+            // The guest's counter now, in the counter's own tick space:
+            // hypervisor's CNTVCT is mach time less the vCPU's offset; KVM
+            // keeps the counter itself (its absolute value is one register).
+            #[cfg(target_os = "macos")]
+            let now = pause::host_ticks().wrapping_sub(vcpu.vtimer_offset().map_err(|e| e.to_string())?);
+            #[cfg(not(target_os = "macos"))]
+            let now = vcpu.timer_counter().map_err(|e| e.to_string())?;
             if compare <= now {
                 return Ok(());
             }
-            timeout = timeout.min(ticks_to_duration(compare - now));
+            // The counter's rate: 24 MHz on Apple Silicon under hvf, the
+            // host's own clock rate under KVM.
+            #[cfg(target_os = "macos")]
+            let ticks_per_second = APPLE_SILICON_COUNTER_FREQUENCY;
+            #[cfg(not(target_os = "macos"))]
+            let ticks_per_second = vcpu.counter_frequency().map_err(|e| e.to_string())?;
+            timeout = timeout.min(ticks_to_duration(compare - now, ticks_per_second));
         }
         self.waker.sleep(timeout);
         Ok(())
@@ -695,20 +706,25 @@ impl Running {
     }
 }
 
-unsafe extern "C" {
-    fn mach_absolute_time() -> u64;
+/// A span of guest-counter ticks at the counter's own rate, for the sleep
+/// before the next run: exact for any rate (the 24 MHz the Mac's counter
+/// runs at is just the common case).
+fn ticks_to_duration(ticks: u64, ticks_per_second: u64) -> Duration {
+    let nanos = (ticks as u128 * 1_000_000_000 / ticks_per_second.max(1) as u128).min(u64::MAX as u128) as u64;
+    Duration::from_nanos(nanos)
 }
 
-fn mach_time() -> u64 {
-    unsafe { mach_absolute_time() }
-}
+/// Apple Silicon's generic timer: hvf hands the guest the host's rate.
+#[cfg(target_os = "macos")]
+const APPLE_SILICON_COUNTER_FREQUENCY: u64 = 24_000_000;
 
-/// The counter runs at 24 MHz on Apple Silicon.
-fn ticks_to_duration(ticks: u64) -> Duration {
-    Duration::from_nanos(ticks.saturating_mul(125) / 3)
-}
-
-#[cfg(test)]
+// The live run needs a real machine on a real hypervisor: arm64 Macs is
+// where it is settled (Hypervisor.framework allows one process VM).
+// verify: on aarch64 KVM the probe's reference is CLOCK_MONOTONIC
+// nanoseconds while the guest counters in counter ticks — rebase the
+// probe's bookkeeping on the machine's own counter read before running
+// it on Linux hardware.
+#[cfg(all(test, target_arch = "aarch64", target_os = "macos"))]
 mod pause_tests {
     use super::*;
     use crate::bus::MmioHandler;
@@ -745,7 +761,7 @@ mod pause_tests {
             let mut bytes = [0u8; 8];
             bytes[..data.len().min(8)].copy_from_slice(&data[..data.len().min(8)]);
             let value = u64::from_le_bytes(bytes);
-            let host = mach_time();
+            let host = crate::pause::host_ticks();
             let mut seen = self.seen.lock().unwrap();
             if let Some(entry) = seen.get_mut(cpu) {
                 if value < entry.1 {

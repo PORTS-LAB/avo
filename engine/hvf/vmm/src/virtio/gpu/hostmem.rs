@@ -151,6 +151,7 @@ impl<M: Mapper> HostVisible<M> {
     }
 }
 
+#[cfg(target_os = "macos")]
 #[repr(C, packed(4))]
 #[derive(Default)]
 struct RegionBasicInfo64 {
@@ -164,19 +165,26 @@ struct RegionBasicInfo64 {
     user_wired_count: u16,
 }
 
+#[cfg(target_os = "macos")]
 unsafe extern "C" {
     static mach_task_self_: u32;
     fn mach_vm_region(task: u32, address: *mut u64, size: *mut u64, flavor: i32, info: *mut RegionBasicInfo64, count: *mut u32, object: *mut u32)
     -> i32;
 }
 
+#[cfg(target_os = "macos")]
 const VM_REGION_BASIC_INFO_64: i32 = 9;
+#[cfg(target_os = "macos")]
 const VM_PROT_READ: i32 = 1;
+#[cfg(target_os = "macos")]
 const VM_PROT_WRITE: i32 = 2;
 
 /// Whether `[host, host + len)` lies inside one readable and writable VM
 /// region of this process: a Vulkan blob's size comes from the guest, and
 /// mapping past its allocation would hand the guest other host memory.
+/// mach_vm_region answers on the Mac; elsewhere the kernel already
+/// publishes the same map.
+#[cfg(target_os = "macos")]
 pub fn host_range_ok(host: usize, len: u64) -> bool {
     let (mut address, mut size) = (host as u64, 0u64);
     let mut info = RegionBasicInfo64::default();
@@ -188,6 +196,20 @@ pub fn host_range_ok(host: usize, len: u64) -> bool {
         && address <= host as u64
         && (host as u64).checked_add(len).is_some_and(|end| end <= address + size)
         && protection & (VM_PROT_READ | VM_PROT_WRITE) == VM_PROT_READ | VM_PROT_WRITE
+}
+
+#[cfg(not(target_os = "macos"))]
+pub fn host_range_ok(host: usize, len: u64) -> bool {
+    let Ok(maps) = std::fs::read_to_string("/proc/self/maps") else { return false };
+    maps.lines().any(|line| {
+        let mut fields = line.split_whitespace();
+        let (Some(range), Some(perms)) = (fields.next(), fields.next()) else { return false };
+        let Some((start, end)) = range.split_once('-') else { return false };
+        let (Ok(start), Ok(end)) = (u64::from_str_radix(start, 16), u64::from_str_radix(end, 16)) else { return false };
+        perms.starts_with("rw")
+            && start <= host as u64
+            && (host as u64).checked_add(len).is_some_and(|end_of_span| end_of_span <= end)
+    })
 }
 
 #[cfg(test)]

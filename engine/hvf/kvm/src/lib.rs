@@ -656,7 +656,17 @@ impl Vcpu {
         self.set_reg(sys::KVM_REG_ARM_TIMER_CNT, now.wrapping_sub(delta_ticks))
     }
 
-    fn counter_frequency(&self) -> Result<u64> {
+    /// The guest counter's current value, in the counter's own tick units:
+    /// the kernel keeps the counter, and its absolute value is one register
+    /// read (what CVAL comparisons want).
+    pub fn timer_counter(&self) -> Result<u64> {
+        self.reg(sys::KVM_REG_ARM_TIMER_CNT)
+    }
+
+    /// The guest counter ticks at the host's clock rate, which KVM passes
+    /// through; the nanosecond deltas the pause arithmetic produces
+    /// convert against it.
+    pub fn counter_frequency(&self) -> Result<u64> {
         if let Some(frequency) = self.state.counter_frequency.get() {
             return Ok(*frequency);
         }

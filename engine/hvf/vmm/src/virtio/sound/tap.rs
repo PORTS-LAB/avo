@@ -13,8 +13,8 @@
 //! header (4096 bytes)
 //!  0  magic "AVOA"            24  epoch (u64, new for every ring)
 //!  4  version (1)             32  sequence of the newest complete slot (u64; 0 = none)
-//!  8  slot count              40  mach timebase numerator
-//! 12  bytes per slot          44  mach timebase denominator
+//!  8  slot count              40  host clock numerator
+//! 12  bytes per slot          44  host clock denominator
 //! 16  PCM bytes per slot
 //!
 //! slot of sequence n, at 4096 + (n % count) * bytes per slot (8192)
@@ -47,8 +47,29 @@ const FLAG_RUN_START: u32 = 1;
 unsafe extern "C" {
     fn mmap(addr: *mut u8, len: usize, prot: i32, flags: i32, fd: i32, offset: i64) -> *mut u8;
     fn munmap(addr: *mut u8, len: usize) -> i32;
+}
+
+/// The host clock the slots stamp: mach ticks on the Mac (the header
+/// publishes its conversion); CLOCK_MONOTONIC nanoseconds elsewhere, which
+/// convert 1:1.
+#[cfg(target_os = "macos")]
+unsafe extern "C" {
     fn mach_absolute_time() -> u64;
     fn mach_timebase_info(info: *mut [u32; 2]) -> i32;
+}
+
+/// The host clock now, with its (numerator, denominator) base.
+#[cfg(target_os = "macos")]
+fn host_clock_and_base() -> (u64, (u32, u32)) {
+    let mut info = [0u32; 2];
+    unsafe { mach_timebase_info(&mut info) };
+    let base = if info[0] == 0 || info[1] == 0 { (1, 1) } else { (info[0], info[1]) };
+    (unsafe { mach_absolute_time() }, base)
+}
+
+#[cfg(not(target_os = "macos"))]
+fn host_clock_and_base() -> (u64, (u32, u32)) {
+    (crate::pause::host_ticks(), (1, 1))
 }
 const PROT_READ: i32 = 1;
 const PROT_WRITE: i32 = 2;
@@ -85,10 +106,8 @@ impl Ring {
         if map as isize == -1 {
             return Err(std::io::Error::last_os_error());
         }
-        let mut info = [0u32; 2];
-        unsafe { mach_timebase_info(&mut info) };
-        let timebase = if info[0] == 0 || info[1] == 0 { (1, 1) } else { (info[0], info[1]) };
-        let epoch = unsafe { mach_absolute_time() }.max(1);
+        let (epoch, timebase) = host_clock_and_base();
+        let epoch = epoch.max(1);
         let header = unsafe { std::slice::from_raw_parts_mut(map, HEADER) };
         let mut put = |at: usize, value: u32| header[at..at + 4].copy_from_slice(&value.to_le_bytes());
         put(4, 1);
@@ -190,7 +209,7 @@ pub fn open(directory: &Path) -> Option<String> {
 /// its last frame ended now.
 pub fn played(run: u64, rate: u32, channels: u8, pcm: &[u8]) {
     if let Some(Some(ring)) = RING.get() {
-        let now = unsafe { mach_absolute_time() };
+        let (now, _) = host_clock_and_base();
         ring.lock().unwrap().write(run, rate, channels, pcm, now);
     }
 }

@@ -9,6 +9,10 @@ pub mod input;
 pub mod net;
 pub mod queue;
 pub mod rng;
+// The null backend is Linux's audio for now: the same clocks, the audio
+// dropped. Core Audio's machinery — and the device-side code only it
+// reaches — is unused there until PipeWire/ALSA lands (docs/linux-port.md).
+#[cfg_attr(not(target_os = "macos"), allow(dead_code))]
 pub mod sound;
 pub mod vsock;
 

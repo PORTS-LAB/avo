@@ -96,9 +96,17 @@ mod tests {
     use super::*;
 
     #[test]
-    fn the_layer_is_a_mach_o_library_with_the_loaders_entry_point() {
-        assert_eq!(&DYLIB[..4], &0xfeedfacfu32.to_le_bytes(), "a 64-bit Mach-O image");
-        let name = b"_vkNegotiateLoaderLayerInterfaceVersion";
+    fn the_layer_is_a_native_library_with_the_loaders_entry_point() {
+        // Mach-O on the Mac, ELF elsewhere; either way the image the build
+        // embedded is what the loader will dlopen.
+        if cfg!(target_os = "macos") {
+            assert_eq!(&DYLIB[..4], &0xfeedfacfu32.to_le_bytes(), "a 64-bit Mach-O image");
+        } else {
+            assert_eq!(&DYLIB[..4], b"\x7fELF", "an ELF image");
+        }
+        // The Mac's C symbols carry the leading underscore; this needle is
+        // the part both naming schemes share.
+        let name = b"vkNegotiateLoaderLayerInterfaceVersion";
         assert!(DYLIB.windows(name.len()).any(|w| w == name));
     }
 

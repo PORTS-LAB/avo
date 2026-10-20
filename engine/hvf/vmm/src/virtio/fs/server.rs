@@ -1088,7 +1088,13 @@ mod tests {
         assert_eq!(linux_errno(&io::Error::from_raw_os_error(libc::ENOTEMPTY)), 39);
         assert_eq!(linux_errno(&io::Error::from_raw_os_error(libc::EAGAIN)), 11);
         assert_eq!(linux_errno(&io::Error::from_raw_os_error(libc::EDEADLK)), 35);
-        assert_eq!(linux_errno(&io::Error::from_raw_os_error(libc::ENOATTR)), 61);
+        // ENOATTR is the Mac's name for the attribute-not-found error;
+        // Linux calls it ENODATA. The guest sees the same value either way.
+        #[cfg(target_os = "macos")]
+        let attribute = libc::ENOATTR;
+        #[cfg(not(target_os = "macos"))]
+        let attribute = libc::ENODATA;
+        assert_eq!(linux_errno(&io::Error::from_raw_os_error(attribute)), 61);
         assert_eq!(linux_errno(&io::Error::from_raw_os_error(9999)), libc_linux::EIO);
     }
 }

@@ -39,7 +39,7 @@ started.
 | MoltenVK | the system Vulkan loader | 2 |
 | Metal shader-cache SPI (`virtio/gpu/cache.rs`, `MTLSetShaderCachePath`) | gfxstream's own caching; the Control Panel's cache view and Clear follow in phase 3 | 2 |
 | Pause's vtimer offset (`hv_vcpu_set_vtimer_offset`; engine.md, "Pause") | KVM one-reg write of the guest vtimer count while the vCPUs are stopped | 2 |
-| CoreAudio output and capture (`virtio/sound.rs`) | PipeWire/ALSA behind a small host-audio trait, a null backend first (audio dropped, timing kept) | 2/3 |
+| CoreAudio output and capture (`virtio/sound.rs`) | done for now: the null backend (audio dropped, timing kept; the tap ring stamps CLOCK_MONOTONIC ns); PipeWire/ALSA behind a small host-audio trait later | 2/3 |
 | XPC Mach service + LaunchAgent/SMAppService | Unix-domain sockets + systemd user units | 3 |
 | AppKit Control Panel + AvoWindowHost app shims + CAMetalLayer windows | GTK4 or winit with Vulkan surfaces | 3 |
 | UNUserNotificationCenter | org.freedesktop.Notifications | 3 |
