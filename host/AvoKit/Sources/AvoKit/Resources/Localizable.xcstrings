@@ -528,6 +528,16 @@
         }
       }
     },
+    "Android did not uninstall %@" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Android gagal menguninstal %@"
+          }
+        }
+      }
+    },
     "Android does not support this: %@" : {
       "localizations" : {
         "id" : {
@@ -674,6 +684,16 @@
         }
       }
     },
+    "Android restarts without Google apps." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Android dimulai ulang tanpa aplikasi Google."
+          }
+        }
+      }
+    },
     "Android showed nothing on the GPU within a minute." : {
       "localizations" : {
         "id" : {
@@ -690,6 +710,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Android memakai image ini. Pilih image lain terlebih dahulu."
+          }
+        }
+      }
+    },
+    "Android still lists Google Play: these Google apps were not installed by this Avo, so it has no list of their files. Reset Android to remove them." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Android masih mencantumkan Google Play: aplikasi Google ini tidak diinstal oleh Avo ini, jadi Avo tidak punya daftar file-nya. Reset Android untuk menghapusnya."
           }
         }
       }
@@ -750,6 +780,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Android dihentikan saat aplikasi Google sedang diinstal. Avo menyelesaikan atau membatalkan instalasinya saat Android dijalankan berikutnya."
+          }
+        }
+      }
+    },
+    "Android was stopped while Google apps were being removed. Avo finishes removing them the next time Android starts." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Android dihentikan saat aplikasi Google sedang dihapus. Avo menyelesaikan penghapusannya saat Android dimulai lagi."
           }
         }
       }
@@ -944,12 +984,32 @@
         }
       }
     },
+    "Avo is already changing Google apps." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Avo sedang mengubah aplikasi Google."
+          }
+        }
+      }
+    },
     "Avo is already changing where Android’s data is." : {
       "localizations" : {
         "id" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Avo sudah sedang memindahkan tempat data Android."
+          }
+        }
+      }
+    },
+    "Avo is changing Google apps and restarts Android by itself meanwhile. Wait until it finishes." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Avo sedang mengubah aplikasi Google, dan selama itu Avo memulai ulang Android sendiri. Tunggu sampai selesai."
           }
         }
       }
@@ -1254,12 +1314,12 @@
         }
       }
     },
-    "Google apps are being installed, and Avo restarts Android by itself meanwhile. Wait until the install finishes." : {
+    "Google apps could not be removed yet (%@). Avo tries again the next time Android starts." : {
       "localizations" : {
         "id" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Aplikasi Google sedang diinstal, dan selama itu Avo memulai ulang Android sendiri. Tunggu sampai instalasinya selesai."
+            "value" : "Aplikasi Google belum bisa dihapus (%@). Avo mencoba lagi saat Android dimulai lagi."
           }
         }
       }
@@ -1625,6 +1685,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Rilis %@ tidak berisi paket .zip."
+          }
+        }
+      }
+    },
+    "Removing Google apps" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Menghapus aplikasi Google"
           }
         }
       }

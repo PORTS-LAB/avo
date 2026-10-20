@@ -319,6 +319,13 @@ public final class DaemonClient: @unchecked Sendable {
         try await voidCall { $0.cancelGoogleApps(id, reply: $1) }
     }
 
+    /// Returns when Google apps are gone (or throws why not); progress
+    /// arrives as `DaemonEvent.googleAppsProgress` for `id`.
+    public func removeGoogleApps(id: UUID) async throws {
+        let id = id.uuidString
+        try await voidCall { $0.removeGoogleApps(id, reply: $1) }
+    }
+
     // MARK: Location (an app window's Location panel)
 
     /// What Android's GPS reports, with the route's points; `watch`: also

@@ -102,6 +102,10 @@ import IOSurface
     /// the request's UUID string (empty for whichever runs); one that has
     /// not reached the daemon yet is refused when it does.
     func cancelGoogleApps(_ id: String, reply: @escaping @Sendable (NSError?) -> Void)
+    /// Takes Google apps out again, keeping every other app and its data.
+    /// `id`: a UUID string naming the run's `DaemonEvent.googleAppsProgress`.
+    /// Replies when they are gone or the removal failed.
+    func removeGoogleApps(_ id: String, reply: @escaping @Sendable (NSError?) -> Void)
 
     // MARK: Notifications (Control Panel)
     /// Opens the app a notification came from, as clicking it would.

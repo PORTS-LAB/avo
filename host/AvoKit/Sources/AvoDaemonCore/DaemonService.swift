@@ -395,6 +395,10 @@ final class ClientConnection: NSObject, AvoDaemonXPC, @unchecked Sendable {
         run(reply) { [self] in try await core.cancelGoogleApps(UUID(uuidString: request), client: id) }
     }
 
+    func removeGoogleApps(_ request: String, reply: @escaping @Sendable (NSError?) -> Void) {
+        run(reply) { [self] in try await core.removeGoogleApps(UUID(uuidString: request) ?? UUID(), client: id) }
+    }
+
     // MARK: Location
 
     func location(watch: Bool, reply: @escaping @Sendable (Data?, NSError?) -> Void) {

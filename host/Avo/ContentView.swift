@@ -180,7 +180,7 @@ private struct RestartBanner: View {
             // A Google apps install restarts Android itself meanwhile.
             Button("Restart Android") { model.restartVM() }
                 .disabled(model.googleAppsChangingAndroid)
-                .help(model.googleAppsChangingAndroid ? Text("Available again when the Google apps install finishes.") : Text(verbatim: ""))
+                .help(model.googleAppsChangingAndroid ? Text("Available again when Avo finishes changing Google apps.") : Text(verbatim: ""))
         }
     }
 }

@@ -534,7 +534,7 @@ final class ControlPanelModel {
     }
 
     static var googleAppsBusyMessage: String {
-        String(localized: "Google apps are being installed, and Avo restarts Android by itself meanwhile. Wait until the install finishes.")
+        String(localized: "Avo is changing Google apps and restarts Android by itself meanwhile. Wait until it finishes.")
     }
 
     /// The daemon refuses too; this says so without asking it.
@@ -798,8 +798,9 @@ final class ControlPanelModel {
             if let progress = status.progress {
                 // An answer from before the install ended does not bring it back.
                 if !(googleAppsProgress?.id == progress.id && googleAppsProgress?.isDone == true) { googleAppsProgress = progress }
-            } else if googleAppsProgress?.phase == .finished, status.installed == false {
-                // Installed once, gone now (Reset Android). A failure stays shown.
+            } else if let last = googleAppsProgress, last.phase == .finished, !last.removal, status.installed == false {
+                // Installed once, gone now (Reset Android). A failure, and
+                // what Remove did, stay shown.
                 googleAppsProgress = nil
             }
         } while refreshGoogleAppsAgain
@@ -857,6 +858,19 @@ final class ControlPanelModel {
         }
     }
 
+    /// Remove: the daemon takes Google apps out and reports like an install.
+    func removeGoogleApps() {
+        let id = UUID()
+        googleAppsProgress = GoogleAppsProgress(id: id, phase: .startingVM, removal: true)
+        Task {
+            do {
+                try await requireClient().removeGoogleApps(id: id)
+            } catch {
+                googleAppsFailed(id, error, removal: true)
+            }
+        }
+    }
+
     /// Stop: before the daemon has the request it is the Control Panel's
     /// own copy that stops; otherwise the daemon stops the install (also
     /// one whose request is still on its way).
@@ -885,10 +899,10 @@ final class ControlPanelModel {
 
     /// The daemon reports its own failures as progress; this covers the
     /// rest (copying the package, the connection).
-    private func googleAppsFailed(_ id: UUID, _ error: any Error) {
+    private func googleAppsFailed(_ id: UUID, _ error: any Error, removal: Bool = false) {
         if googleAppsCopy?.id == id { googleAppsCopy = nil }
         guard googleAppsProgress?.id != id || googleAppsProgress?.isDone != true else { return }
-        googleAppsProgress = GoogleAppsProgress(id: id, phase: .failed, message: error.localizedDescription)
+        googleAppsProgress = GoogleAppsProgress(id: id, phase: .failed, message: error.localizedDescription, removal: removal)
     }
 
     private nonisolated static func copyIntoCache(_ url: URL) async throws -> URL {

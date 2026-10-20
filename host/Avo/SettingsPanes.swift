@@ -512,7 +512,7 @@ struct SystemPane: View {
                 Button("Reset Android…", role: .destructive) { confirmReset = true }
                     .disabled(model.isInstallingGoogleApps)
                 if model.isInstallingGoogleApps {
-                    RestartNote(text: "Available again when the Google apps install finishes.")
+                    RestartNote(text: "Available again when Avo finishes changing Google apps.")
                 }
             }
             .shown(sections.contains(.maintenance))

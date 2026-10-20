@@ -11,6 +11,13 @@ public enum GoogleApps {
     public static let registrationURL = URL(string: "https://www.google.com/android/uncertified")!
     public static let playStore = "com.android.vending"
     public static let playServices = "com.google.android.gms"
+    public static let servicesFramework = "com.google.android.gsf"
+    public static let googleApp = "com.google.android.googlequicksearchbox"
+    /// What sign-in rests on. Google Play updates all but the framework, and
+    /// an update outlives its system app as an ordinary app that keeps its
+    /// data but can no longer sign in, so Remove takes these out also when
+    /// their system files are gone already.
+    public static let corePackages: Set<String> = [playServices, playStore, servicesFramework, googleApp]
 }
 
 extension AvoPaths {
@@ -62,6 +69,9 @@ public struct GoogleAppsProgress: Codable, Equatable, Sendable {
         /// Something failed after files went in: removing them again
         /// (GoogleAppsCommit's manifest) and restarting Android.
         case restoring
+        /// Remove: taking the files out (fraction 0), then the updates
+        /// Google Play left behind (fraction 1).
+        case removing
         case finished
         case failed
         /// The user stopped the install before Android was changed.
@@ -73,12 +83,24 @@ public struct GoogleAppsProgress: Codable, Equatable, Sendable {
     /// 0...1 for downloading and transferring.
     public var fraction: Double?
     public var message: String?
+    /// Google apps are being removed (Settings › Google Apps › Remove), not installed.
+    public var removal: Bool
 
-    public init(id: UUID, phase: Phase, fraction: Double? = nil, message: String? = nil) {
+    public init(id: UUID, phase: Phase, fraction: Double? = nil, message: String? = nil, removal: Bool = false) {
         self.id = id
         self.phase = phase
         self.fraction = fraction
         self.message = message
+        self.removal = removal
+    }
+
+    public init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(UUID.self, forKey: .id)
+        phase = try container.decode(Phase.self, forKey: .phase)
+        fraction = try container.decodeIfPresent(Double.self, forKey: .fraction)
+        message = try container.decodeIfPresent(String.self, forKey: .message)
+        removal = try container.decodeIfPresent(Bool.self, forKey: .removal) ?? false
     }
 
     /// How far the whole install is, 0...1, for one bar across its steps:
@@ -97,6 +119,7 @@ public struct GoogleAppsProgress: Codable, Equatable, Sendable {
         case .transferring: return within(0.58, 0.78)
         case .installing: return 0.80
         case .checking: return 0.95
+        case .removing: return within(0.10, 0.90)
         case .finished: return 1
         case .startingVM, .restarting, .restoring, .failed, .cancelled: return nil
         }
@@ -117,6 +140,10 @@ public struct GoogleAppsStatus: Codable, Equatable, Sendable {
     public var installed: Bool?
     public var playStoreVersion: String?
     public var playServicesVersion: String?
+    /// False when Android lists Google Play services but not as a system
+    /// app: the system files are gone and only Google Play's update of it
+    /// is left, which can't sign in (Remove, then install again).
+    public var systemApps: Bool?
     /// Whether verified boot (dm-verity) is off for the system partitions.
     public var verityDisabled: Bool?
     /// The GSF Android ID (decimal) to register at `GoogleApps.registrationURL`;
@@ -126,11 +153,12 @@ public struct GoogleAppsStatus: Codable, Equatable, Sendable {
     public var progress: GoogleAppsProgress?
 
     public init(supported: Bool, installed: Bool? = nil, playStoreVersion: String? = nil, playServicesVersion: String? = nil,
-                verityDisabled: Bool? = nil, androidID: String? = nil, progress: GoogleAppsProgress? = nil) {
+                systemApps: Bool? = nil, verityDisabled: Bool? = nil, androidID: String? = nil, progress: GoogleAppsProgress? = nil) {
         self.supported = supported
         self.installed = installed
         self.playStoreVersion = playStoreVersion
         self.playServicesVersion = playServicesVersion
+        self.systemApps = systemApps
         self.verityDisabled = verityDisabled
         self.androidID = androidID
         self.progress = progress

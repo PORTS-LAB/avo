@@ -10,7 +10,7 @@ import SwiftUI
 @Observable
 final class MenuBarModel {
     var status = VMStatus.stopped
-    var installingGoogleApps = false
+    var googleAppsWork: GoogleAppsWork?
     private(set) var apps: [AppRecord] = []
     private(set) var snapshot = MenuBarSnapshot()
     /// The engine's CPU since the last refresh, in percent of one core.
@@ -165,7 +165,11 @@ struct MenuBarPanel: View {
     }
 
     private var subtitle: String? {
-        if model.installingGoogleApps { return String(localized: "Installing Google apps…") }
+        switch model.googleAppsWork {
+        case .installing?: return String(localized: "Installing Google apps…")
+        case .removing?: return String(localized: "Removing Google apps…")
+        case nil: break
+        }
         let status = model.status
         switch status.state {
         case .running:
@@ -262,7 +266,7 @@ struct MenuBarPanel: View {
                 Button { actions.start() } label: { Label("Start", systemImage: "play.fill") }
                     .buttonStyle(HazeButtonStyle(kind: .primary, height: 32, fontSize: 12, horizontalPadding: 14))
                     // The installer starts Android itself (and may be repairing it).
-                    .disabled([.starting, .stopping, .notInstalled].contains(state) || model.installingGoogleApps)
+                    .disabled([.starting, .stopping, .notInstalled].contains(state) || model.googleAppsWork != nil)
             }
             Spacer(minLength: 0)
             Button("Quit Avo", action: actions.quit)

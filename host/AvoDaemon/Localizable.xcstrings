@@ -268,6 +268,16 @@
         }
       }
     },
+    "Keep Removing" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lanjutkan Penghapusan"
+          }
+        }
+      }
+    },
     "Memory" : {
       "localizations" : {
         "id" : {
@@ -418,6 +428,16 @@
         }
       }
     },
+    "Removing Google apps…" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Menghapus aplikasi Google…"
+          }
+        }
+      }
+    },
     "Restart Android to Finish Updating Avo" : {
       "localizations" : {
         "id" : {
@@ -534,6 +554,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Menghentikan Android sekarang akan menyela instalasi. Jika aplikasi Google sudah mulai disalin ke Android, Avo akan menyelesaikan atau membatalkan instalasi saat Android dijalankan lagi; jika belum, instal ulang aplikasi Google."
+          }
+        }
+      }
+    },
+    "Stopping Android now interrupts the removal. Avo finishes removing Google apps the next time Android starts." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Menghentikan Android sekarang akan menyela penghapusan. Avo menyelesaikan penghapusan aplikasi Google saat Android dimulai lagi."
           }
         }
       }

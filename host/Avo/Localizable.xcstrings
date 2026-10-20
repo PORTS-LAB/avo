@@ -2285,12 +2285,12 @@
         }
       }
     },
-    "Available again when the Google apps install finishes." : {
+    "Available again when Avo finishes changing Google apps." : {
       "localizations" : {
         "id" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tersedia lagi setelah instalasi aplikasi Google selesai."
+            "value" : "Tersedia lagi setelah Avo selesai mengubah aplikasi Google."
           }
         }
       }
@@ -2436,6 +2436,16 @@
         }
       }
     },
+    "Avo is changing Google apps and restarts Android by itself meanwhile. Wait until it finishes." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Avo sedang mengubah aplikasi Google, dan selama itu Avo memulai ulang Android sendiri. Tunggu sampai selesai."
+          }
+        }
+      }
+    },
     "Avo is made for Android 16 and newer. Older versions may not start, or may restart over and over; Google builds Android 13 and 14 for virtual devices only with 32-bit parts, which Apple silicon can’t run." : {
       "localizations" : {
         "id" : {
@@ -2543,6 +2553,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Avo menjalankan Android di latar belakang."
+          }
+        }
+      }
+    },
+    "Avo takes Google apps out of Android’s system partitions and uninstalls Google Play services, the Play Store and the Google app with their data, which signs this device out of Google. Your other apps and their data stay. Android may restart, and open Android apps close.\n\nYou can then install Google apps again here. They get a new Android ID, which you register again before you sign in." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Avo mengeluarkan aplikasi Google dari partisi sistem Android dan menguninstal Layanan Google Play, Play Store, dan aplikasi Google beserta datanya, sehingga perangkat ini keluar dari akun Google. Aplikasi lain beserta datanya tetap ada. Android mungkin dimulai ulang, dan aplikasi Android yang terbuka akan ditutup.\n\nSetelah itu aplikasi Google bisa diinstal lagi di sini. Instalasi baru mendapat Android ID baru yang perlu didaftarkan lagi sebelum masuk ke akun Google."
           }
         }
       }
@@ -4768,6 +4788,16 @@
         }
       }
     },
+    "Google Play services is no longer a system app: its system files are gone and only Google Play’s update of it is left, so Google sign-in fails. Remove Google apps, then install them again." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Layanan Google Play bukan lagi aplikasi sistem: file sistemnya hilang dan hanya update-nya dari Google Play yang tersisa, sehingga masuk ke akun Google gagal. Hapus aplikasi Google, lalu instal lagi."
+          }
+        }
+      }
+    },
     "Google Play, only if you want it" : {
       "localizations" : {
         "id" : {
@@ -4784,16 +4814,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Aplikasi Google"
-          }
-        }
-      }
-    },
-    "Google apps are being installed, and Avo restarts Android by itself meanwhile. Wait until the install finishes." : {
-      "localizations" : {
-        "id" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Aplikasi Google sedang diinstal, dan selama itu Avo memulai ulang Android sendiri. Tunggu sampai instalasinya selesai."
           }
         }
       }
@@ -4920,6 +4940,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Aplikasi Google gagal diinstal."
+          }
+        }
+      }
+    },
+    "Google apps were not removed." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aplikasi Google gagal dihapus."
+          }
+        }
+      }
+    },
+    "Google apps were removed. Your other apps and their data are still there; install Google apps again below." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aplikasi Google sudah dihapus. Aplikasi lain beserta datanya tetap ada; instal aplikasi Google lagi di bawah."
           }
         }
       }
@@ -7114,6 +7154,16 @@
         }
       }
     },
+    "Remove" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hapus"
+          }
+        }
+      }
+    },
     "Remove Copy" : {
       "localizations" : {
         "id" : {
@@ -7140,6 +7190,36 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Hapus Jari"
+          }
+        }
+      }
+    },
+    "Remove Google Apps" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hapus Aplikasi Google"
+          }
+        }
+      }
+    },
+    "Remove Google Apps…" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hapus Aplikasi Google…"
+          }
+        }
+      }
+    },
+    "Remove Google apps?" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hapus aplikasi Google?"
           }
         }
       }
@@ -7190,6 +7270,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Menghapus salinan lama…"
+          }
+        }
+      }
+    },
+    "Removing…" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Menghapus…"
           }
         }
       }
@@ -8375,6 +8465,26 @@
         }
       }
     },
+    "Takes Google apps out again and keeps your other apps and their data, for example to install them again when Google sign-in stopped working." : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Menghapus aplikasi Google dan mempertahankan aplikasi lain beserta datanya, misalnya untuk menginstalnya lagi saat masuk ke akun Google tidak berhasil."
+          }
+        }
+      }
+    },
+    "Taking Google apps out of the system partitions…" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mengeluarkan aplikasi Google dari partisi sistem…"
+          }
+        }
+      }
+    },
     "The app, its data and its shortcut in Android Apps are removed." : {
       "localizations" : {
         "id" : {
@@ -9037,6 +9147,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Uninstal %@?"
+          }
+        }
+      }
+    },
+    "Uninstalling what Google Play’s updates left behind…" : {
+      "localizations" : {
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Menguninstal sisa update dari Google Play…"
           }
         }
       }

@@ -256,4 +256,53 @@ private struct GoogleAppsHarness {
         try await harness.core.resetAndroid(client: panel)
         #expect(!FileManager.default.fileExists(atPath: record.path))
     }
+
+    /// Remove takes Google apps out, Settings › Google services goes back
+    /// to None and the record goes, so a new install is accepted.
+    @Test func removeLetsGoogleAppsBeInstalledAgain() async throws {
+        let guest = FakeSystemApps(verity: false, overlayReady: true)
+        let harness = try GoogleAppsHarness(guest: guest)
+        defer { harness.cleanUp() }
+        let (panel, client) = await harness.controlPanel()
+        try await harness.core.installGoogleApps(GoogleAppsInstallRequest(source: .local(path: try harness.cachedPackage().path)), client: panel)
+        await guest.set(updated: [GoogleApps.playServices])
+        if !FileManager.default.fileExists(atPath: harness.paths.dataDisk.path) { try Data().write(to: harness.paths.dataDisk) }
+        #expect(GoogleAppsRecord.load(harness.paths) != nil)
+
+        let id = UUID()
+        try await harness.core.removeGoogleApps(id, client: panel)
+        let progress = harness.progress(client, id)
+        #expect(progress.last?.phase == .finished)
+        #expect(progress.allSatisfy { $0.removal })
+        #expect(await harness.core.configurationSnapshot().config.gms == .none)
+        #expect(GoogleAppsRecord.load(harness.paths) == nil)
+        #expect(GoogleAppsJournal.load(harness.paths) == nil)
+        #expect(await !guest.packages.contains(GoogleApps.playServices))
+        #expect(await guest.system.isEmpty)
+
+        try await harness.core.installGoogleApps(GoogleAppsInstallRequest(source: .local(path: try harness.cachedPackage().path)), client: panel)
+        #expect(await harness.core.configurationSnapshot().config.gms == .bringYourOwn)
+    }
+
+    /// Android stopped by force mid-Remove (Stop Anyway): the next start
+    /// finishes the removal before Android is used.
+    @Test func aForcedStopMidRemoveIsFinishedAtTheNextStart() async throws {
+        let guest = FakeSystemApps(verity: false, overlayReady: true)
+        let harness = try GoogleAppsHarness(guest: guest)
+        defer { harness.cleanUp() }
+        let (panel, _) = await harness.controlPanel()
+        try await harness.core.installGoogleApps(GoogleAppsInstallRequest(source: .local(path: try harness.cachedPackage().path)), client: panel)
+        // As if Remove had been stopped right after it noted itself.
+        let system = await guest.systemPackages
+        try GoogleAppsJournal(id: UUID(), started: Date(), systemPackages: system.sorted()).save(harness.paths)
+        try await harness.core.stopVM(client: panel)
+
+        try await harness.core.startVM(client: panel)
+        #expect(await guest.steps.contains("rollback"))
+        #expect(await guest.system.isEmpty)
+        #expect(await !guest.packages.contains(GoogleApps.playStore))
+        #expect(GoogleAppsJournal.load(harness.paths) == nil)
+        #expect(await harness.core.configurationSnapshot().config.gms == .none)
+        #expect(await harness.core.vm.status.state == .running)
+    }
 }

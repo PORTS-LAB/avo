@@ -21,6 +21,11 @@ actor FakeSystemApps: SystemAppsGuest {
     var added: Set<String> = []
     var manifest = CommitState.none
     var packages: Set<String> = ["com.android.settings"]
+    /// The system apps among `packages`.
+    var systemPackages: Set<String> = ["com.android.settings"]
+    /// System apps Google Play updated: without their system files they
+    /// stay as ordinary apps.
+    var updated: Set<String> = []
     var steps: [String] = []
     /// Android does not get ready while the commit's files are in (system_server loops).
     var bootLoopsWithCommit = false
@@ -34,7 +39,14 @@ actor FakeSystemApps: SystemAppsGuest {
         self.overlayReady = overlayReady
     }
 
-    func set(free bytes: UInt64? = nil, bootLoops: Bool? = nil, commitFails: Bool? = nil, holdCommit: Bool? = nil) {
+    func set(free bytes: UInt64? = nil, bootLoops: Bool? = nil, commitFails: Bool? = nil, holdCommit: Bool? = nil,
+             updated: Set<String>? = nil, apps: Set<String>? = nil, systemApps: Set<String>? = nil) {
+        if let updated { self.updated = updated }
+        if let apps { packages.formUnion(apps) }
+        if let systemApps {
+            packages.formUnion(systemApps)
+            systemPackages.formUnion(systemApps)
+        }
         if let bytes { free = bytes }
         if let bootLoops { bootLoopsWithCommit = bootLoops }
         if let commitFails { self.commitFails = commitFails }
@@ -48,10 +60,14 @@ actor FakeSystemApps: SystemAppsGuest {
         if verityOffAtNextBoot { verity = false }
         if overlayAtNextBoot { overlayReady = true }
         ready = !(bootLoopsWithCommit && !added.isEmpty)
+        let google: Set<String> = [GoogleApps.playStore, GoogleApps.playServices]
         if system.keys.contains("product/priv-app/Phonesky/Phonesky.apk") {
-            packages.formUnion([GoogleApps.playStore, GoogleApps.playServices])
+            packages.formUnion(google)
+            systemPackages.formUnion(google)
         } else {
-            packages.subtract([GoogleApps.playStore, GoogleApps.playServices])
+            // Gone with their files, unless Google Play updated them.
+            systemPackages.subtract(google)
+            packages.subtract(google.subtracting(updated))
         }
     }
 
@@ -153,6 +169,17 @@ actor FakeSystemApps: SystemAppsGuest {
 
     func packageNames() async throws -> Set<String> { packages }
 
+    func systemPackageNames() async throws -> Set<String> { systemPackages }
+
+    func uninstallPackage(_ package: String) async throws {
+        steps.append("uninstall \(package)")
+        guard packages.contains(package), !systemPackages.contains(package) else {
+            throw AvoError.installFailed("Failure [DELETE_FAILED_INTERNAL_ERROR]")
+        }
+        packages.remove(package)
+        updated.remove(package)
+    }
+
     func googleAppsStatus() async -> GoogleAppsStatus { GoogleAppsStatus(supported: true) }
 }
 
@@ -192,6 +219,8 @@ private func installer(_ guest: FakeSystemApps, log: ProgressLog, interrupted: @
     installer.committing = { await guest.note("committing") }
     installer.committed = { await guest.note("committed") }
     installer.restored = { await guest.note("restored") }
+    installer.removing = { _ in await guest.note("removing") }
+    installer.removed = { await guest.note("removed") }
     installer.interrupted = interrupted
     return installer
 }
@@ -389,6 +418,103 @@ private func installer(_ guest: FakeSystemApps, log: ProgressLog, interrupted: @
         #expect(reason.contains("timed out"))
         #expect(await guest.steps.contains("rollback"))
         await guest.releaseCommit()
+    }
+
+    // MARK: Remove
+
+    /// The install's files come out, Android restarts without them, and
+    /// Google Play's update of Play services (an ordinary app by then, with
+    /// the old data) is uninstalled. Other apps stay.
+    @Test func removeTakesTheFilesAndTheUpdatesOut() async throws {
+        let folder = try googleAppsPackageFolder()
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let guest = FakeSystemApps(verity: false, overlayReady: true)
+        try await installer(guest, log: ProgressLog()).run(GoogleAppsPackage(url: folder))
+        await guest.set(updated: [GoogleApps.playServices], apps: ["com.example.game"])
+        let installed = await guest.steps.count
+
+        let log = ProgressLog()
+        try await installer(guest, log: log).remove()
+        #expect(await Array(guest.steps.dropFirst(installed)) == ["removing", "rollback", "restart", "uninstall com.google.android.gms", "removed"])
+        #expect(await guest.system.isEmpty)
+        #expect(await guest.manifest == .none)
+        #expect(await guest.packages == ["com.android.settings", "com.example.game"])
+        #expect(log.items.allSatisfy { $0.removal })
+        #expect(log.items.last?.phase == .removing)
+        #expect(log.items.contains { $0.phase == .restarting })
+    }
+
+    /// The files are gone already (only Google Play's updates are left, as
+    /// ordinary apps that can't sign in): those go, without a restart.
+    @Test func removeWithTheFilesGoneUninstallsTheUpdates() async throws {
+        let guest = FakeSystemApps(verity: false, overlayReady: true)
+        await guest.set(updated: [GoogleApps.playServices, GoogleApps.playStore],
+                        apps: [GoogleApps.playServices, GoogleApps.playStore, "com.google.android.youtube"])
+        try await installer(guest, log: ProgressLog()).remove()
+        #expect(await guest.steps == ["uninstall com.android.vending", "uninstall com.google.android.gms", "removed"])
+        #expect(await guest.packages == ["com.android.settings", "com.google.android.youtube"])
+    }
+
+    /// Google apps whose files Avo has no list of stay, and Remove says so.
+    @Test func removeRefusesFilesItHasNoListOf() async throws {
+        let guest = FakeSystemApps(verity: false, overlayReady: true)
+        await guest.set(systemApps: [GoogleApps.playServices, GoogleApps.playStore])
+        await #expect(throws: GoogleAppsRemovalError.stillListed) { try await installer(guest, log: ProgressLog()).remove() }
+        #expect(await guest.steps.isEmpty)
+        #expect(await guest.packages.contains(GoogleApps.playStore))
+    }
+
+    /// Android stopped by force mid-Remove: the next start finishes it from
+    /// the system packages the journal kept.
+    @Test func anInterruptedRemoveIsFinishedAtTheNextStart() async throws {
+        let folder = try googleAppsPackageFolder()
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let guest = FakeSystemApps(verity: false, overlayReady: true)
+        try await installer(guest, log: ProgressLog()).run(GoogleAppsPackage(url: folder))
+        await guest.set(updated: [GoogleApps.playServices])
+        let system = await guest.systemPackages
+
+        let stopped = { @Sendable in await guest.steps.contains("removing") }
+        await #expect(throws: GoogleAppsRemovalError.interrupted) {
+            try await installer(guest, log: ProgressLog(), interrupted: stopped).remove()
+        }
+        #expect(await guest.steps.last == "rollback")
+        #expect(await !guest.steps.contains("removed"))
+
+        // The next start boots without the files, then finishes.
+        try await guest.restart()
+        try await installer(guest, log: ProgressLog()).finishRemoval(system)
+        #expect(await guest.steps.suffix(2) == ["uninstall com.google.android.gms", "removed"])
+        #expect(await !guest.packages.contains(GoogleApps.playServices))
+        #expect(await !guest.packages.contains(GoogleApps.playStore))
+    }
+}
+
+/// Location for Google Play services (HostAgent.grantPlayServicesLocation):
+/// Android grants it only at first setup, never to Google apps added later.
+@Suite struct PlayServicesLocationTests {
+    static let permissions = HostAgent.playServicesLocation
+
+    @Test func grantsWhatAndroidNeverGave() {
+        // As Android 17 lists it after Avo installed Google apps.
+        let dump = """
+                android.permission.ACCESS_FINE_LOCATION: granted=false, flags=[ USER_SENSITIVE_WHEN_GRANTED]
+                android.permission.ACCESS_COARSE_LOCATION: granted=false, flags=[ USER_SENSITIVE_WHEN_GRANTED]
+                android.permission.ACCESS_BACKGROUND_LOCATION: granted=false, flags=[ USER_SENSITIVE_WHEN_GRANTED|RESTRICTION_INSTALLER_EXEMPT|RESTRICTION_UPGRADE_EXEMPT]
+                android.permission.ACCESS_FINE_LOCATION: granted=false, flags=[ USER_SENSITIVE_WHEN_GRANTED]
+            """
+        #expect(HostAgent.permissionsToGrant(Self.permissions, dump: dump) == Self.permissions)
+    }
+
+    @Test func leavesWhatIsGrantedOrDecided() {
+        let dump = """
+                android.permission.ACCESS_FINE_LOCATION: granted=true, flags=[ USER_SENSITIVE_WHEN_GRANTED|GRANTED_BY_DEFAULT]
+                android.permission.ACCESS_COARSE_LOCATION: granted=false, flags=[ USER_SET|USER_SENSITIVE_WHEN_GRANTED]
+                android.permission.ACCESS_BACKGROUND_LOCATION: granted=false, flags=[ USER_SENSITIVE_WHEN_GRANTED]
+            """
+        #expect(HostAgent.permissionsToGrant(Self.permissions, dump: dump) == ["android.permission.ACCESS_BACKGROUND_LOCATION"])
+        // Not installed: dumpsys lists nothing.
+        #expect(HostAgent.permissionsToGrant(Self.permissions, dump: "Unable to find package: com.google.android.gms").isEmpty)
     }
 }
 

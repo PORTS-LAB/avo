@@ -44,6 +44,7 @@ struct GoogleAppsSection: View {
     @State private var pending: Source?
     @State private var showsOlder = false
     @State private var showsAdvanced = false
+    @State private var confirmRemove = false
     /// Advanced: a release or package link of the user's own.
     @AppStorage("AvoGoogleAppsLink") private var customLink = ""
 
@@ -101,11 +102,16 @@ struct GoogleAppsSection: View {
         } message: { _ in
             Text("Installing Google apps turns off Android’s verified boot for the system partitions of this Avo VM, so they can hold Google’s system apps. Android restarts up to three times, and open Android apps close. If something goes wrong, Avo takes the files out again and restores Android.\n\nThis Android is an uncertified test build: before you sign in to Google, register its Android ID at google.com/android/uncertified. Avo shows the ID here once Google Play services has one. Reset Android removes Google apps again; the next install gets a new Android ID to register.")
         }
+        .confirmationDialog("Remove Google apps?", isPresented: $confirmRemove, titleVisibility: .visible) {
+            Button("Remove Google Apps", role: .destructive) { model.removeGoogleApps() }
+        } message: {
+            Text("Avo takes Google apps out of Android’s system partitions and uninstalls Google Play services, the Play Store and the Google app with their data, which signs this device out of Google. Your other apps and their data stay. Android may restart, and open Android apps close.\n\nYou can then install Google apps again here. They get a new Android ID, which you register again before you sign in.")
+        }
     }
 
     @ViewBuilder private var rows: some View {
         LabeledContent("Status") {
-            StatusText(status: model.googleApps, state: model.status.state, installing: running != nil, situation: situation)
+            StatusText(status: model.googleApps, state: model.status.state, running: running, situation: situation)
         }
         if model.verityKnownOff {
             LabeledContent {
@@ -121,7 +127,16 @@ struct GoogleAppsSection: View {
             lastResult
             situationRows
         }
-        if model.googleApps?.installed == true, running == nil { RegistrationRows(androidID: model.googleApps?.androidID) }
+        if model.googleApps?.installed == true, running == nil {
+            RegistrationRows(androidID: model.googleApps?.androidID)
+            if model.status.state == .running, model.googleApps?.systemApps != false {
+                LabeledContent {
+                    Button("Remove Google Apps…", role: .destructive) { confirmRemove = true }
+                } label: {
+                    HelpTitle("Remove", help: "Takes Google apps out again and keeps your other apps and their data, for example to install them again when Google sign-in stopped working.")
+                }
+            }
+        }
     }
 
     /// How the last install ended.
@@ -129,7 +144,8 @@ struct GoogleAppsSection: View {
         if let last = model.googleAppsProgress {
             switch last.phase {
             case .failed:
-                Label(last.message ?? String(localized: "Google apps were not installed."), systemImage: "xmark.octagon.fill")
+                Label(last.message ?? (last.removal ? String(localized: "Google apps were not removed.") : String(localized: "Google apps were not installed.")),
+                      systemImage: "xmark.octagon.fill")
                     .font(.mona(12))
                     .foregroundStyle(Haze.danger)
                     .fixedSize(horizontal: false, vertical: true)
@@ -138,7 +154,12 @@ struct GoogleAppsSection: View {
                 Label(last.message ?? String(localized: "Install stopped. Android was not changed."), systemImage: "stop.circle")
                     .font(.mona(12))
                     .foregroundStyle(Haze.textTertiary)
-            case .finished where model.googleApps?.installed == true:
+            case .finished where last.removal && model.googleApps?.installed != true:
+                Label("Google apps were removed. Your other apps and their data are still there; install Google apps again below.", systemImage: "checkmark.circle.fill")
+                    .font(.mona(12))
+                    .foregroundStyle(Haze.positive)
+                    .fixedSize(horizontal: false, vertical: true)
+            case .finished where !last.removal && model.googleApps?.installed == true:
                 Label("Google apps are installed. Register this device (below) before you sign in to Google.", systemImage: "checkmark.circle.fill")
                     .font(.mona(12))
                     .foregroundStyle(Haze.positive)
@@ -181,7 +202,17 @@ struct GoogleAppsSection: View {
         case .noAndroid:
             HazeNote(symbol: "candybarphone", tint: Haze.textTertiary,
                      text: Text("Choose an Android version first, in Settings › Android. Avo then lists the Google apps that fit it."))
-        case .installed, .checking:
+        case .installed:
+            if model.status.state == .running, model.googleApps?.installed == true, model.googleApps?.systemApps == false {
+                // Only Google Play's updates are left (the system files went
+                // with an overlay Android no longer mounts): sign-in fails.
+                HazeNote(symbol: "exclamationmark.triangle", tint: Haze.warning,
+                         text: Text("Google Play services is no longer a system app: its system files are gone and only Google Play’s update of it is left, so Google sign-in fails. Remove Google apps, then install them again.")) {
+                    Button("Remove Google Apps…") { confirmRemove = true }
+                        .disabled(model.googleAppsChangingAndroid)
+                }
+            }
+        case .checking:
             EmptyView()
         }
     }
@@ -208,15 +239,15 @@ struct GoogleAppsSection: View {
         @Environment(ControlPanelModel.self) private var model
         let status: GoogleAppsStatus?
         let state: VMState
-        let installing: Bool
+        let running: GoogleAppsProgress?
         let situation: GoogleAppsSituation
 
         var body: some View {
             if let status, !status.supported {
                 Text("Not available with this Android image")
-            } else if installing {
+            } else if let running {
                 // The progress below says what is happening.
-                Text("Installing…")
+                running.removal ? Text("Removing…") : Text("Installing…")
             } else if let installed = status?.installed {
                 if installed, let status {
                     Group {
@@ -607,6 +638,8 @@ struct GoogleAppsProgressRow: View {
         case .installing: Text("Installing Google apps as system apps…")
         case .checking: Text("Checking that Android lists Google Play…")
         case .restoring: Text("Something went wrong: taking the copied files out and restoring Android…")
+        case .removing:
+            (progress.fraction ?? 0) < 1 ? Text("Taking Google apps out of the system partitions…") : Text("Uninstalling what Google Play’s updates left behind…")
         case .finished, .failed, .cancelled: Text(verbatim: progress.message ?? "")
         }
     }

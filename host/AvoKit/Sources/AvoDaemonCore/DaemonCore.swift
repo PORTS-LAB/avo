@@ -137,6 +137,8 @@ public actor DaemonCore {
     private var googleAppsRun: Task<URL?, any Error>? { didSet { publishGoogleAppsBusy() } }
     private var googleAppsRunID: UUID?
     private var googleAppsRecovering = false
+    /// The run is a Remove (or finishes one), not an install.
+    private var googleAppsRemoving = false
     private var googleAppsProgress: GoogleAppsProgress?
     private var googleAppsCancellable = false { didSet { publishGoogleAppsBusy() } }
     /// The user stopped the run itself (cancelGoogleApps), before it changed Android.
@@ -146,8 +148,8 @@ public actor DaemonCore {
     private var googleAppsInterrupted = false
     /// Installs stopped before their request reached the daemon.
     private var cancelledGoogleApps: Set<UUID> = []
-    private var googleAppsBusyObservers: [UUID: AsyncStream<Bool>.Continuation] = [:]
-    private var lastGoogleAppsBusy = false
+    private var googleAppsBusyObservers: [UUID: AsyncStream<GoogleAppsWork?>.Continuation] = [:]
+    private var lastGoogleAppsBusy: GoogleAppsWork?
     /// How much each app is used, from its windows (AppUsageRecorder.swift).
     var usage: AppUsageRecorder
     /// A change of where Android's data is runs (starts wait for it).
@@ -500,14 +502,14 @@ public actor DaemonCore {
         await vm.stop()
     }
 
-    /// Whether Google apps change Android now (stop, restart and reset
-    /// wait), then every change.
-    public func googleAppsBusyChanges() -> AsyncStream<Bool> {
-        let (stream, continuation) = AsyncStream.makeStream(of: Bool.self, bufferingPolicy: .bufferingNewest(4))
+    /// Whether Google apps change Android now, and how (stop, restart and
+    /// reset wait; nil when not), then every change.
+    public func googleAppsBusyChanges() -> AsyncStream<GoogleAppsWork?> {
+        let (stream, continuation) = AsyncStream.makeStream(of: GoogleAppsWork?.self, bufferingPolicy: .bufferingNewest(4))
         let id = UUID()
         googleAppsBusyObservers[id] = continuation
         continuation.onTermination = { [weak self] _ in Task { await self?.removeGoogleAppsBusyObserver(id) } }
-        continuation.yield(googleAppsBusy)
+        continuation.yield(googleAppsWork)
         return stream
     }
 
@@ -517,11 +519,15 @@ public actor DaemonCore {
 
     private var googleAppsBusy: Bool { googleAppsRun != nil && !googleAppsCancellable }
 
+    private var googleAppsWork: GoogleAppsWork? {
+        googleAppsBusy ? (googleAppsRemoving ? .removing : .installing) : nil
+    }
+
     private func publishGoogleAppsBusy() {
-        let busy = googleAppsBusy
-        guard busy != lastGoogleAppsBusy else { return }
-        lastGoogleAppsBusy = busy
-        for observer in googleAppsBusyObservers.values { observer.yield(busy) }
+        let work = googleAppsWork
+        guard work != lastGoogleAppsBusy else { return }
+        lastGoogleAppsBusy = work
+        for observer in googleAppsBusyObservers.values { observer.yield(work) }
     }
 
     /// Stop, restart, snapshot and reset while Google apps install (GoogleAppsGuard).
@@ -974,9 +980,48 @@ public actor DaemonCore {
         String(localized: "Install stopped. Android was not changed.", bundle: .avoKit)
     }
 
-    /// Runs an install or a recovery (one at a time), publishing its
-    /// progress in order and how it ended.
-    private func superviseGoogleApps(_ id: UUID, cancellable: Bool, recovering: Bool = false,
+    /// Remove (Settings › Google Apps): takes the Google apps Avo installed
+    /// out of Android's system partitions and uninstalls what Google Play's
+    /// updates left of them, keeping every other app and its data. Android
+    /// restarts once (not at all when the files were gone already). Progress
+    /// goes to every Control Panel, as an install's does.
+    public func removeGoogleApps(_ id: UUID, client: ClientID) async throws {
+        try requireControlPanel(client)
+        guard googleAppsRun == nil else { throw AvoError.installFailed(Self.googleAppsBusyMessage) }
+        guard let engine = deps.engine as? any SystemAppsEngine else {
+            throw AvoError.unsupportedPackage(String(localized: "This Android image cannot take Google apps.", bundle: .avoKit))
+        }
+        // Those of another Android version are on storage this Android does
+        // not mount: only Reset Android takes them out.
+        if let installed = GoogleAppsRecord.load(deps.paths)?.android,
+           let running = AndroidImageStore(paths: deps.paths).bootRecord()?.release, installed.version != running.version {
+            throw AvoError.internalError(GoogleAppsInstaller.leftOver(installed))
+        }
+        if GoogleAppsJournal.load(deps.paths) != nil {
+            // An interrupted install or Remove is seen through first.
+            try await ensureRunning()
+            guard googleAppsRun == nil else { throw AvoError.installFailed(Self.googleAppsBusyMessage) }
+        }
+        do {
+            try await superviseGoogleApps(id, cancellable: false, removal: true) { [weak self] report in
+                guard let installer = await self?.googleAppsInstaller(id, engine: engine, report: report) else { return nil }
+                try await installer.remove()
+                return nil
+            }
+        } catch GoogleAppsRemovalError.stillListed {
+            // Nothing for the next start to finish.
+            GoogleAppsJournal.remove(deps.paths)
+            throw GoogleAppsRemovalError.stillListed
+        }
+    }
+
+    static var googleAppsBusyMessage: String {
+        String(localized: "Avo is already changing Google apps.", bundle: .avoKit)
+    }
+
+    /// Runs an install, a Remove or a recovery (one at a time), publishing
+    /// its progress in order and how it ended.
+    private func superviseGoogleApps(_ id: UUID, cancellable: Bool, recovering: Bool = false, removal: Bool = false,
                                      _ body: @escaping @Sendable (@escaping GoogleAppsInstaller.Report) async throws -> URL?) async throws {
         // Progress from download and push callbacks, published in order.
         let (updates, sink) = AsyncStream.makeStream(of: GoogleAppsProgress.self)
@@ -988,6 +1033,7 @@ public actor DaemonCore {
         googleAppsCancelRequested = false
         googleAppsInterrupted = false
         googleAppsRecovering = recovering
+        googleAppsRemoving = removal
         googleAppsRunID = id
         let task = Task { try await body(report) }
         googleAppsRun = task
@@ -995,6 +1041,7 @@ public actor DaemonCore {
             googleAppsRun = nil
             googleAppsRunID = nil
             googleAppsRecovering = false
+            googleAppsRemoving = false
             googleAppsCancellable = false
             googleAppsInterrupted = false
             googleAppsCancelRequested = false
@@ -1006,9 +1053,10 @@ public actor DaemonCore {
         case .success(let download):
             // Kept after a failure, so trying again does not download it again.
             if let download { try? FileManager.default.removeItem(at: download) }
-            publishGoogleApps(GoogleAppsProgress(id: id, phase: .finished, fraction: 1))
+            publishGoogleApps(GoogleAppsProgress(id: id, phase: .finished, fraction: 1, removal: removal))
         case .failure(let error):
-            let progress = Self.googleAppsEnd(error, id: id, cancelRequested: googleAppsCancelRequested)
+            var progress = Self.googleAppsEnd(error, id: id, cancelRequested: googleAppsCancelRequested)
+            progress.removal = removal
             logger.error("Google apps: \(progress.message ?? "", privacy: .public)")
             publishGoogleApps(progress)
             throw error is CancellationError ? AvoError.internalError(progress.message ?? "") : error
@@ -1068,8 +1116,25 @@ public actor DaemonCore {
     /// Finishes or takes out a commit Avo did not see to its end, before
     /// Android is used again.
     private func recoverGoogleApps(_ journal: GoogleAppsJournal, engine: any SystemAppsEngine) async throws {
-        logger.notice("Google apps: seeing an interrupted install through")
         let id = journal.id
+        if let system = journal.systemPackages {
+            logger.notice("Google apps: finishing an interrupted Remove")
+            do {
+                try await superviseGoogleApps(id, cancellable: false, recovering: true, removal: true) { [weak self] report in
+                    guard let installer = await self?.googleAppsInstaller(id, engine: engine, report: report) else { return nil }
+                    try await installer.finishRemoval(Set(system))
+                    return nil
+                }
+            } catch GoogleAppsRemovalError.interrupted {
+                throw GoogleAppsRemovalError.interrupted
+            } catch {
+                // What is left boots safely (apps go out before their
+                // allowlists), and Remove can be chosen again: Android starts.
+                GoogleAppsJournal.remove(deps.paths)
+            }
+            return
+        }
+        logger.notice("Google apps: seeing an interrupted install through")
         do {
             try await superviseGoogleApps(id, cancellable: false, recovering: true) { [weak self] report in
                 guard let installer = await self?.googleAppsInstaller(id, engine: engine, report: report) else { return nil }
@@ -1095,6 +1160,8 @@ public actor DaemonCore {
         installer.committing = { [weak self] in await self?.googleAppsCommitting(id) }
         installer.committed = { [weak self] in await self?.googleAppsCommitted() }
         installer.restored = { [weak self] in await self?.googleAppsRestored() }
+        installer.removing = { [weak self] system in await self?.googleAppsRemovalStarts(id, system: system) }
+        installer.removed = { [weak self] in await self?.googleAppsRemoved() }
         installer.interrupted = { [weak self] in await self?.googleAppsInterrupted ?? true }
         return installer
     }
@@ -1146,6 +1213,28 @@ public actor DaemonCore {
 
     private func googleAppsRestored() {
         GoogleAppsJournal.remove(deps.paths)
+    }
+
+    /// Before Remove takes files out: an interruption from here on is
+    /// finished at the next start.
+    private func googleAppsRemovalStarts(_ id: UUID, system: Set<String>) {
+        do {
+            try GoogleAppsJournal(id: id, started: Date(), systemPackages: system.sorted()).save(deps.paths)
+        } catch {
+            logger.error("Google apps: could not note the removal: \(error.localizedDescription, privacy: .public)")
+        }
+    }
+
+    /// Android lists no Google Play any more: Settings › Google services
+    /// goes back to None, and Google apps can be installed again.
+    private func googleAppsRemoved() {
+        GoogleAppsJournal.remove(deps.paths)
+        GoogleAppsRecord.remove(deps.paths)
+        bootedConfig?.gms = .none
+        guard config.gms == .bringYourOwn else { return }
+        var new = config
+        new.gms = .none
+        apply(new)
     }
 
     /// Android booted with Google apps and lists Google Play: Settings ›

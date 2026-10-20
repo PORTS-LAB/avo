@@ -63,7 +63,17 @@ public protocol SystemAppsGuest: Sendable {
     func rollBackCommit() async throws
     /// Every package Android has (`pm list packages`).
     func packageNames() async throws -> Set<String>
+    /// The system apps among them (`pm list packages -s`), updated ones included.
+    func systemPackageNames() async throws -> Set<String>
+    /// `pm uninstall`: the app and its data, for every user.
+    func uninstallPackage(_ package: String) async throws
     func googleAppsStatus() async -> GoogleAppsStatus
+}
+
+/// What Google apps are doing to Android (the menu bar says it).
+public enum GoogleAppsWork: Sendable, Equatable {
+    case installing
+    case removing
 }
 
 /// An engine whose Android can take Google apps into its system partitions.
@@ -101,6 +111,31 @@ enum GoogleAppsInstallError: Error, Equatable, LocalizedError {
             String(localized: "Google apps were not installed: Android was stopped during the install.", bundle: .avoKit)
         case .untouched:
             String(localized: "Google apps were not installed; Android was not changed.", bundle: .avoKit)
+        }
+    }
+}
+
+/// Why Remove ended before Google apps were gone.
+enum GoogleAppsRemovalError: Error, Equatable, LocalizedError {
+    /// Android was stopped by force while the files came out: the next
+    /// start finishes (`GoogleAppsJournal.systemPackages`).
+    case interrupted
+    /// Taking the files out failed (`detail`); the next start tries again.
+    case notRemoved(detail: String)
+    /// Android still lists Google Play: files Avo has no list of (another
+    /// installer, or an Avo from before the list).
+    case stillListed
+
+    var errorDescription: String? {
+        switch self {
+        case .interrupted:
+            String(localized: "Android was stopped while Google apps were being removed. Avo finishes removing them the next time Android starts.",
+                   bundle: .avoKit)
+        case .notRemoved(let detail):
+            String(localized: "Google apps could not be removed yet (\(detail)). Avo tries again the next time Android starts.", bundle: .avoKit)
+        case .stillListed:
+            String(localized: "Android still lists Google Play: these Google apps were not installed by this Avo, so it has no list of their files. Reset Android to remove them.",
+                   bundle: .avoKit)
         }
     }
 }
@@ -146,6 +181,11 @@ struct GoogleAppsInstaller: Sendable {
     var committed: @Sendable () async -> Void = {}
     /// Android is as it was before the commit again.
     var restored: @Sendable () async -> Void = {}
+    /// Right before Remove takes files out, with Android's system packages
+    /// then (the daemon writes `GoogleAppsJournal`).
+    var removing: @Sendable (Set<String>) async -> Void = { _ in }
+    /// Remove finished: Android lists no Google Play.
+    var removed: @Sendable () async -> Void = {}
     /// Android was stopped by force meanwhile: nothing restarts it, and the
     /// next start sees the install through.
     var interrupted: @Sendable () async -> Bool = { false }
@@ -303,20 +343,128 @@ struct GoogleAppsInstaller: Sendable {
         }
     }
 
-    private func verify() async throws {
-        let agent = try await guest()
-        report(GoogleAppsProgress(id: id, phase: .checking))
-        // pm can fail right after boot; only a list without Google Play
-        // (or pm failing for good) takes the install out again.
-        var packages: Set<String> = []
-        for attempt in 1...3 {
+    // MARK: Remove
+
+    /// Remove (Settings › Google Apps): takes out every file the install
+    /// added, as a failed install's are, and restarts Android, which drops
+    /// those system apps with their data. Google Play's updates of them
+    /// outlive them as ordinary apps that keep the old data and can't sign
+    /// in, so those are uninstalled too (`uninstallLeftovers`). Other apps
+    /// and their data stay. When the files are gone already (only the
+    /// updates are left), only the updates go.
+    func remove() async throws {
+        do {
+            report(removal(.startingVM))
+            try await within(limits.restart, String(localized: "Starting Android", bundle: .avoKit)) { try await ensureRunning() }
+            let agent = try await guest()
+            report(removal(.removing, fraction: 0))
+            let state = try await command { try await agent.commitState() }
+            let system = try await command { try await agent.systemPackageNames() }
+            if state != .none {
+                try await checkpoint()
+                await removing(system)
+                try await takeOutFiles()
+            }
+            try await uninstallLeftovers(system)
+        } catch {
+            throw await removalError(error)
+        }
+    }
+
+    /// A Remove the daemon did not see to its end (`GoogleAppsJournal`):
+    /// finishes it before Android is used. `systemBefore`: Android's system
+    /// packages when it began.
+    func finishRemoval(_ systemBefore: Set<String>) async throws {
+        do {
+            report(removal(.startingVM))
             do {
-                packages = try await command { try await agent.packageNames() }
-                break
+                try await within(limits.restart, String(localized: "Starting Android", bundle: .avoKit)) { try await ensureRunning() }
+            } catch where !(error is GoogleAppsInstallError) {
+                // Android never got ready: out over adbd, then a fresh start.
+                try await takeOutFiles()
+            }
+            let agent = try await guest()
+            report(removal(.removing, fraction: 0))
+            if try await command({ try await agent.commitState() }) != .none { try await takeOutFiles() }
+            try await uninstallLeftovers(systemBefore)
+        } catch {
+            throw await removalError(error)
+        }
+    }
+
+    /// The install's files out (through the running guest, else over adbd),
+    /// then a restart so Android drops them.
+    private func takeOutFiles() async throws {
+        do {
+            if !(await rollBackInGuest()) {
+                do {
+                    try await within(limits.rollBack, String(localized: "Removing Google apps", bundle: .avoKit)) { try await rescue() }
+                } catch AvoError.vmNotRunning {
+                    try await checkpoint()
+                    try? await restartAndroid()
+                    try await within(limits.rollBack, String(localized: "Removing Google apps", bundle: .avoKit)) { try await rescue() }
+                }
+            }
+        } catch GoogleAppsInstallError.interrupted {
+            throw GoogleAppsInstallError.interrupted
+        } catch {
+            throw GoogleAppsRemovalError.notRemoved(detail: Self.describe(error))
+        }
+        report(removal(.restarting, message: String(localized: "Android restarts without Google apps.", bundle: .avoKit)))
+        try await restartAndroid()
+    }
+
+    /// Uninstalls what Google Play's updates left of the removed system apps
+    /// (system apps before, ordinary ones now; the core ones in any case),
+    /// then checks that Android lists no Google Play.
+    private func uninstallLeftovers(_ systemBefore: Set<String>) async throws {
+        let agent = try await guest()
+        report(removal(.removing, fraction: 1))
+        let all = try await settledPackages { try await agent.packageNames() }
+        let system = try await command { try await agent.systemPackageNames() }
+        for package in all.subtracting(system).intersection(systemBefore.union(GoogleApps.corePackages)).sorted() {
+            try await checkpoint()
+            try await command { try await agent.uninstallPackage(package) }
+        }
+        let left = try await command { try await agent.packageNames() }
+        guard !left.contains(GoogleApps.playServices), !left.contains(GoogleApps.playStore) else {
+            throw GoogleAppsRemovalError.stillListed
+        }
+        await removed()
+    }
+
+    private func removal(_ phase: GoogleAppsProgress.Phase, fraction: Double? = nil, message: String? = nil) -> GoogleAppsProgress {
+        GoogleAppsProgress(id: id, phase: phase, fraction: fraction, message: message, removal: true)
+    }
+
+    /// A forced stop shows up as whatever step it cut short: say that instead.
+    private func removalError(_ error: any Error) async -> any Error {
+        if error as? GoogleAppsInstallError == .interrupted { return GoogleAppsRemovalError.interrupted }
+        if !(error is GoogleAppsRemovalError), await interrupted() { return GoogleAppsRemovalError.interrupted }
+        return error
+    }
+
+    // MARK: Checks
+
+    /// `pm` can fail right after boot: three tries.
+    private func settledPackages(_ read: @escaping @Sendable () async throws -> Set<String>) async throws -> Set<String> {
+        var attempt = 1
+        while true {
+            do {
+                return try await command(read)
             } catch where attempt < 3 && !(error is CancellationError) {
+                attempt += 1
                 try await Task.sleep(for: limits.retry)
             }
         }
+    }
+
+    private func verify() async throws {
+        let agent = try await guest()
+        report(GoogleAppsProgress(id: id, phase: .checking))
+        // Only a list without Google Play (or pm failing for good) takes the
+        // install out again.
+        let packages = try await settledPackages { try await agent.packageNames() }
         guard Self.listsGooglePlay(packages) else {
             throw AvoError.installFailed(String(localized: "the files were copied, but Android does not list Google Play services and the Play Store.",
                                                 bundle: .avoKit))
@@ -470,16 +618,19 @@ enum GoogleAppsGuard {
     }
 
     static var refusal: String {
-        String(localized: "Google apps are being installed, and Avo restarts Android by itself meanwhile. Wait until the install finishes.", bundle: .avoKit)
+        String(localized: "Avo is changing Google apps and restarts Android by itself meanwhile. Wait until it finishes.", bundle: .avoKit)
     }
 }
 
 /// A commit the daemon started and has not seen to its end
 /// (`google-apps-commit.json`, next to Android's data disk): the next start
-/// finishes or undoes it, also on another Mac.
+/// finishes or undoes it, also on another Mac. A Remove is noted the same
+/// way, and the next start finishes it.
 struct GoogleAppsJournal: Codable, Equatable, Sendable {
     var id: UUID
     var started: Date
+    /// A Remove: Android's system packages when it began (nil for an install).
+    var systemPackages: [String]?
 
     static func url(_ paths: AvoPaths) -> URL { paths.data.appending(path: "google-apps-commit.json") }
 

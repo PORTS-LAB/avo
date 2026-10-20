@@ -524,6 +524,34 @@ The overlay's scratch partition is an image on the data disk
 (`/data/gsi/remount`), so Reset Android takes Google apps away again
 (verity stays off) and sets Google services back to None.
 
+Settings › Google Apps › Remove takes them out without Reset Android and
+keeps every other app and its data (`GoogleAppsInstaller.remove`). It notes
+Android's system packages in `google-apps-commit.json` (`systemPackages`),
+takes out every path on the manifest with the rollback script above,
+restarts Android, which drops those system apps with their data, and then
+uninstalls what Google Play's updates left of them: a system app Google
+Play updated outlives its system files as an ordinary app that keeps the old
+data and can't sign in. Those are the packages that were system apps before
+and are ordinary ones now, plus Play services, the Play Store, GSF and the
+Google app in any case (`GoogleApps.corePackages`). When the files are gone
+already and only those updates are left (`GoogleAppsStatus.systemApps` is
+false, and the pane says so), only the updates go, without a restart.
+Afterwards Android must list no Google Play: Google apps Avo has no manifest
+for stay, and Reset Android removes them. Then Google services goes back to
+None, `google-apps.json` goes, and Google apps can be installed again (with
+a new GSF Android ID to register). A forced stop mid-Remove is finished at
+the next start; a finish that fails there lets Android start anyway, since
+the rollback's order leaves it bootable, and Remove can be chosen again.
+Google apps of another Android version are refused (`leftOver`): that
+Android does not mount their overlay.
+
+Android grants Play services location (it is the fused and network
+location provider) only when it first sets up or after a system update, so
+Google apps added later never get it, and no app that asks Play services
+for a location gets one. Every boot, HostAgent grants Play services fine,
+coarse and background location while it lacks them and the user has not
+decided (`grantPlayServicesLocation`: no USER_SET or USER_FIXED flag).
+
 Which package fits is the Android version's: MindTheGapps keeps one GitHub
 repository per version and architecture (`MindTheGapps/17.0.0-arm64`, its
 `version_nice` and `arch`), so `GoogleAppsLine` maps Android's major version

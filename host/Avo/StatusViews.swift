@@ -77,7 +77,7 @@ struct VMControlButton: View {
             Button { model.stopVM() } label: { Label("Stop Android", systemImage: "stop.fill") }
                 .disabled(model.googleAppsChangingAndroid)
                 .help(model.googleAppsChangingAndroid
-                      ? LocalizedStringKey("Available again when the Google apps install finishes.")
+                      ? LocalizedStringKey("Available again when Avo finishes changing Google apps.")
                       : "Stop the Android VM. Open apps close.")
         } else if state == .suspended {
             // Starting a paused Android resumes it.
@@ -88,7 +88,7 @@ struct VMControlButton: View {
             Button { model.startVM() } label: { Label("Start Android", systemImage: "play.fill") }
                 .disabled(state.isBusy || model.daemonState != .connected || model.googleAppsChangingAndroid)
                 .help(model.googleAppsChangingAndroid
-                      ? LocalizedStringKey("Available again when the Google apps install finishes.")
+                      ? LocalizedStringKey("Available again when Avo finishes changing Google apps.")
                       : "Start the Android VM in the background.")
         }
     }

@@ -156,6 +156,7 @@ actor HostAgent: DisplayResizing {
             await self?.raiseMediaVolume()
             await self?.turnOffMissingRadios()
             await self?.declareAvoFeature()
+            await self?.grantPlayServicesLocation()
             await self?.installGPUProfileLayers()
             await self?.noticeGPUDebugLayers()
             await self?.joinWiFi()
@@ -396,6 +397,44 @@ actor HostAgent: DisplayResizing {
             logger.notice("declared \(AvoIdentity.feature, privacy: .public) in \(IdentityFeature.path, privacy: .public); apps see it from the next Android start")
         } else {
             logger.error("could not declare \(AvoIdentity.feature, privacy: .public): \(result.map { $0.errorOutput + $0.output } ?? "no answer", privacy: .public)")
+        }
+    }
+
+    /// Google Play services answers apps' location requests (its fused and
+    /// network providers), so Android grants it location by default, but
+    /// only when it first sets up or after a system update: Google apps
+    /// added later never get it, and then no app that asks Play services for
+    /// a location gets one, the Mac's or a chosen place alike. Granted every
+    /// boot while it lacks them, unless the user decided (Settings › Apps).
+    private func grantPlayServicesLocation() async {
+        let names = Self.playServicesLocation.joined(separator: "|")
+        guard let dump = try? await shell("dumpsys package \(GoogleApps.playServices) | grep -E '(\(names)): granted='") else { return }
+        let missing = Self.permissionsToGrant(Self.playServicesLocation, dump: dump)
+        guard !missing.isEmpty else { return }
+        for permission in missing {
+            _ = try? await shell("pm grant \(GoogleApps.playServices) \(permission)")
+        }
+        logger.notice("granted Google Play services \(missing.joined(separator: ", "), privacy: .public)")
+    }
+
+    /// Foreground location before background, which needs it.
+    static let playServicesLocation = [
+        "android.permission.ACCESS_FINE_LOCATION", "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_BACKGROUND_LOCATION",
+    ]
+
+    /// Of `permissions`, those `dumpsys package` lists as not granted and not
+    /// set by the user or a policy (its first line for each: user 0's runtime
+    /// permissions), in order. None when the package is not there.
+    static func permissionsToGrant(_ permissions: [String], dump: String) -> [String] {
+        let lines = dump.split(separator: "\n").map { $0.trimmingCharacters(in: .whitespaces) }
+        let decided: Set<Substring> = ["USER_SET", "USER_FIXED", "POLICY_FIXED", "SYSTEM_FIXED"]
+        return permissions.filter { permission in
+            guard let line = lines.first(where: { $0.hasPrefix(permission + ": granted=") }),
+                  line.hasPrefix(permission + ": granted=false") else { return false }
+            // `flags=[ USER_SENSITIVE_WHEN_GRANTED|USER_SET]`
+            let flags = line.range(of: "flags=[").map { line[$0.upperBound...].prefix { $0 != "]" } } ?? ""
+            return decided.isDisjoint(with: flags.split(whereSeparator: { $0 == "|" || $0 == " " }))
         }
     }
 
@@ -2589,10 +2628,18 @@ extension HostAgent: SystemAppsGuest {
     }
 
     func packageNames() async throws -> Set<String> {
+        try await listPackages("")
+    }
+
+    func systemPackageNames() async throws -> Set<String> {
+        try await listPackages(" -s")
+    }
+
+    private func listPackages(_ options: String) async throws -> Set<String> {
         guard let adb else { throw AvoError.guestUnavailable }
         // A pm that failed lists nothing, which must not read as "Google
         // Play is missing" (that would take out a good install).
-        let result = try await adb.shell("pm list packages")
+        let result = try await adb.shell("pm list packages" + options)
         guard result.succeeded else {
             throw AvoError.installFailed(Self.failure(result, String(localized: "Android did not list its apps", bundle: .avoKit)))
         }
@@ -2601,10 +2648,21 @@ extension HostAgent: SystemAppsGuest {
         })
     }
 
+    func uninstallPackage(_ package: String) async throws {
+        guard let adb else { throw AvoError.guestUnavailable }
+        let result = try await adb.shell("pm uninstall " + Self.quote(package))
+        guard result.succeeded, result.output.contains("Success") else {
+            throw AvoError.installFailed(Self.failure(result, String(localized: "Android did not uninstall \(package)", bundle: .avoKit)))
+        }
+    }
+
     func googleAppsStatus() async -> GoogleAppsStatus {
         var status = GoogleAppsStatus(supported: true)
         guard isReady, let packages = try? await packageNames() else { return status }
         status.installed = packages.contains(GoogleApps.playServices) && packages.contains(GoogleApps.playStore)
+        if packages.contains(GoogleApps.playServices), let system = try? await systemPackageNames() {
+            status.systemApps = system.contains(GoogleApps.playServices)
+        }
         if packages.contains(GoogleApps.playStore) { status.playStoreVersion = await versionName(of: GoogleApps.playStore) }
         if packages.contains(GoogleApps.playServices) { status.playServicesVersion = await versionName(of: GoogleApps.playServices) }
         if let output = try? await root("avbctl get-verity") {

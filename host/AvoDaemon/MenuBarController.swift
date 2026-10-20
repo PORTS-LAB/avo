@@ -20,7 +20,7 @@ final class MenuBarController: NSObject, NSMenuDelegate, NSPopoverDelegate {
     private var status = VMStatus.stopped
     private var apps: [AppRecord] = []
     /// Google apps are changing Android: Stop and Quit ask first.
-    private var installingGoogleApps = false
+    private var googleAppsWork: GoogleAppsWork?
     /// Avo was updated while Android ran: the daemon restarts on the new
     /// build once Android stops (AppUpdateWatcher), which the menu offers.
     var updatePending: @MainActor () -> Bool = { false }
@@ -54,9 +54,9 @@ final class MenuBarController: NSObject, NSMenuDelegate, NSPopoverDelegate {
             for await status in await core.statusChanges() { self?.update(status) }
         }
         Task { [weak self] in
-            for await busy in await core.googleAppsBusyChanges() {
-                self?.installingGoogleApps = busy
-                self?.model.installingGoogleApps = busy
+            for await work in await core.googleAppsBusyChanges() {
+                self?.googleAppsWork = work
+                self?.model.googleAppsWork = work
             }
         }
     }
@@ -135,10 +135,11 @@ final class MenuBarController: NSObject, NSMenuDelegate, NSPopoverDelegate {
         let state = NSMenuItem(title: Self.title(for: status), action: nil, keyEquivalent: "")
         state.isEnabled = false
         menu.addItem(state)
-        if installingGoogleApps {
-            let installing = NSMenuItem(title: String(localized: "Installing Google apps…"), action: nil, keyEquivalent: "")
-            installing.isEnabled = false
-            menu.addItem(installing)
+        if let work = googleAppsWork {
+            let title = work == .removing ? String(localized: "Removing Google apps…") : String(localized: "Installing Google apps…")
+            let busy = NSMenuItem(title: title, action: nil, keyEquivalent: "")
+            busy.isEnabled = false
+            menu.addItem(busy)
         }
         switch status.state {
         case .running:
@@ -155,7 +156,7 @@ final class MenuBarController: NSObject, NSMenuDelegate, NSPopoverDelegate {
             let start = menu.addItem(withTitle: String(localized: "Start Android"), action: #selector(startVM), keyEquivalent: "")
             start.target = self
             // The installer starts Android itself (and may be repairing it).
-            start.isEnabled = ![.starting, .stopping].contains(status.state) && !installingGoogleApps
+            start.isEnabled = ![.starting, .stopping].contains(status.state) && googleAppsWork == nil
         }
         menu.addItem(.separator())
 
@@ -268,10 +269,15 @@ final class MenuBarController: NSObject, NSMenuDelegate, NSPopoverDelegate {
         let alert = NSAlert()
         alert.alertStyle = .warning
         alert.messageText = error.localizedDescription
-        // True before and after the commit: only one that began leaves
-        // something for the next start to finish or undo.
-        alert.informativeText = String(localized: "Stopping Android now interrupts the install. If Google apps were already being copied into Android, Avo finishes or undoes the install the next time Android starts; otherwise, install them again.")
-        alert.addButton(withTitle: String(localized: "Keep Installing"))
+        if googleAppsWork == .removing {
+            alert.informativeText = String(localized: "Stopping Android now interrupts the removal. Avo finishes removing Google apps the next time Android starts.")
+            alert.addButton(withTitle: String(localized: "Keep Removing"))
+        } else {
+            // True before and after the commit: only one that began leaves
+            // something for the next start to finish or undo.
+            alert.informativeText = String(localized: "Stopping Android now interrupts the install. If Google apps were already being copied into Android, Avo finishes or undoes the install the next time Android starts; otherwise, install them again.")
+            alert.addButton(withTitle: String(localized: "Keep Installing"))
+        }
         alert.addButton(withTitle: action)
         NSApp.activate()
         return alert.runModal() == .alertSecondButtonReturn
