@@ -172,12 +172,19 @@ battery runs on any Linux box without hardware or display:
   gaps. Marshaling is proven by round-tripping through libdbus's own
   bytes — no bus in any test.
 
-The battery is 67 tests. Still to come for the daemon itself: the
-`avod` binary binding the set into a process (engine socket, session,
-adb relay, notifications wired in order), the daemon's own Unix socket
-for the app/GUI (the XPC roles' replacement), system sound/capture
-wiring through the kernel's PCM now that the engine speaks the
-channels, and then the window shims.
+The battery has grown with each slice (87 tests when the roles door
+finished its wiring). Landed since the numbers above: the **body**
+(`body.rs`, the `avod` binary) binding the engine socket, the transport's
+session, the adb relay and the notifications desk into one loop with the
+Mac's exit codes; the **roles socket** (`roles.rs`, `daemon.sock`) — the
+hello dance the Mac's XPC carried, `RoleInvite`→`RoleGrant`, with the
+mount gate standing where the Mac used code signing (a 0700 directory of
+the daemon's own user); and **packaging** (`dist/`, the systemd user unit
+the LaunchAgent maps onto). Still to come for the daemon itself: the
+door's verbs — the typed payloads the Mac's XPC surface names, routed
+through the loop's engine and session handles; the daemon's own ADB
+client stack (`pm install-*` and friends — the signing dependency the
+adb slice deliberately left out); and the window shims.
 
 **Done when:** the daemon and UI run apps end to end — an installed app
 opens in its own window, input and sound reach it, and notifications arrive
