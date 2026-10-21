@@ -42,6 +42,7 @@
 //! `exit`s when the loop is done, and thread memory goes with it.
 
 use std::path::{Path, PathBuf};
+use std::sync::{Arc, Mutex};
 use std::sync::mpsc;
 use std::time::Duration;
 
@@ -49,6 +50,7 @@ use crate::adb::{self, AdbRelay};
 use crate::engine::{Engine, EngineError, Event};
 use crate::notifications::{self, Presenter};
 use crate::proto::{envelope, Envelope, Notification};
+use crate::roles;
 use crate::session::{ControlSession, Keepalive};
 use crate::{ADB_PORT, CONTROL_PORT, vsock};
 
@@ -442,6 +444,23 @@ fn running_on(config: Config, notifies: Option<&dyn Notifies>, clock: Keepalive)
         }
     }
 
+    // The roles socket: the daemon's own door, where the Mac's XPC heard
+    // its clients (Control Panel, shims, engine — XPCInterface.swift:4-5).
+    // The engine's status rides the grants, read only when a RoleGrant is
+    // built; the body tracks it by its own engine events. Its absence is
+    // a log line like the relay's, and the loop carries on — the door is
+    // the UI's convenience, the loop the daemon's spine.
+    let statuses: Arc<Mutex<String>> = Arc::new(Mutex::new("running".to_string()));
+    let mut roles_server: Option<roles::Server> = None;
+    {
+        let statuses_for_roles = Arc::clone(&statuses);
+        let door = config.runtime.join(roles::SOCKET_NAME);
+        match roles::serve(door, move || statuses_for_roles.lock().expect("the status lock").clone()) {
+            Err(error) => eprintln!("avod: the roles socket stays off: {error}"),
+            Ok(server) => roles_server = Some(server),
+        }
+    }
+
     // The loop, and the reason there are no forwarding threads for it.
     // mpsc's `Receiver` is not Sync, and the `ControlSession` owns two —
     // any shared handle across threads is a compile error; `std` has no
@@ -466,7 +485,7 @@ fn running_on(config: Config, notifies: Option<&dyn Notifies>, clock: Keepalive)
             Err(mpsc::RecvTimeoutError::Timeout) => None,
         };
         if let Some(msg) = heard {
-            if let Some(code) = step(msg, &desk, relay.as_mut()) {
+            if let Some(code) = step(msg, &desk, relay.as_mut(), &mut roles_server, &statuses) {
                 return code;
             }
         }
@@ -474,7 +493,7 @@ fn running_on(config: Config, notifies: Option<&dyn Notifies>, clock: Keepalive)
         // The session's envelopes, until the sink disconnects (its reader
         // thread exits when the wire or the session does).
         while let Ok(envelope) = session.events().recv_timeout(POLL) {
-            if let Some(code) = step(BodyMsg::Session(envelope), &desk, relay.as_mut()) {
+            if let Some(code) = step(BodyMsg::Session(envelope), &desk, relay.as_mut(), &mut roles_server, &statuses) {
                 return code;
             }
         }
@@ -482,7 +501,7 @@ fn running_on(config: Config, notifies: Option<&dyn Notifies>, clock: Keepalive)
         // The session's end: one `()` when the keepalive is done — goodbye,
         // wire death, a broken gate, all the same signal.
         if session.when_ended().recv_timeout(POLL).is_ok() {
-            if let Some(code) = step(BodyMsg::SessionEnded, &desk, relay.as_mut()) {
+            if let Some(code) = step(BodyMsg::SessionEnded, &desk, relay.as_mut(), &mut roles_server, &statuses) {
                 return code;
             }
         }
@@ -490,8 +509,25 @@ fn running_on(config: Config, notifies: Option<&dyn Notifies>, clock: Keepalive)
 }
 
 /// One message to its decision and the decision's effects; returns the
-/// exit code when the decision is an end.
-fn step(msg: BodyMsg, desk: &Desk, relay: Option<&mut AdbRelay>) -> Option<i32> {
+/// exit code when the decision is an end. The grant's `vm_state` follows
+/// the body's own map of the engine and the ends (the Mac's VMStatus,
+/// `DaemonHello`'s `status`, read from the closures only at grant time —
+/// roles.rs's contract), so the track lands here, at the body's pace.
+fn step(
+    msg: BodyMsg,
+    desk: &Desk,
+    relay: Option<&mut AdbRelay>,
+    roles: &mut Option<roles::Server>,
+    statuses: &Mutex<String>,
+) -> Option<i32> {
+    match &msg {
+        BodyMsg::Engine(Event::Paused) => *statuses.lock().expect("the status lock") = "paused".into(),
+        BodyMsg::Engine(Event::Resumed { .. }) => *statuses.lock().expect("the status lock") = "running".into(),
+        BodyMsg::EngineEnded | BodyMsg::SessionEnded => {
+            *statuses.lock().expect("the status lock") = "stopped".into();
+        }
+        _ => {}
+    }
     match decide(msg) {
         Decision::Carry => {}
         Decision::Log(line) => eprintln!("{line}"),
@@ -500,6 +536,9 @@ fn step(msg: BodyMsg, desk: &Desk, relay: Option<&mut AdbRelay>) -> Option<i32> 
             if let Some(relay) = relay {
                 let _ = relay.stop();
                 let _ = relay.join();
+            }
+            if let Some(server) = roles.take() {
+                server.stop();
             }
             return Some(code);
         }
@@ -519,8 +558,8 @@ mod tests {
     use super::*;
     use crate::control::{read_envelope, write_envelope};
     use crate::proto::{
-        goodbye, ClipboardChanged, Goodbye, Hello, NotificationRemoved, SetClipboard, TaskStarted,
-        PROTOCOL_MIN_VERSION, PROTOCOL_VERSION,
+        goodbye, ClipboardChanged, Goodbye, Hello, NotificationRemoved, Pong, RoleGrant, RoleInvite,
+        SetClipboard, TaskStarted, PROTOCOL_MIN_VERSION, PROTOCOL_VERSION,
     };
     use std::io::{Read, Write};
     use std::net::TcpListener;
@@ -629,10 +668,44 @@ mod tests {
                         }
                     }
                 }
-                // A parked script holds the wire open past its writes: the
-                // session stays up until the test drops the matching
-                // sender, and only then is the wire gone.
+                // A parked script holds the wire open past its writes —
+                // and answers the keepalive's Pings while it holds. A
+                // parked guest that stays mute misses three pings and
+                // ends the run at the blink clock; the parked leg means
+                // "green until the test says otherwise," so the pong is
+                // part of the pattern. The test's drop is still the
+                // close: the loop outlives the wire either way.
                 if let Some(parked) = parked {
+                    loop {
+                        match read_envelope(&mut stream) {
+                            Ok(Some(envelope)) => {
+                                // The pong echoes the ping's request id —
+                                // session.rs's keepalive pairs on it; a
+                                // ring with id 0 lands on the event side
+                                // and the keepalive never hears it.
+                                let reply = match envelope.payload {
+                                    Some(envelope::Payload::Ping(ping)) => Envelope {
+                                        request_id: envelope.request_id,
+                                        protocol_version: envelope.protocol_version,
+                                        payload: Some(envelope::Payload::Pong(Pong {
+                                            nonce: ping.nonce,
+                                        })),
+                                    },
+                                    // Anything else on the parked wire is
+                                    // not the pattern; received and let
+                                    // pass — the test's drop is the close.
+                                    _ => continue,
+                                };
+                                if write_envelope(&mut stream, &reply).is_err() {
+                                    break;
+                                }
+                            }
+                            // The wire is gone: the park is over.
+                            _ => break,
+                        }
+                    }
+                    // The semaphore's last nod, for the record: the test's
+                    // drop ends the parked leg as it always did.
                     let _ = parked.recv();
                 }
             });
@@ -709,6 +782,31 @@ mod tests {
             // has had its `ok`.
             hold.send(()).unwrap();
             drop(hold);
+        }
+
+        /// The paused-line variant under the test's own gate: subscribed
+        /// and held, then one `paused` line when the gate1 arrives, then
+        /// held until the gate2 ends the wire. The grants' vm_state reads
+        /// both stages deterministically. Both returns are senders: the
+        /// test speaks the pause, and speaks the end by dropping it.
+        pub(super) fn start_gated(runtime: &Path) -> (mpsc::Sender<()>, mpsc::Sender<()>) {
+            let path = runtime.join("control.sock");
+            let listener = UnixListener::bind(&path).unwrap();
+            let (gate_write, write_gate) = mpsc::channel::<()>();
+            let (gate_end, end_gate) = mpsc::channel::<()>();
+            std::thread::spawn(move || {
+                let _command = listener.accept().unwrap();
+                let mut sub = listener.accept().unwrap().0;
+                assert_eq!(read_line(&mut sub).as_deref(), Some("subscribe"));
+                sub.write_all(b"ok\n").unwrap();
+                // Hold until the test asks for the pause to be spoken.
+                let _ = write_gate.recv();
+                sub.write_all(b"paused\n").unwrap();
+                // Hold until the test asks for the wire to end.
+                let _ = end_gate.recv();
+                drop(sub);
+            });
+            (gate_write, gate_end)
         }
     }
 
@@ -1025,6 +1123,103 @@ mod tests {
         assert_eq!(code, 2, "the relay's absence is a log, the end is the guest's");
         drop(hold);
         drop(held);
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// One door conversation: connect, invite, take the grant, hang up.
+    /// Two grants need two conversations — the door's grammar allows one
+    /// invite per connection, the granted repeat falls to the catch-all.
+    fn invite(runtime: &Path) -> RoleGrant {
+        let mut stream = UnixStream::connect(runtime.join("daemon.sock")).unwrap();
+        stream
+            .set_read_timeout(Some(Duration::from_secs(2)))
+            .unwrap();
+        write_envelope(
+            &mut stream,
+            &envelope_of(envelope::Payload::RoleInvite(RoleInvite {
+                role: crate::proto::roles::Role::ControlPanel as i32,
+                package: String::new(),
+                client_version: "the body's battery".into(),
+            })),
+        )
+        .unwrap();
+        let envelope = read_envelope(&mut stream).unwrap().unwrap();
+        match envelope.payload {
+            Some(envelope::Payload::RoleGrant(grant)) => grant,
+            _ => panic!("the door answered with something other than a grant"),
+        }
+    }
+
+    /// The roles door live under its real mount gate: a 0700 dir lets
+    /// `daemon.sock` bind, a real client's invite earns a RoleGrant whose
+    /// `vm_state` is the body's own engine reading — "running" before the
+    /// engine's line, "paused" after it — and the run's end takes the
+    /// door's file down with it.
+    #[test]
+    fn the_roles_door_up_and_the_vm_state_rides_the_grant() {
+        use std::os::unix::fs::PermissionsExt;
+        let dir = fresh("roles-door");
+        std::fs::set_permissions(&dir, std::fs::Permissions::from_mode(0o700)).unwrap();
+
+        let (gate_write, gate_end) = engine_fake::start_gated(&dir);
+        let (park, parked) = mpsc::channel::<()>();
+        guest::serve(&dir, guest::hello_green(), Some(parked));
+
+        let recorder: Arc<Recorder> = Arc::new(Recorder(Mutex::new(Vec::new())));
+        let run = mpsc::channel();
+        {
+            let sender = run.0.clone();
+            let dir = dir.clone();
+            let recorder = Arc::clone(&recorder);
+            std::thread::spawn(move || {
+                sender
+                    .send(running_on(config(&dir), Some(recorder.as_ref()), clock()))
+                    .unwrap();
+            });
+        }
+
+        // The door comes up inside the body's own flight; probe until it
+        // is bound (a blink apart, bounded), then speak for real.
+        let mut grant = None;
+        for _ in 0..40 {
+            match UnixStream::connect(dir.join(roles::SOCKET_NAME)) {
+                Ok(stream) => {
+                    drop(stream);
+                    grant = Some(invite(&dir));
+                    break;
+                }
+                Err(_) => std::thread::sleep(Duration::from_millis(50)),
+            }
+        }
+        let grant = grant.expect("the door never came up under the 0700 dir");
+        assert_eq!(grant.vm_state, "running");
+        assert_eq!(grant.protocol_version, PROTOCOL_VERSION);
+        assert_eq!(grant.min_supported, PROTOCOL_MIN_VERSION);
+        assert!(
+            !grant.daemon_version.is_empty(),
+            "the grant names its daemon"
+        );
+
+        // The gate speaks the engine's pause; the body's next poll applies
+        // it, and the second conversation's grant carries the new reading.
+        gate_write.send(()).unwrap();
+        std::thread::sleep(Duration::from_millis(400));
+        let grant = invite(&dir);
+        assert_eq!(grant.vm_state, "paused");
+
+        // The engine's wire end ends the run with 2 — and takes the door
+        // down: the server's stop unlinks its socket file.
+        drop(gate_end);
+        let code = run
+            .1
+            .recv_timeout(Duration::from_secs(5))
+            .expect("the run hung instead of ending on the engine's end");
+        assert_eq!(code, 2, "an engine end is exit 2");
+        assert!(
+            !dir.join(roles::SOCKET_NAME).exists(),
+            "the door's file went with the run"
+        );
+        drop(park);
         let _ = std::fs::remove_dir_all(&dir);
     }
 }
