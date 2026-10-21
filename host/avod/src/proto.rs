@@ -97,6 +97,54 @@ pub mod reply {
     }
 }
 
+/// The roles socket's hello dance — the Mac's `hello` rule lives at
+/// XPCInterface.swift:12 ("Must be the first call"), the payloads at
+/// 267-285; the JSON `Data` they traveled as on the Mac becomes envelopes
+/// here, on the same oneof and framing every other Avo wire speaks.
+/// Client → daemon on `<runtime>/daemon.sock`: always the first frame.
+#[derive(Clone, PartialEq, Message)]
+pub struct RoleInvite {
+    /// Which of the Mac's `Role` cases the client speaks as (268-271).
+    #[prost(enumeration = "roles::Role", tag = "1")]
+    pub role: i32,
+    /// The App Shim's package (`shim(package:)`, XPCInterface.swift:270);
+    /// empty for the Control Panel and the engine.
+    #[prost(string, tag = "2")]
+    pub package: String,
+    /// The Mac's `version` (XPCInterface.swift:275).
+    #[prost(string, tag = "3")]
+    pub client_version: String,
+}
+
+/// Daemon → client: the hello's answer, the Mac's `DaemonHello`
+/// (XPCInterface.swift:283-285) with the protocol numbers spelled out;
+/// `vm_state` is the daemon body's status string ("running", "paused",
+/// "stopped"; bare "unknown" until the body wires its own wording in).
+#[derive(Clone, PartialEq, Message)]
+pub struct RoleGrant {
+    #[prost(string, tag = "1")]
+    pub daemon_version: String,
+    #[prost(uint32, tag = "2")]
+    pub protocol_version: u32,
+    /// Oldest protocol version the daemon still accepts (PROTOCOL_MIN_VERSION).
+    #[prost(uint32, tag = "3")]
+    pub min_supported: u32,
+    #[prost(string, tag = "4")]
+    pub vm_state: String,
+}
+
+/// The Mac's `ClientHello.Role` (XPCInterface.swift:268-271), on the same
+/// numbered-ladder shape `pub mod goodbye` uses.
+pub mod roles {
+    #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, prost::Enumeration)]
+    #[repr(i32)]
+    pub enum Role {
+        ControlPanel = 0,
+        Shim = 1,
+        Engine = 2,
+    }
+}
+
 // ---------------------------------------------------------------------------
 // Displays and tasks
 //
@@ -564,6 +612,14 @@ pub mod envelope {
         DisplayContentChanged(super::DisplayContentChanged),
         #[prost(message, tag = "61")]
         TaskStarted(super::TaskStarted),
+
+        // The roles socket: the Mac's XPC hello dance, drawn out of the
+        // JSON `Data` payloads the @objc surface carried
+        // (XPCInterface.swift:12, 267-285).
+        #[prost(message, tag = "62")]
+        RoleInvite(super::RoleInvite),
+        #[prost(message, tag = "63")]
+        RoleGrant(super::RoleGrant),
     }
 }
 
@@ -579,7 +635,7 @@ pub struct Envelope {
     /// direction.
     #[prost(uint64, tag = "2")]
     pub request_id: u64,
-    #[prost(oneof = "envelope::Payload", tags = "10, 11, 12, 13, 14, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61")]
+    #[prost(oneof = "envelope::Payload", tags = "10, 11, 12, 13, 14, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63")]
     pub payload: Option<envelope::Payload>,
 }
 

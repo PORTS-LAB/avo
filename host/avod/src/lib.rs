@@ -22,6 +22,7 @@ pub mod frames;
 pub mod input;
 pub mod notifications;
 pub mod proto;
+pub mod roles;
 pub mod session;
 pub mod vsock;
 
