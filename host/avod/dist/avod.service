@@ -1,0 +1,81 @@
+# avod.service — the Linux successor of the Mac LaunchAgent
+#
+# Mac original: host/Avo/LaunchAgents/dev.avo.daemon.plist
+#   Label dev.avo.daemon
+#   BundleProgram AvoDaemon binary
+#   MachServices dev.avo.daemon
+#   RunAtLoad true
+#   KeepAlive { SuccessfulExit: false }
+#   LimitLoadToSessionType Aqua
+#   ProcessType Interactive
+#
+# This is a systemd *user* unit: it runs under the user's `systemd --user`
+# instance, no root involved, matching the Mac agent that launchd loaded in
+# the session scope. Each plist key is mapped and cited at its counterpart
+# below; where systemd has no direct analog, the comment says so and why
+# nothing is being invented in its place.
+
+[Unit]
+# Label dev.avo.daemon
+#
+# Launchd names agents by their dotted Label. A systemd user unit keeps its
+# filename as the name, so under `systemctl --user` this is simply
+# avod.service — same daemon, flatter name.
+Description=avo runtime daemon (Linux port)
+
+# LimitLoadToSessionType Aqua
+#
+# The plist loads the agent only into a graphical (Aqua) session. Ordering
+# after graphical-session.target carries that intent over: the daemon comes
+# up once the desktop session is ready. On a headless login the target is
+# simply not reached and the unit will not start — the same behavior the Mac
+# gets from LimitLoadToSessionType, where no Aqua session means no agent.
+After=graphical-session.target
+
+[Service]
+# BundleProgram AvoDaemon binary
+#
+# The plist points launchd at the built daemon binary directly. The install
+# script (install.sh, same directory) places that binary at ~/.local/bin/avod
+# and the unit points there. No flags on purpose: the daemon body's defaults
+# are exactly what this port wants — --instance defaults to
+# $XDG_DATA_HOME/avo/default and --runtime defaults to $XDG_RUNTIME_DIR/avod.
+ExecStart=%h/.local/bin/avod
+
+# KeepAlive { SuccessfulExit: false }
+#
+# On the Mac this meant launchd restarted the agent only when it exited
+# nonzero — a clean exit was left alone. Restart=on-failure is the same rule.
+# Launchd's job bumping spreads retries out to about ten seconds; RestartSec
+# pins that pacing explicitly.
+Restart=on-failure
+RestartSec=10
+
+# MachServices dev.avo.daemon
+#
+# On the Mac this advertised the XPC endpoint named dev.avo.daemon. The
+# Linux equivalent is the daemon's own Unix socket, daemon.sock under the
+# runtime directory ($XDG_RUNTIME_DIR/avod). The unit neither declares nor
+# creates it: the daemon binds the socket itself on startup and the roles
+# slice serves it. Recorded here so the plist key has a documented mapping.
+#
+# ProcessType Interactive
+#
+# Launchd's scheduling hint has no systemd analog; a user service takes the
+# default scheduling, which is fine for this workload.
+#
+# stderr
+#
+# Launchd routed agent output into the launchd log. The user systemd manager
+# hands stdout/stderr to journald by default, so nothing extra is declared —
+# no Environment=, no journal namespace, nothing the plist needed either.
+
+[Install]
+# RunAtLoad true
+#
+# Launchd loaded and started the agent when the session loaded (RunAtLoad).
+# The user-unit equivalent is enabling the unit into default.target, the
+# user manager's session bootstrap target.
+# `systemctl --user enable --now avod.service` does the enable and the first
+# start in one step.
+WantedBy=default.target
