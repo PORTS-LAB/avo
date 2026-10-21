@@ -13,6 +13,7 @@ pub mod control;
 pub mod frames;
 pub mod input;
 pub mod proto;
+pub mod session;
 pub mod vsock;
 
 /// The guest's vsock ports the daemon drives (docs/protocol.md).
