@@ -39,10 +39,21 @@ pub const REQUEST_TIMEOUT: Duration = Duration::from_secs(30);
 /// period — and the session ends on the `miss_limit`-th miss in a row (the
 /// Swift counts with `misses >= 3`). `open` runs these; tests build one with
 /// faster clocks.
-struct Keepalive {
+/// The keepalive's clocks: the Mac's `startKeepalive` numbers by default,
+/// the body-tests' blinks by hand (`clocks`). The session owns the thread;
+/// this only names the rhythm.
+pub struct Keepalive {
     period: Duration,
     window: Duration,
     miss_limit: u32,
+}
+
+impl Keepalive {
+    /// The body-tests' clock: the same shape, a blink's period, so a guest's
+    /// goodbye is heard in milliseconds instead of the Mac's five seconds.
+    pub fn clocks(period: Duration, window: Duration, miss_limit: u32) -> Keepalive {
+        Keepalive { period, window, miss_limit }
+    }
 }
 
 impl Default for Keepalive {
@@ -364,9 +375,11 @@ impl ControlSession {
         ControlSession::open_on(stream, software_version, Keepalive::default())
     }
 
-    /// `open` with the keepalive's clocks handed over — the tests' way in;
-    /// `open` itself runs ControlSession.swift's `startKeepalive` numbers.
-    fn open_on(
+    /// `open` with the keepalive's clocks handed over — the tests' way in,
+    /// and the daemon body's (its own tests run the same wires at a blink's
+    /// clock set with `Keepalive::clocks`; production keeps `open`'s Mac
+    /// numbers). `open` itself runs ControlSession.swift's `startKeepalive`.
+    pub fn open_on(
         stream: VsockStream,
         software_version: &str,
         keepalive: Keepalive,
@@ -498,6 +511,15 @@ impl ControlSession {
         Ok(ControlSession { actor, negotiated_version: raised, events, keepalive_gone })
     }
 
+    /// The keepalive's goodnight signal, for callers who sit on the session
+    /// for a lifetime: one `()` when its thread has left the wire for good,
+    /// however the session ended — goodbye, wire death, a broken version
+    /// gate. The daemon body's lifecycle hinge (the field comment above
+    /// pointed here).
+    pub fn when_ended(&self) -> &mpsc::Receiver<()> {
+        &self.keepalive_gone
+    }
+
     /// The session's settled version (the Swift session's
     /// `negotiatedVersion`): the lower of the two Hellos' maxima, which the
     /// gate proved clears both floors.
@@ -560,9 +582,9 @@ pub struct ControlSession {
     actor: Arc<Actor>,
     negotiated_version: u32,
     events: mpsc::Receiver<Envelope>,
-    /// ends; the tests wait on the signal (the daemon body reads it as
-    /// its lifecycle's own wire when it lands).
-    #[allow(dead_code)]
+    /// The field comment names its accessor (`when_ended`): one `()` when
+    /// the keepalive's thread has left the wire for good, however the
+    /// session ended.
     keepalive_gone: mpsc::Receiver<()>,
 }
 

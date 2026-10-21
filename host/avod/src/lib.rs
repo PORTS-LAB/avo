@@ -7,12 +7,15 @@
 //! engine's process (`audio`), a local TCP relay the user's own adb
 //! speaks into (`adb`), the daemon's client for the engine's own runtime
 //! socket (`engine`), and the desktop's notification service, spoken
-//! through libdbus (`notifications`). The Mac's daemon (host/AvoDaemon,
-//! host/AvoKit) is the reference; phase 3 of docs/linux-port.md replaces
-//! it.
+//! through libdbus (`notifications`), and the daemon's one process: the
+//! body that binds the engine, the session, the relay and the notification
+//! desk into the loop (`body`, the `avod` binary's whole). The Mac's daemon
+//! (host/AvoDaemon, host/AvoKit) is the reference; phase 3 of
+//! docs/linux-port.md replaces it.
 
 pub mod adb;
 pub mod audio;
+pub mod body;
 pub mod control;
 pub mod engine;
 pub mod frames;
