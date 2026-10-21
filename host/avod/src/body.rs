@@ -49,9 +49,13 @@ use std::time::Duration;
 use crate::adb::{self, AdbRelay};
 use crate::engine::{Engine, EngineError, Event};
 use crate::notifications::{self, Presenter};
-use crate::proto::{envelope, reply, Envelope, Notification};
+use crate::proto::{
+    envelope, reply, Close, DismissNotification, Envelope, FocusDisplay, Launch, ListApps,
+    Notification, OpenNotification, Reply, Resize, SetClipboard, SetDisplayVisibility,
+    SetRefreshRate,
+};
 use crate::roles;
-use crate::session::{ControlSession, Keepalive};
+use crate::session::{ControlSession, Keepalive, SessionError};
 use crate::{ADB_PORT, CONTROL_PORT, vsock};
 
 /// The daemon's own notion of where it lives. `runtime` is the engine's
@@ -478,6 +482,10 @@ fn running_on(config: Config, notifies: Option<&dyn Notifies>, clock: Keepalive)
     // end's latency is bounded by `POLL` — for a daemon whose ends ask
     // only systemd to restage it, that read is the business.
     const POLL: Duration = Duration::from_millis(250);
+    // The daemon's own display-id counter: the next launch's display id
+    // (the Mac's nextDisplayID at DaemonCore.swift:1313; display 0 is the
+    // guest's "let it decide", never assigned).
+    let mut next_display_id: u32 = 1;
     loop {
         // The engine's events, until the byte ends the subscription —
         // engine.rs's Err(Closed) folded to its body shape here.
@@ -515,13 +523,23 @@ fn running_on(config: Config, notifies: Option<&dyn Notifies>, clock: Keepalive)
 
         // The door's verb asks: the bus posts, the loop settles, the door
         // answers its asker in the asker's id. Non-blocking on purpose —
-        // a quiet door costs the round nothing.
+        // a quiet door costs the round nothing; a lane ask pends on the
+        // session's request slot for its own deadline, the loop single
+        // as ever.
         for ask in verb_inbox.try_iter() {
-            let verdict = settle_the_ask(&ask, &engine);
+            let verdict =
+                settle_the_ask(&ask, &engine, &session, &mut next_display_id);
             let _ = ask.settle.send(verdict);
         }
     }
 }
+
+/// The session lanes' own wait: a launch on the Mac pends up to 6s in the
+/// guest's scanout hunt (HostAgent.swift:651) — the door's wait rides the
+/// same order of time. The keepalive lives on the session's own reader
+/// thread, so a lane's block starves no liveness; the loop just does not
+/// settle other asks while one pends, the Mac's serialized requests too.
+const LANE_WAIT: Duration = Duration::from_secs(8);
 
 /// The door's verb ask, settled by the loop over the engine's own
 /// one-line grammar (`control.rs`'s `run` match): the first word the
@@ -531,12 +549,187 @@ fn running_on(config: Config, notifies: Option<&dyn Notifies>, clock: Keepalive)
 /// for the first per-role gates (the Mac checks per verb; nothing in v1
 /// narrows by role — every granted caller may speak the engine's line
 /// grammar).
-fn settle_the_ask(ask: &roles::Ask, engine: &Engine) -> Result<String, (reply::Status, String)> {
+///
+/// The guest-bound set rides the session's request lanes instead — the
+/// Mac's `controlSession().request(...)` at DaemonCore.swift:1308's open
+/// display: the daemon assigns the display id, the guest's agent runs the
+/// state machine, and the guest's own typed answer (DisplayReady on a
+/// launch or resize, Reply elsewhere) passes through unopened. `launch`
+/// assigns ids in the daemon's own counter; the rest address by the id
+/// they were given.
+fn settle_the_ask(
+    ask: &roles::Ask,
+    engine: &Engine,
+    session: &ControlSession,
+    next_display_id: &mut u32,
+) -> Result<envelope::Payload, (reply::Status, String)> {
     if ask.name.contains('\n') || ask.argument.contains('\n') {
         return Err((
             reply::Status::InvalidArgument,
             "an ask is one line; the door does not say two".to_string(),
         ));
+    }
+    // The session lanes: typed, the guest's own answers.
+    let words: Vec<&str> = ask.argument.split_whitespace().collect();
+    let count = |need: usize| -> Result<(), (reply::Status, String)> {
+        (words.len() >= need).then_some(()).ok_or((
+            reply::Status::InvalidArgument,
+            format!("{} wants {} words, got {}", ask.name, need, words.len()),
+        ))
+    };
+    let number = |word: &str, what: &str| -> Result<u32, (reply::Status, String)> {
+        word.parse().map_err(|_| {
+            (
+                reply::Status::InvalidArgument,
+                format!("{what} is not a number: {word}"),
+            )
+        })
+    };
+    let lane = |payload: envelope::Payload| -> Result<envelope::Payload, (reply::Status, String)> {
+        match session.request(payload, LANE_WAIT) {
+            Ok(answer) => Ok(answer.payload.unwrap_or_else(|| {
+                envelope::Payload::Reply(Reply {
+                    status: reply::Status::Ok as i32,
+                    message: String::new(),
+                })
+            })),
+            Err(SessionError::TimedOut) => Err((
+                reply::Status::Failed,
+                "the guest's answer ran past the door's wait; the ask stands unspoken"
+                    .to_string(),
+            )),
+            Err(error) => Err((
+                reply::Status::Failed,
+                format!("the session would not take the ask: {error}"),
+            )),
+        }
+    };
+    match ask.name.as_str() {
+        "launch" => {
+            count(4)?;
+            let package = words[0].to_string();
+            let width = number(words[1], "width")?;
+            let height = number(words[2], "height")?;
+            let dpi = number(words[3], "dpi")?;
+            let refresh_rate = match words.get(4) {
+                Some(word) => number(word, "refresh rate")?,
+                None => 0,
+            };
+            // The display id is the daemon's own counter (the Mac's
+            // nextDisplayID at DaemonCore.swift:1313); virtio-gpu modes
+            // are 8-pixel aligned on the Mac's side (HostAgent.swift:661).
+            let display_id = *next_display_id;
+            *next_display_id += 1;
+            return lane(envelope::Payload::Launch(Launch {
+                package,
+                display_id,
+                width: width.max(64) / 8 * 8,
+                height: height.max(64),
+                dpi,
+                component: String::new(),
+                notification_key: String::new(),
+                data_uri: String::new(),
+                mime_type: String::new(),
+                refresh_rate,
+            }));
+        }
+        "resize" => {
+            count(3)?;
+            return lane(envelope::Payload::Resize(Resize {
+                display_id: number(words[0], "display id")?,
+                width: words[1].parse().map_err(|_| {
+                    (reply::Status::InvalidArgument, "width is not a number".to_string())
+                })?,
+                height: words[2].parse().map_err(|_| {
+                    (reply::Status::InvalidArgument, "height is not a number".to_string())
+                })?,
+                dpi: match words.get(3) {
+                    Some(word) => number(word, "dpi")?,
+                    None => 0,
+                },
+            }));
+        }
+        "close" => {
+            count(1)?;
+            return lane(envelope::Payload::Close(Close {
+                display_id: number(words[0], "display id")?,
+            }));
+        }
+        "open-notification" => {
+            count(1)?;
+            return lane(envelope::Payload::OpenNotification(OpenNotification {
+                key: words[0].to_string(),
+                display_id: match words.get(1) {
+                    Some(word) => number(word, "display id")?,
+                    None => 0,
+                },
+            }));
+        }
+        "dismiss-notification" => {
+            count(1)?;
+            return lane(envelope::Payload::DismissNotification(DismissNotification {
+                key: words[0].to_string(),
+            }));
+        }
+        "set-refresh-rate" => {
+            count(2)?;
+            return lane(envelope::Payload::SetRefreshRate(SetRefreshRate {
+                display_id: number(words[0], "display id")?,
+                fps: number(words[1], "fps")?,
+            }));
+        }
+        "set-display-visibility" => {
+            count(2)?;
+            let visible = match words[1] {
+                "on" => true,
+                "off" => false,
+                _ => {
+                    return Err((
+                        reply::Status::InvalidArgument,
+                        "visibility is on or off".to_string(),
+                    ))
+                }
+            };
+            return lane(envelope::Payload::SetDisplayVisibility(SetDisplayVisibility {
+                display_id: number(words[0], "display id")?,
+                visible,
+            }));
+        }
+        "focus-display" => {
+            count(1)?;
+            return lane(envelope::Payload::FocusDisplay(FocusDisplay {
+                display_id: number(words[0], "display id")?,
+            }));
+        }
+        // The clipboard's text is the argument whole — separators stay.
+        "set-clipboard" if !ask.argument.trim().is_empty() => {
+            return lane(envelope::Payload::SetClipboard(SetClipboard {
+                text: ask.argument.trim().to_string(),
+            }));
+        }
+        "list-apps" => {
+            // `list-apps [icons on|off [system on|off]]` — the Mac's list
+            // reads system apps by default; icons stay off until asked
+            // (the proto.rs doc: the host omits them when it has them).
+            let flags = |word: Option<&&str>, fallback: bool| -> Result<bool, (reply::Status, String)> {
+                match word {
+                    Some(w) if *w == "on" => Ok(true),
+                    Some(w) if *w == "off" => Ok(false),
+                    Some(w) => Err((
+                        reply::Status::InvalidArgument,
+                        format!("{w} is on or off"),
+                    )),
+                    None => Ok(fallback),
+                }
+            };
+            let include_icons = flags(words.first(), false)?;
+            let include_system = flags(words.get(1), true)?;
+            return lane(envelope::Payload::ListApps(ListApps {
+                include_icons,
+                include_system,
+            }));
+        }
+        _ => {}
     }
     match ask.name.as_str() {
         "pause" | "resume" | "touch" | "key" | "tap" | "swipe" | "display" | "location"
@@ -547,7 +740,10 @@ fn settle_the_ask(ask: &roles::Ask, engine: &Engine) -> Result<String, (reply::S
                 format!("{} {}", ask.name, ask.argument)
             };
             match engine.command(&line) {
-                Ok(()) => Ok(format!("the engine took {line}")),
+                Ok(()) => Ok(envelope::Payload::Reply(Reply {
+                    status: reply::Status::Ok as i32,
+                    message: format!("the engine took {line}"),
+                })),
                 Err(EngineError::Protocol(what)) => Err((reply::Status::Failed, what)),
                 Err(EngineError::TimedOut) => Err((
                     reply::Status::Failed,
@@ -616,9 +812,9 @@ mod tests {
     use super::*;
     use crate::control::{read_envelope, write_envelope};
     use crate::proto::{
-        goodbye, ClipboardChanged, Goodbye, Hello, NotificationRemoved, Pong, RoleGrant,
-        RoleInvite, SetClipboard, TaskStarted, Verb, PROTOCOL_MIN_VERSION, PROTOCOL_VERSION,
-        reply,
+        goodbye, AppList, ClipboardChanged, DisplayReady, Goodbye, Hello, NotificationRemoved, Pong,
+        RoleGrant, RoleInvite, SetClipboard, TaskStarted, Verb, PROTOCOL_MIN_VERSION,
+        PROTOCOL_VERSION, reply,
     };
     use std::io::{Read, Write};
     use std::net::TcpListener;
@@ -750,10 +946,52 @@ mod tests {
                                             nonce: ping.nonce,
                                         })),
                                     },
-                                    // Anything else on the parked wire is
-                                    // not the pattern; received and let
-                                    // pass — the test's drop is the close.
-                                    _ => continue,
+                                    // A lane ask from the daemon (any
+                                    // request_id the door planted):
+                                    // the agent's stand-in answers in
+                                    // the ask's own id — a launch or a
+                                    // resize says `DisplayReady` with
+                                    // the ask's display id, anything
+                                    // else the generic `Reply{Ok}`.
+                                    // The parked leg stays green for
+                                    // the keepalive either way.
+                                    other => match other {
+                                        Some(envelope::Payload::Launch(launch)) => Envelope {
+                                            request_id: envelope.request_id,
+                                            protocol_version: envelope.protocol_version,
+                                            payload: Some(envelope::Payload::DisplayReady(
+                                                DisplayReady {
+                                                    display_id: launch.display_id,
+                                                    package: launch.package,
+                                                },
+                                            )),
+                                        },
+                                        Some(envelope::Payload::ListApps(_)) => Envelope {
+                                            request_id: envelope.request_id,
+                                            protocol_version: envelope.protocol_version,
+                                            payload: Some(envelope::Payload::AppList(AppList {
+                                                apps: Vec::new(),
+                                            })),
+                                        },
+                                        Some(envelope::Payload::Resize(resize)) => Envelope {
+                                            request_id: envelope.request_id,
+                                            protocol_version: envelope.protocol_version,
+                                            payload: Some(envelope::Payload::DisplayReady(
+                                                DisplayReady {
+                                                    display_id: resize.display_id,
+                                                    package: String::from("resized"),
+                                                },
+                                            )),
+                                        },
+                                        _ => Envelope {
+                                            request_id: envelope.request_id,
+                                            protocol_version: envelope.protocol_version,
+                                            payload: Some(envelope::Payload::Reply(Reply {
+                                                status: reply::Status::Ok as i32,
+                                                message: String::from("the guest took the ask"),
+                                            })),
+                                        },
+                                    },
                                 };
                                 if write_envelope(&mut stream, &reply).is_err() {
                                     break;
@@ -1388,6 +1626,113 @@ mod tests {
                 );
             }
             _ => panic!("a refusal was expected"),
+        }
+
+        drop(park);
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// The session lanes, whole: a grant, then four asks whose payloads
+    /// the guest's agent stand-in answers in kind — a launch (the daemon's
+    /// own display id 1) answered `DisplayReady` with the counter's id and
+    /// the package through, a resize answered `DisplayReady` again, a
+    /// close answered the generic `Reply{Ok}`, `list-apps` answered an
+    /// `AppList`. Typed answers pass through the door unopened.
+    #[test]
+    fn a_launch_lane_rides_the_session_and_the_answers_pass_through() {
+        use std::os::unix::fs::PermissionsExt;
+        let dir = fresh("lane-door");
+        std::fs::set_permissions(&dir, std::fs::Permissions::from_mode(0o700)).unwrap();
+
+        let _hold = engine_fake::start(&dir);
+        let (park, parked) = mpsc::channel::<()>();
+        guest::serve(&dir, guest::hello_green(), Some(parked));
+
+        let recorder: Arc<Recorder> = Arc::new(Recorder(Mutex::new(Vec::new())));
+        let run = mpsc::channel();
+        {
+            let sender = run.0.clone();
+            let dir = dir.clone();
+            let recorder = Arc::clone(&recorder);
+            std::thread::spawn(move || {
+                sender
+                    .send(running_on(config(&dir), Some(recorder.as_ref()), clock()))
+                    .unwrap();
+            });
+        }
+
+        // The door: probe until bound, then a granted conversation.
+        for _ in 0..40 {
+            match UnixStream::connect(dir.join(roles::SOCKET_NAME)) {
+                Ok(stream) => {
+                    drop(stream);
+                    break;
+                }
+                Err(_) => std::thread::sleep(Duration::from_millis(50)),
+            }
+        }
+        let mut asker = UnixStream::connect(dir.join(roles::SOCKET_NAME)).unwrap();
+        asker
+            .set_read_timeout(Some(Duration::from_secs(2)))
+            .unwrap();
+        write_envelope(
+            &mut asker,
+            &envelope_of(envelope::Payload::RoleInvite(RoleInvite {
+                role: crate::proto::roles::Role::ControlPanel as i32,
+                package: String::new(),
+                client_version: "the battery's asker".into(),
+            })),
+        )
+        .unwrap();
+        read_envelope(&mut asker).unwrap().unwrap();
+
+        /// One flat ask on the lane, in the id the test tracks.
+        fn say_line(stream: &mut UnixStream, request_id: u64, name: &str, argument: &str) {
+            let mut ask = envelope_of(envelope::Payload::Verb(Verb {
+                name: String::from(name),
+                argument: String::from(argument),
+            }));
+            ask.request_id = request_id;
+            write_envelope(stream, &ask).unwrap();
+        }
+
+        // Launch: the first display id is the daemon's own counter's.
+        say_line(&mut asker, 11, "launch", "com.avo.notes 1080 2400 420 60");
+        let answer = read_envelope(&mut asker).unwrap().unwrap();
+        assert_eq!(answer.request_id, 11, "the lane's answer pairs the asker's id");
+        match answer.payload {
+            Some(envelope::Payload::DisplayReady(ready)) => {
+                assert_eq!(ready.display_id, 1, "the daemon's own counter assigned");
+                assert_eq!(ready.package, "com.avo.notes");
+            }
+            _ => panic!("a launch's answer was DisplayReady expected"),
+        }
+
+        // Resize: by the id the launch was given, guest's answer through.
+        say_line(&mut asker, 12, "resize", "1 400 300");
+        let answer = read_envelope(&mut asker).unwrap().unwrap();
+        match answer.payload {
+            Some(envelope::Payload::DisplayReady(ready)) => {
+                assert_eq!(ready.display_id, 1);
+                assert_eq!(ready.package, "resized");
+            }
+            _ => panic!("a resize's answer was DisplayReady expected"),
+        }
+
+        // Close and a listing: the generic and typed answers alike.
+        say_line(&mut asker, 13, "close", "1");
+        let answer = read_envelope(&mut asker).unwrap().unwrap();
+        match answer.payload {
+            Some(envelope::Payload::Reply(the_reply)) => {
+                assert_eq!(the_reply.status, reply::Status::Ok as i32);
+            }
+            _ => panic!("a close's answer was a reply expected"),
+        }
+        say_line(&mut asker, 14, "list-apps", "");
+        let answer = read_envelope(&mut asker).unwrap().unwrap();
+        match answer.payload {
+            Some(envelope::Payload::AppList(list)) => assert!(list.apps.is_empty()),
+            _ => panic!("list-apps's answer was an AppList expected"),
         }
 
         drop(park);

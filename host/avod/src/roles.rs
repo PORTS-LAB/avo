@@ -103,9 +103,12 @@ impl std::error::Error for ServeError {}
 /// (XPCInterface.swift:285's `status`) — never as a poll.
 type StatusFn = Arc<dyn Fn() -> String + Send + Sync>;
 
-/// One verdict from the daemon's body: Ok carries the reply's message;
-/// Err carries the reply's status and its wording.
-pub type Verdict = Result<String, (reply::Status, String)>;
+/// One verdict from the daemon's body: Ok carries the reply's whole
+/// typed payload — the engine class answers `Reply{Ok}` with its own
+/// wording, the session lanes the guest's own typed answer
+/// (`DisplayReady`, `AppList`…) through, unopened. Err carries the
+/// reply's status and its wording.
+pub type Verdict = Result<envelope::Payload, (reply::Status, String)>;
 
 /// One ask the door hands its daemon's bus: what the verb said and who
 /// spoke, with the oneshot the verdict rides. Mac truth: the verb set is
@@ -448,13 +451,7 @@ fn connection(
                             settle: seal,
                         });
                         match settled.recv() {
-                            Ok(Ok(message)) => a_reply(
-                                request_id,
-                                envelope::Payload::Reply(Reply {
-                                    status: reply::Status::Ok as i32,
-                                    message,
-                                }),
-                            ),
+                            Ok(Ok(payload)) => a_reply(request_id, payload),
                             Ok(Err((status, message))) => a_reply(
                                 request_id,
                                 envelope::Payload::Reply(Reply {
@@ -987,7 +984,10 @@ mod tests {
                     .lock()
                     .unwrap()
                     .push((ask.role, ask.name.clone(), ask.argument.clone()));
-                let _ = ask.settle.send(Ok(String::from("the asker rides")));
+                let _ = ask.settle.send(Ok(envelope::Payload::Reply(Reply {
+                    status: reply::Status::Ok as i32,
+                    message: String::from("the asker rides"),
+                })));
             })
         };
         let server = serve_with_verbs(socket.path.clone(), || String::from("running"), bus).unwrap();

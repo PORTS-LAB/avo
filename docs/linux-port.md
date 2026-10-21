@@ -183,12 +183,16 @@ the daemon's own user); and **packaging** (`dist/`, the systemd user unit
 the LaunchAgent maps onto). The engine's own one-line grammar rides the
 door now: a granted control panel asks `pause` (or touch, key, tap,
 swipe, display, location, snapshot, gamepad — proto.rs's `Verb`, tag 64)
-and the loop answers the engine's own wording in the asker's id. Still
-to come for the daemon itself: the door's remaining verb classes — the
-guest-bound ones (Launch, ListApps, the app set) routed over the
-session's request lanes; the daemon's own ADB client stack (`pm
-install-*` and friends — the signing dependency the adb slice
-deliberately left out); and the window shims.
+and the loop answers the engine's own wording in the asker's id. The
+session lanes ride it too — `launch` (the daemon assigns the display id,
+the Mac's counter at DaemonCore.swift:1313), `resize`, `close`, the
+notification pair, set-refresh-rate, set-display-visibility,
+focus-display, set-clipboard, list-apps: typed payloads over the
+session's request slots, the guest's own typed answers (`DisplayReady`,
+`AppList`) passing through the door unopened. Still to come for the
+daemon itself: the verbs pinned to the daemon's own ADB client stack
+(`pm install-*` and friends — the signing dependency the adb slice
+deliberately left out) and the window shims.
 
 **Done when:** the daemon and UI run apps end to end — an installed app
 opens in its own window, input and sound reach it, and notifications arrive
