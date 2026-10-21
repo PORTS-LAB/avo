@@ -47,12 +47,14 @@ use std::sync::mpsc;
 use std::time::Duration;
 
 use crate::adb::{self, AdbRelay};
+use crate::adbkey::{KEY_FILE, Key};
+use crate::adbc;
 use crate::engine::{Engine, EngineError, Event};
 use crate::notifications::{self, Presenter};
 use crate::proto::{
     envelope, reply, Close, DismissNotification, Envelope, FocusDisplay, Launch, ListApps,
-    Notification, OpenNotification, Reply, Resize, SetClipboard, SetDisplayVisibility,
-    SetRefreshRate,
+    Notification, OpenNotification, Permission, PermissionList, Reply, Resize, SetClipboard,
+    SetDisplayVisibility, SetPermission, SetRefreshRate,
 };
 use crate::roles;
 use crate::session::{ControlSession, Keepalive, SessionError};
@@ -528,7 +530,7 @@ fn running_on(config: Config, notifies: Option<&dyn Notifies>, clock: Keepalive)
         // as ever.
         for ask in verb_inbox.try_iter() {
             let verdict =
-                settle_the_ask(&ask, &engine, &session, &mut next_display_id);
+                settle_the_ask(&ask, &engine, &session, &mut next_display_id, &config);
             let _ = ask.settle.send(verdict);
         }
     }
@@ -562,6 +564,7 @@ fn settle_the_ask(
     engine: &Engine,
     session: &ControlSession,
     next_display_id: &mut u32,
+    config: &Config,
 ) -> Result<envelope::Payload, (reply::Status, String)> {
     if ask.name.contains('\n') || ask.argument.contains('\n') {
         return Err((
@@ -729,9 +732,98 @@ fn settle_the_ask(
                 include_system,
             }));
         }
+        // The permissions' toggles belong to the guest's own agent — the
+        // Mac sends SetPermission through the control session and the
+        // bridge agent runs its `pm grant`/`pm revoke` (proto.rs's
+        // SetPermission doc); the answer is the generic Reply.
+        "set-permission" => {
+            count(3)?;
+            let granted = match words[2] {
+                "grant" => true,
+                "revoke" => false,
+                _ => {
+                    return Err((
+                        reply::Status::InvalidArgument,
+                        "the toggle is grant or revoke".to_string(),
+                    ))
+                }
+            };
+            return lane(envelope::Payload::SetPermission(SetPermission {
+                package: words[0].to_string(),
+                permission: words[1].to_string(),
+                granted,
+            }));
+        }
         _ => {}
     }
     match ask.name.as_str() {
+        // The daemon's own ADB band — the verbs the Mac solves by shelling
+        // the user's adb binary (HostAgent's `shell(...)` calls). This port
+        // speaks adbd itself over the engine's vsock port 5555 (adbc.rs),
+        // one fresh connection per ask like the relay's accepted sockets,
+        // the key from the instance (`adbkey`) riding the AUTH; it posts
+        // the pubkey into the BootConfig at the engine-launch slice. The
+        // door blocks for the round trip (the Mac's own serialized
+        // requests; a shell is local hops, a few milliseconds).
+        "install" | "uninstall" | "force-stop" | "delete-app-data" | "get-permissions" => {
+            let key = Key::load_or_create(config.instance.join(KEY_FILE)).map_err(|what| {
+                (reply::Status::Failed, format!("the daemon's ADB key: {what}"))
+            })?;
+            let mut client =
+                adbc::Client::connect(&config.runtime, &key).map_err(|what| {
+                    (
+                        reply::Status::Failed,
+                        format!("adbd would not take the door's ask: {what}"),
+                    )
+                })?;
+            match ask.name.as_str() {
+                // The APK rides whole: create, write on exec stdin, commit.
+                "install" => {
+                    count(1)?;
+                    let path = Path::new(ask.argument.trim());
+                    match client.install(path) {
+                        Ok(words) => Ok(envelope::Payload::Reply(Reply {
+                            status: reply::Status::Ok as i32,
+                            message: words,
+                        })),
+                        Err(what) => Err((
+                            reply::Status::Failed,
+                            format!("the install's session failed: {what}"),
+                        )),
+                    }
+                }
+                // `pm uninstall` takes the app and its data for every user
+                // (the Mac's HostAgent.swift:580).
+                "uninstall" => {
+                    count(1)?;
+                    adb_shell(&mut client, &format!("pm uninstall {}", adbc::shell_quote(words[0])))
+                }
+                "force-stop" => {
+                    count(1)?;
+                    adb_shell(&mut client, &format!("am force-stop {}", adbc::shell_quote(words[0])))
+                }
+                // `pm clear`: the app's data, gone (HostAgent.swift:586).
+                "delete-app-data" => {
+                    count(1)?;
+                    adb_shell(&mut client, &format!("pm clear {}", adbc::shell_quote(words[0])))
+                }
+                "get-permissions" => {
+                    count(1)?;
+                    let package = words[0].to_string();
+                    match client.shell(&format!("dumpsys package {}", adbc::shell_quote(&package))) {
+                        Ok(dumpsys) if dumpsys.success() => {
+                            Ok(envelope::Payload::PermissionList(PermissionList {
+                                package: package.clone(),
+                                permissions: permissions(&dumpsys.stdout),
+                            }))
+                        }
+                        Ok(dumpsys) => Err((reply::Status::Failed, dumpsys.words())),
+                        Err(what) => Err((reply::Status::Failed, what.to_string())),
+                    }
+                }
+                _ => unreachable!("the band's own names"),
+            }
+        }
         "pause" | "resume" | "touch" | "key" | "tap" | "swipe" | "display" | "location"
         | "snapshot" | "gamepad" => {
             let line = if ask.argument.is_empty() {
@@ -760,6 +852,58 @@ fn settle_the_ask(
             format!("{other} is not served by the door yet: the daemon's own state machines are the Mac's DaemonService.swift's, a later slice of the port"),
         )),
     }
+}
+
+/// One device shell's answer to the door's reply shape: exit 0 goes back
+/// the Reply with the words trimmed; anything else the device said, failed.
+fn adb_shell(
+    client: &mut adbc::Client<'_>,
+    command: &str,
+) -> Result<envelope::Payload, (reply::Status, String)> {
+    match client.shell(command) {
+        Ok(result) if result.success() => Ok(envelope::Payload::Reply(Reply {
+            status: reply::Status::Ok as i32,
+            message: result.stdout.trim().to_string(),
+        })),
+        Ok(result) => Err((reply::Status::Failed, result.words())),
+        Err(what) => Err((reply::Status::Failed, what.to_string())),
+    }
+}
+
+/// The runtime permissions out of `dumpsys package` (HostAgent.swift's
+/// `permissions(of:)` at :1839-1864, line for line): after a `runtime
+/// permissions:` line, permission-ish names with a colon are the entries;
+/// a non-empty line with no `granted=` ends the section.
+fn permissions(dumpsys: &str) -> Vec<Permission> {
+    let mut result: Vec<Permission> = Vec::new();
+    let mut in_runtime = false;
+    for line in dumpsys.lines() {
+        let text = line.trim();
+        if text.starts_with("runtime permissions:") {
+            in_runtime = true;
+            continue;
+        }
+        if !in_runtime {
+            continue;
+        }
+        let permissionish = text.starts_with("android.permission.") || text.contains(".permission.");
+        match (permissionish, text.find(':')) {
+            (true, Some(colon)) => {
+                result.push(Permission {
+                    name: text[..colon].to_string(),
+                    label: String::new(),
+                    granted: text.contains("granted=true"),
+                    runtime: true,
+                });
+            }
+            _ => {
+                if !text.is_empty() && !text.contains("granted=") {
+                    in_runtime = false;
+                }
+            }
+        }
+    }
+    result
 }
 
 /// One message to its decision and the decision's effects; returns the
@@ -885,6 +1029,14 @@ mod tests {
             Read,
         }
 
+        /// The ADB half of the guest fake: when the test opts in, the body
+        ///'s own adbd dial is answered — the public half its key is
+        /// verified against, the canned answers one service per `canned`.
+        pub(super) struct AdbLeg {
+            pub public: rsa::RsaPublicKey,
+            pub canned: Arc<dyn Fn(&str) -> (&str, i32) + Send + Sync>,
+        }
+
         /// Reads one newline-terminated line, or gives up at the wire's end.
         fn read_line(stream: &mut UnixStream) -> Option<String> {
             let mut bytes = Vec::new();
@@ -903,10 +1055,42 @@ mod tests {
 
         /// Serves the body's control session at `<runtime>/vsock.sock`
         /// (vsock.rs's convention): one accept, the CONNECT line asserted
-        /// and OK'd, the script run, and the park.
-        pub(super) fn serve(runtime: &Path, script: Vec<Step>, parked: Option<mpsc::Receiver<()>>) {
+        /// and OK'd, the script run, and the park. With an `adb` leg, a
+        /// second thread takes the socket's later accepts — the daemon's
+        /// own adbd dial on port 5555 — but only after the session's dance
+        /// has consumed the first accept: two threads accepting the same
+        /// listener would race the session's own connection.
+        pub(super) fn serve(
+            runtime: &Path,
+            script: Vec<Step>,
+            parked: Option<mpsc::Receiver<()>>,
+            adb: Option<AdbLeg>,
+        ) {
             let path = runtime.join("vsock.sock");
             let listener = UnixListener::bind(&path).unwrap();
+            let (ready, waited) = mpsc::channel::<()>();
+            if let Some(leg) = adb {
+                let adb_listener = listener.try_clone().unwrap();
+                std::thread::spawn(move || {
+                    // The nod: the session took the first accept; every
+                    // connect past it is an adb verb's dial.
+                    waited.recv().ok();
+                    loop {
+                        let Ok((mut stream, _)) = adb_listener.accept() else { break };
+                        stream.set_read_timeout(Some(Duration::from_secs(2))).ok();
+                        let Some(line) = read_line(&mut stream) else { break };
+                        if !line.starts_with("CONNECT 5555") {
+                            break;
+                        }
+                        stream.write_all(b"OK 1\n").unwrap();
+                        crate::adbc::fake::serve_connection(
+                            &mut stream,
+                            &leg.public,
+                            leg.canned.as_ref(),
+                        );
+                    }
+                });
+            }
             std::thread::spawn(move || {
                 let (mut stream, _) = listener.accept().unwrap();
                 let line = read_line(&mut stream).unwrap();
@@ -915,6 +1099,7 @@ mod tests {
                     "the transport's handshake is the CONNECT line: {line:?}"
                 );
                 stream.write_all(b"OK 1\n").unwrap();
+                drop(ready);
                 for step in script {
                     match step {
                         Step::Write(envelope) => write_envelope(&mut stream, &envelope).unwrap(),
@@ -1315,6 +1500,7 @@ mod tests {
                 script
             },
             None,
+            None,
         );
 
         let recorder: Arc<Recorder> = Arc::new(Recorder(Mutex::new(Vec::new())));
@@ -1350,7 +1536,7 @@ mod tests {
         let dir = fresh("engine-end");
         engine_fake::start_dying(&dir);
         let (park, parked) = mpsc::channel::<()>();
-        guest::serve(&dir, guest::hello_green(), Some(parked));
+        guest::serve(&dir, guest::hello_green(), Some(parked), None);
 
         let recorder: Arc<Recorder> = Arc::new(Recorder(Mutex::new(Vec::new())));
         let run = mpsc::channel();
@@ -1411,6 +1597,7 @@ mod tests {
                 ))));
                 script
             },
+            None,
             None,
         );
 
@@ -1473,7 +1660,7 @@ mod tests {
 
         let (gate_write, gate_end) = engine_fake::start_gated(&dir);
         let (park, parked) = mpsc::channel::<()>();
-        guest::serve(&dir, guest::hello_green(), Some(parked));
+        guest::serve(&dir, guest::hello_green(), Some(parked), None);
 
         let recorder: Arc<Recorder> = Arc::new(Recorder(Mutex::new(Vec::new())));
         let run = mpsc::channel();
@@ -1547,7 +1734,7 @@ mod tests {
 
         let _hold = engine_fake::start(&dir);
         let (park, parked) = mpsc::channel::<()>();
-        guest::serve(&dir, guest::hello_green(), Some(parked));
+        guest::serve(&dir, guest::hello_green(), Some(parked), None);
 
         let recorder: Arc<Recorder> = Arc::new(Recorder(Mutex::new(Vec::new())));
         let run = mpsc::channel();
@@ -1646,7 +1833,7 @@ mod tests {
 
         let _hold = engine_fake::start(&dir);
         let (park, parked) = mpsc::channel::<()>();
-        guest::serve(&dir, guest::hello_green(), Some(parked));
+        guest::serve(&dir, guest::hello_green(), Some(parked), None);
 
         let recorder: Arc<Recorder> = Arc::new(Recorder(Mutex::new(Vec::new())));
         let run = mpsc::channel();
@@ -1733,6 +1920,114 @@ mod tests {
         match answer.payload {
             Some(envelope::Payload::AppList(list)) => assert!(list.apps.is_empty()),
             _ => panic!("list-apps's answer was an AppList expected"),
+        }
+
+        drop(park);
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// The daemon's own ADB, through the door whole: a grant, then an
+    /// `uninstall` whose words ride the body's client into the fake adbd —
+    /// the CONNECT line, the AUTH token verified against the daemon's
+    /// own key's public half, the shell service, the exit-0 words back as
+    /// the Reply — and a failing shell's words back as the failure.
+    #[test]
+    fn an_uninstall_verb_rides_the_daemons_own_adb() {
+        use std::os::unix::fs::PermissionsExt;
+        let dir = fresh("adb-door");
+        std::fs::set_permissions(&dir, std::fs::Permissions::from_mode(0o700)).unwrap();
+
+        // The daemon's key at the instance before the run: the body's lazy
+        // load parses it rather than generating, and the fake's verify is
+        // against the same key's public half — the guest's own trust model
+        // (the pubkey posts into the BootConfig at the engine-launch slice).
+        let key = crate::adbkey::Key::load_or_create(dir.join(crate::adbkey::KEY_FILE)).unwrap();
+        let _hold = engine_fake::start(&dir);
+        let (park, parked) = mpsc::channel::<()>();
+        guest::serve(
+            &dir,
+            guest::hello_green(),
+            Some(parked),
+            Some(guest::AdbLeg {
+                public: key.public(),
+                canned: Arc::new(|service| {
+                    if service.contains("pm uninstall") {
+                        ("Success", 0)
+                    } else {
+                        ("", 1)
+                    }
+                }),
+            }),
+        );
+
+        let recorder: Arc<Recorder> = Arc::new(Recorder(Mutex::new(Vec::new())));
+        let run = mpsc::channel();
+        {
+            let sender = run.0.clone();
+            let dir = dir.clone();
+            let recorder = Arc::clone(&recorder);
+            std::thread::spawn(move || {
+                sender
+                    .send(running_on(config(&dir), Some(recorder.as_ref()), clock()))
+                    .unwrap();
+            });
+        }
+
+        // The door: probe until bound, then a granted conversation.
+        for _ in 0..40 {
+            match UnixStream::connect(dir.join(roles::SOCKET_NAME)) {
+                Ok(stream) => {
+                    drop(stream);
+                    break;
+                }
+                Err(_) => std::thread::sleep(Duration::from_millis(50)),
+            }
+        }
+        let mut asker = UnixStream::connect(dir.join(roles::SOCKET_NAME)).unwrap();
+        asker.set_read_timeout(Some(Duration::from_secs(2))).unwrap();
+        write_envelope(
+            &mut asker,
+            &envelope_of(envelope::Payload::RoleInvite(RoleInvite {
+                role: crate::proto::roles::Role::ControlPanel as i32,
+                package: String::new(),
+                client_version: "the adb band's asker".into(),
+            })),
+        )
+        .unwrap();
+        read_envelope(&mut asker).unwrap().unwrap();
+
+        // Uninstall: the fake's shell answers "Success", the exit 0, and
+        // the door's reply carries the words in the asker's id.
+        let mut ask = envelope_of(envelope::Payload::Verb(Verb {
+            name: String::from("uninstall"),
+            argument: String::from("com.avo.notes"),
+        }));
+        ask.request_id = 21;
+        write_envelope(&mut asker, &ask).unwrap();
+        let answer = read_envelope(&mut asker).unwrap().unwrap();
+        assert_eq!(answer.request_id, 21, "the answer pairs the asker's id");
+        match answer.payload {
+            Some(envelope::Payload::Reply(the_reply)) => {
+                assert_eq!(the_reply.status, reply::Status::Ok as i32);
+                assert_eq!(the_reply.message, "Success");
+            }
+            _ => panic!("an uninstall's answer was a reply expected"),
+        }
+
+        // A shell the device fails: the words ride as the failure.
+        let mut ask = envelope_of(envelope::Payload::Verb(Verb {
+            name: String::from("force-stop"),
+            argument: String::from("com.avo.gone"),
+        }));
+        ask.request_id = 22;
+        write_envelope(&mut asker, &ask).unwrap();
+        let answer = read_envelope(&mut asker).unwrap().unwrap();
+        match answer.payload {
+            Some(envelope::Payload::Reply(the_reply)) => {
+                assert_eq!(the_reply.status, reply::Status::Failed as i32);
+                assert_eq!(the_reply.message, "exit 1", "the exit rides when the device says nothing");
+            }
+            _ => panic!("a failed shell's answer was a reply expected"),
         }
 
         drop(park);

@@ -14,6 +14,8 @@
 //! docs/linux-port.md replaces it.
 
 pub mod adb;
+pub mod adbkey;
+pub mod adbc;
 pub mod audio;
 pub mod body;
 pub mod control;

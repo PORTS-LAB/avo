@@ -8,3 +8,5 @@ publish = false
 
 [dependencies]
 prost = "0.13"
+rsa = "0.9"
+sha1 = { version = "0.10", features = ["oid"] }

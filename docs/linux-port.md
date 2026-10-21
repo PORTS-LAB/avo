@@ -189,10 +189,19 @@ the Mac's counter at DaemonCore.swift:1313), `resize`, `close`, the
 notification pair, set-refresh-rate, set-display-visibility,
 focus-display, set-clipboard, list-apps: typed payloads over the
 session's request slots, the guest's own typed answers (`DisplayReady`,
-`AppList`) passing through the door unopened. Still to come for the
-daemon itself: the verbs pinned to the daemon's own ADB client stack
-(`pm install-*` and friends — the signing dependency the adb slice
-deliberately left out) and the window shims.
+`AppList`) passing through the door unopened. The daemon's own ADB client
+stack arrived next (adbkey.rs + adbc.rs): the RSA key the Mac kept in
+Application Support (PKCS#8 PEM at the instance, 0600, the mincrypt
+public-key encoding for the AUTH; the keys ride rustcrypto's `rsa`, pure
+Rust, where the Mac's SecKey), the client (CNXN/AUTH, WRTE/OKAY flow
+control,
+`shell,v2,raw:` records, `exec:` streaming, the `pm install-*` session —
+AvoADB/ADBConnection.swift + ADBServices.swift), and its verbs over the
+door — `install`, `uninstall`, `force-stop`, `delete-app-data`,
+`get-permissions` (the dumpsys parse at HostAgent.swift:1839) — plus
+`set-permission` riding the session as the guest's SetPermission. Still
+to come: the BootConfig's pubkey post at the engine-launch slice (the
+guest trusts the key from its boot disk) and the window shims.
 
 **Done when:** the daemon and UI run apps end to end — an installed app
 opens in its own window, input and sound reach it, and notifications arrive
