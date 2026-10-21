@@ -56,6 +56,7 @@ use std::os::unix::fs::MetadataExt;
 use std::os::unix::net::{UnixListener, UnixStream};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::mpsc;
 use std::sync::{Arc, Mutex};
 use std::thread::{self, JoinHandle};
 use std::time::Duration;
@@ -101,6 +102,24 @@ impl std::error::Error for ServeError {}
 /// The daemon body's status, asked exactly when a RoleGrant is built
 /// (XPCInterface.swift:285's `status`) — never as a poll.
 type StatusFn = Arc<dyn Fn() -> String + Send + Sync>;
+
+/// One verdict from the daemon's body: Ok carries the reply's message;
+/// Err carries the reply's status and its wording.
+pub type Verdict = Result<String, (reply::Status, String)>;
+
+/// One ask the door hands its daemon's bus: what the verb said and who
+/// spoke, with the oneshot the verdict rides. Mac truth: the verb set is
+/// XPCInterface.swift's selectors; per-role gating lands on the bus.
+pub struct Ask {
+    pub role: roles::Role,
+    pub name: String,
+    pub argument: String,
+    pub settle: mpsc::Sender<Verdict>,
+}
+
+/// The body's verb bus: posts the ask (the loop indie the door reads
+/// it), no waiting — the verdict's own oneshot is the waiting.
+pub type VerbBus = Arc<dyn Fn(Ask) + Send + Sync>;
 
 /// Who has been granted a hello, `(role, package)` in arrival order: the
 /// shim's package matches XPCInterface.swift:270's `shim(package:)`, the
@@ -168,6 +187,19 @@ pub fn serve(path: PathBuf, status: impl Fn() -> String + Send + Sync + 'static)
     serve_with(path, status, DAEMON_VERSION, own_uid)
 }
 
+/// `serve` with a verb bus: post-grant `Verb` asks go to the bus, the
+/// verdict rides back as the generic Reply in the asker's id. The door
+/// without a bus answers the catch-all as ever — `serve` itself.
+pub fn serve_with_verbs(
+    path: PathBuf,
+    status: impl Fn() -> String + Send + Sync + 'static,
+    bus: VerbBus,
+) -> Result<Server, ServeError> {
+    let own_uid = own_euid()
+        .ok_or_else(|| ServeError::Bind(io::Error::other("the daemon's own uid does not read from /proc/self/status")))?;
+    serve_with_verbs_uid(path, status, DAEMON_VERSION, own_uid, Some(bus))
+}
+
 /// `serve` with the version string and the daemon's own uid in hand —
 /// the tests' seam (the daemon body calls `serve`). `daemon_version`
 /// becomes each RoleGrant's `daemon_version` (XPCInterface.swift:284);
@@ -180,6 +212,18 @@ pub fn serve_with(
     daemon_version: &str,
     own_uid: u32,
 ) -> Result<Server, ServeError> {
+    serve_with_verbs_uid(path, status, daemon_version, own_uid, None)
+}
+
+/// The plumbing every `serve*` lands in: the mount gate, the bind, the
+/// accept loop with the verb bus (None = the catch-all as ever).
+fn serve_with_verbs_uid(
+    path: PathBuf,
+    status: impl Fn() -> String + Send + Sync + 'static,
+    daemon_version: &str,
+    own_uid: u32,
+    verbs: Option<VerbBus>,
+) -> Result<Server, ServeError> {
     the_mount_gate(&path, own_uid)?;
     let listener = UnixListener::bind(&path).map_err(ServeError::Bind)?;
     let stopped = Arc::new(AtomicBool::new(false));
@@ -190,7 +234,9 @@ pub fn serve_with(
         let seen = Arc::clone(&seen);
         let stopped = Arc::clone(&stopped);
         let loop_path = path.clone();
-        thread::spawn(move || accept_loop(listener, loop_path, status, daemon_version, seen, stopped))
+        thread::spawn(move || {
+            accept_loop(listener, loop_path, status, daemon_version, seen, stopped, verbs)
+        })
     };
     Ok(Server { path, seen, stopped, thread: Some(thread) })
 }
@@ -251,6 +297,7 @@ fn accept_loop(
     daemon_version: Arc<str>,
     seen: SeenList,
     stopped: Arc<AtomicBool>,
+    verbs: Option<VerbBus>,
 ) {
     let _ = listener.set_nonblocking(true);
     loop {
@@ -262,7 +309,8 @@ fn accept_loop(
                 let status = Arc::clone(&status);
                 let daemon_version = Arc::clone(&daemon_version);
                 let seen = Arc::clone(&seen);
-                thread::spawn(move || connection(stream, status, daemon_version, seen));
+                let verbs = verbs.clone();
+                thread::spawn(move || connection(stream, status, daemon_version, seen, verbs));
             }
             // WouldBlock is the loop's own park: nothing to accept, so
             // re-look at the flag soon.
@@ -287,7 +335,13 @@ fn accept_loop(
 /// uid comparison) rides before anything is written back. The granted
 /// role is stashed here (`granted`) and in `seen` for the verifier:
 /// recording it is what the verb-level checks later land on.
-fn connection(mut stream: UnixStream, status: StatusFn, daemon_version: Arc<str>, seen: SeenList) {
+fn connection(
+    mut stream: UnixStream,
+    status: StatusFn,
+    daemon_version: Arc<str>,
+    seen: SeenList,
+    verbs: Option<VerbBus>,
+) {
     let mut granted: Option<(roles::Role, String)> = None;
     loop {
         // One envelope at a time on the control channel's framing
@@ -377,6 +431,56 @@ fn connection(mut stream: UnixStream, status: StatusFn, daemon_version: Arc<str>
             // own close ever writes one). This socket answers nothing —
             // the stream just ends.
             (false, Some(envelope::Payload::Goodbye(_))) => break,
+            // The verb: with a bus, the door hands the ask over and
+            // awaits the verdict — the generic Reply in the asker's id.
+            // Without a bus, the catch-all names it as ever. Mac truth:
+            // the verb set is XPCInterface.swift:17-127, served by
+            // DaemonService.swift's state machines (the body's loop says
+            // the words to the engine's own grammar).
+            (false, Some(envelope::Payload::Verb(verb))) => {
+                let reply = match verbs.as_ref() {
+                    Some(bus) => {
+                        let (seal, settled) = mpsc::channel::<Verdict>();
+                        bus(Ask {
+                            role: granted.as_ref().expect("the verb arm is post-grant").0,
+                            name: verb.name.clone(),
+                            argument: verb.argument.clone(),
+                            settle: seal,
+                        });
+                        match settled.recv() {
+                            Ok(Ok(message)) => a_reply(
+                                request_id,
+                                envelope::Payload::Reply(Reply {
+                                    status: reply::Status::Ok as i32,
+                                    message,
+                                }),
+                            ),
+                            Ok(Err((status, message))) => a_reply(
+                                request_id,
+                                envelope::Payload::Reply(Reply {
+                                    status: status as i32,
+                                    message,
+                                }),
+                            ),
+                            Err(_) => a_reply(
+                                request_id,
+                                envelope::Payload::Reply(Reply {
+                                    status: reply::Status::Failed as i32,
+                                    message: String::from(
+                                        "the daemon went away before the ask settled",
+                                    ),
+                                }),
+                            ),
+                        }
+                    }
+                    // No bus: the catch-all, naming the ask. The match
+                    // consumed the verb; a twin names it.
+                    None => an_unsupported(request_id, Some(&envelope::Payload::Verb(verb.clone()))),
+                };
+                if write_envelope(&mut stream, &reply).is_err() {
+                    break;
+                }
+            }
             // The Mac's verb set (XPCInterface.swift:17-76 —
             // status/startVM/stopVM/restartVM/retryGPU/…/forceStop — and
             // through the protocol's end) is DaemonService.swift's state
@@ -429,6 +533,7 @@ fn named(payload: &envelope::Payload) -> &'static str {
         envelope::Payload::Ping(_) => "Ping",
         envelope::Payload::Pong(_) => "Pong",
         envelope::Payload::Reply(_) => "Reply",
+        envelope::Payload::Verb(_) => "Verb",
         envelope::Payload::Launch(_) => "Launch",
         envelope::Payload::Resize(_) => "Resize",
         envelope::Payload::Close(_) => "Close",
@@ -500,7 +605,7 @@ fn euid_of(status: &str) -> Option<u32> {
 mod tests {
     use super::*;
     use crate::control::envelope_of;
-    use crate::proto::{goodbye, Goodbye, Launch, RoleInvite};
+    use crate::proto::{goodbye, Goodbye, Launch, RoleInvite, Verb};
     use prost::Message as _;
     use std::os::unix::fs::PermissionsExt;
     use std::path::Path;
@@ -865,5 +970,117 @@ mod tests {
         let error = read_envelope(&mut client).unwrap_err();
         assert_eq!(error.kind(), io::ErrorKind::UnexpectedEof, "the end is EOF, not a goodbye");
         server.stop();
+    }
+
+    /// A post-grant Verb with a bus rides to the bus and the verdict
+    /// rides back as the generic Reply in the asker's id — proto.rs tag
+    /// 64's whole little round trip on the door's own grammar.
+    #[test]
+    fn a_verb_rides_the_bus_and_the_verdict_rides_back() {
+        let socket = Socket::named();
+        let heard: Arc<Mutex<Vec<(roles::Role, String, String)>>> =
+            Arc::new(Mutex::new(Vec::new()));
+        let bus: VerbBus = {
+            let heard = Arc::clone(&heard);
+            Arc::new(move |ask: Ask| {
+                heard
+                    .lock()
+                    .unwrap()
+                    .push((ask.role, ask.name.clone(), ask.argument.clone()));
+                let _ = ask.settle.send(Ok(String::from("the asker rides")));
+            })
+        };
+        let server = serve_with_verbs(socket.path.clone(), || String::from("running"), bus).unwrap();
+        let mut client = dial(&socket.path);
+        hello(&mut client, roles::Role::ControlPanel, "", 0);
+        say(
+            &mut client,
+            9,
+            envelope::Payload::Verb(Verb { name: String::from("pause"), argument: String::new() }),
+        );
+        let answer = hear(&mut client);
+        assert_eq!(answer.request_id, 9, "the reply pairs the asker's id");
+        match answer.payload {
+            Some(envelope::Payload::Reply(answer)) => {
+                assert_eq!(answer.status, reply::Status::Ok as i32);
+                assert_eq!(answer.message, "the asker rides");
+            }
+            other => panic!("not a reply: {other:?}"),
+        }
+        // The bus heard the ask whole: who spoke it, and what was asked.
+        assert_eq!(
+            *heard.lock().unwrap(),
+            vec![(roles::Role::ControlPanel, String::from("pause"), String::new())],
+        );
+        server.stop();
+    }
+
+    /// No bus, a Verb: the catch-all names it as every other payload —
+    /// the Unsupported wording names the verb's own words and where the
+    /// real state machines live, and the connection stays.
+    #[test]
+    fn a_verb_without_a_bus_gets_the_catch_all() {
+        let socket = Socket::named();
+        let server =
+            serve_with(socket.path.clone(), || String::from("running"), DAEMON_VERSION, own_uid())
+                .unwrap();
+        let mut client = dial(&socket.path);
+        hello(&mut client, roles::Role::ControlPanel, "", 0);
+        say(
+            &mut client,
+            3,
+            envelope::Payload::Verb(Verb {
+                name: String::from("restart"),
+                argument: String::new(),
+            }),
+        );
+        let answer = hear(&mut client);
+        match answer.payload {
+            Some(envelope::Payload::Reply(answer)) => {
+                assert_eq!(answer.status, reply::Status::Unsupported as i32);
+                assert!(answer.message.contains("Verb"), "names it: {}", answer.message);
+                assert!(
+                    answer.message.contains("DaemonService"),
+                    "names the state machines: {}",
+                    answer.message
+                );
+            }
+            other => panic!("not a reply: {other:?}"),
+        }
+        // The stays-open rule: the next Ping still answers.
+        say(&mut client, 4, envelope::Payload::Ping(Ping { nonce: 7 }));
+        let answer = hear(&mut client);
+        assert_eq!(answer.request_id, 4, "the door stayed open for the next frame");
+        server.stop();
+    }
+
+    /// The verb ask's own pins: field 64 — key varint (64 << 3 | 2) = 514
+    /// → 0x82 0x04 — then the inner length (7) and the inner Verb: name
+    /// "pause" (`0x0A 0x05`), the argument empty and so left off the wire.
+    #[test]
+    fn the_verbs_wire_bytes_are_pinned() {
+        let envelope = Envelope {
+            protocol_version: PROTOCOL_VERSION,
+            request_id: 0,
+            payload: Some(envelope::Payload::Verb(Verb {
+                name: "pause".into(),
+                argument: String::new(),
+            })),
+        };
+        let mut buf = Vec::new();
+        envelope.encode(&mut buf).unwrap();
+        assert_eq!(
+            buf,
+            vec![0x08, 0x01, 0x82, 0x04, 0x07, 0x0A, 0x05, b'p', b'a', b'u', b's', b'e'],
+            "the wire must not move; 64 joins at the ladder's end"
+        );
+        let back = Envelope::decode(buf.as_slice()).unwrap();
+        match back.payload {
+            Some(envelope::Payload::Verb(verb)) => {
+                assert_eq!(verb.name, "pause");
+                assert_eq!(verb.argument, "");
+            }
+            other => panic!("a verb must round-trip as one: {other:?}"),
+        }
     }
 }

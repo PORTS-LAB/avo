@@ -180,11 +180,15 @@ Mac's exit codes; the **roles socket** (`roles.rs`, `daemon.sock`) — the
 hello dance the Mac's XPC carried, `RoleInvite`→`RoleGrant`, with the
 mount gate standing where the Mac used code signing (a 0700 directory of
 the daemon's own user); and **packaging** (`dist/`, the systemd user unit
-the LaunchAgent maps onto). Still to come for the daemon itself: the
-door's verbs — the typed payloads the Mac's XPC surface names, routed
-through the loop's engine and session handles; the daemon's own ADB
-client stack (`pm install-*` and friends — the signing dependency the
-adb slice deliberately left out); and the window shims.
+the LaunchAgent maps onto). The engine's own one-line grammar rides the
+door now: a granted control panel asks `pause` (or touch, key, tap,
+swipe, display, location, snapshot, gamepad — proto.rs's `Verb`, tag 64)
+and the loop answers the engine's own wording in the asker's id. Still
+to come for the daemon itself: the door's remaining verb classes — the
+guest-bound ones (Launch, ListApps, the app set) routed over the
+session's request lanes; the daemon's own ADB client stack (`pm
+install-*` and friends — the signing dependency the adb slice
+deliberately left out); and the window shims.
 
 **Done when:** the daemon and UI run apps end to end — an installed app
 opens in its own window, input and sound reach it, and notifications arrive

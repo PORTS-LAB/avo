@@ -49,7 +49,7 @@ use std::time::Duration;
 use crate::adb::{self, AdbRelay};
 use crate::engine::{Engine, EngineError, Event};
 use crate::notifications::{self, Presenter};
-use crate::proto::{envelope, Envelope, Notification};
+use crate::proto::{envelope, reply, Envelope, Notification};
 use crate::roles;
 use crate::session::{ControlSession, Keepalive};
 use crate::{ADB_PORT, CONTROL_PORT, vsock};
@@ -271,7 +271,8 @@ fn decide(msg: BodyMsg) -> Decision {
             | Some(envelope::Payload::Reply(_))
             | Some(envelope::Payload::Goodbye(_))
             | Some(envelope::Payload::RoleInvite(_))
-            | Some(envelope::Payload::RoleGrant(_)) => Decision::Log(
+            | Some(envelope::Payload::RoleGrant(_))
+            | Some(envelope::Payload::Verb(_)) => Decision::Log(
                 "avod: the session carried a control frame on the event side; moved past".to_string(),
             ),
             // Phase 3's next slices consume these: the control panel reads
@@ -449,13 +450,19 @@ fn running_on(config: Config, notifies: Option<&dyn Notifies>, clock: Keepalive)
     // The engine's status rides the grants, read only when a RoleGrant is
     // built; the body tracks it by its own engine events. Its absence is
     // a log line like the relay's, and the loop carries on — the door is
-    // the UI's convenience, the loop the daemon's spine.
+    // the UI's convenience, the loop the daemon's spine. With the door
+    // stands the verb bus: a post-grant `Verb` posts into the channel the
+    // loop drains; the asker's own oneshot is the waiting.
     let statuses: Arc<Mutex<String>> = Arc::new(Mutex::new("running".to_string()));
+    let (verb_post, verb_inbox) = mpsc::channel::<roles::Ask>();
     let mut roles_server: Option<roles::Server> = None;
     {
         let statuses_for_roles = Arc::clone(&statuses);
+        let bus: roles::VerbBus = Arc::new(move |ask: roles::Ask| {
+            let _ = verb_post.send(ask);
+        });
         let door = config.runtime.join(roles::SOCKET_NAME);
-        match roles::serve(door, move || statuses_for_roles.lock().expect("the status lock").clone()) {
+        match roles::serve_with_verbs(door, move || statuses_for_roles.lock().expect("the status lock").clone(), bus) {
             Err(error) => eprintln!("avod: the roles socket stays off: {error}"),
             Ok(server) => roles_server = Some(server),
         }
@@ -505,6 +512,57 @@ fn running_on(config: Config, notifies: Option<&dyn Notifies>, clock: Keepalive)
                 return code;
             }
         }
+
+        // The door's verb asks: the bus posts, the loop settles, the door
+        // answers its asker in the asker's id. Non-blocking on purpose —
+        // a quiet door costs the round nothing.
+        for ask in verb_inbox.try_iter() {
+            let verdict = settle_the_ask(&ask, &engine);
+            let _ = ask.settle.send(verdict);
+        }
+    }
+}
+
+/// The door's verb ask, settled by the loop over the engine's own
+/// one-line grammar (`control.rs`'s `run` match): the first word the
+/// engine asked for, the argument its remainder. The reply's wording is
+/// the engine's own on a refusal; the verbs the engine does not say yet
+/// name the state machine they wait for. The asker's role rides along
+/// for the first per-role gates (the Mac checks per verb; nothing in v1
+/// narrows by role — every granted caller may speak the engine's line
+/// grammar).
+fn settle_the_ask(ask: &roles::Ask, engine: &Engine) -> Result<String, (reply::Status, String)> {
+    if ask.name.contains('\n') || ask.argument.contains('\n') {
+        return Err((
+            reply::Status::InvalidArgument,
+            "an ask is one line; the door does not say two".to_string(),
+        ));
+    }
+    match ask.name.as_str() {
+        "pause" | "resume" | "touch" | "key" | "tap" | "swipe" | "display" | "location"
+        | "snapshot" | "gamepad" => {
+            let line = if ask.argument.is_empty() {
+                ask.name.clone()
+            } else {
+                format!("{} {}", ask.name, ask.argument)
+            };
+            match engine.command(&line) {
+                Ok(()) => Ok(format!("the engine took {line}")),
+                Err(EngineError::Protocol(what)) => Err((reply::Status::Failed, what)),
+                Err(EngineError::TimedOut) => Err((
+                    reply::Status::Failed,
+                    "the engine's wait ran past its timeout; the ask stands unspoken".to_string(),
+                )),
+                Err(EngineError::Closed) => Err((
+                    reply::Status::Failed,
+                    "the engine's socket is gone".to_string(),
+                )),
+            }
+        }
+        other => Err((
+            reply::Status::Unsupported,
+            format!("{other} is not served by the door yet: the daemon's own state machines are the Mac's DaemonService.swift's, a later slice of the port"),
+        )),
     }
 }
 
@@ -558,8 +616,9 @@ mod tests {
     use super::*;
     use crate::control::{read_envelope, write_envelope};
     use crate::proto::{
-        goodbye, ClipboardChanged, Goodbye, Hello, NotificationRemoved, Pong, RoleGrant, RoleInvite,
-        SetClipboard, TaskStarted, PROTOCOL_MIN_VERSION, PROTOCOL_VERSION,
+        goodbye, ClipboardChanged, Goodbye, Hello, NotificationRemoved, Pong, RoleGrant,
+        RoleInvite, SetClipboard, TaskStarted, Verb, PROTOCOL_MIN_VERSION, PROTOCOL_VERSION,
+        reply,
     };
     use std::io::{Read, Write};
     use std::net::TcpListener;
@@ -762,7 +821,20 @@ mod tests {
             let listener = UnixListener::bind(&path).unwrap();
             let (hold, park_rx) = mpsc::channel::<()>();
             std::thread::spawn(move || {
-                let _command = listener.accept().unwrap();
+                // The command leg: the body holds it silently to open, and
+                // from the verb slice on, SPEAKS into it — one line, one
+                // reply (`ok`, possibly `error ...`), exactly the
+                // engine's `run()` shape. The leg answers whatever comes
+                // and dies when the wire does.
+                let (command, _) = listener.accept().unwrap();
+                std::thread::spawn(move || {
+                    let mut command = command;
+                    while let Some(_line) = read_line(&mut command) {
+                        if command.write_all(b"ok\n").is_err() {
+                            break;
+                        }
+                    }
+                });
                 let mut sub = listener.accept().unwrap().0;
                 assert_eq!(read_line(&mut sub).as_deref(), Some("subscribe"));
                 sub.write_all(b"ok\n").unwrap();
@@ -1219,6 +1291,105 @@ mod tests {
             !dir.join(roles::SOCKET_NAME).exists(),
             "the door's file went with the run"
         );
+        drop(park);
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// The door's verb, whole: a grant, then a post-grant ask whose line
+    /// the engine's own command leg answers, its reply carrying the loop's
+    /// verdict — `the engine took pause` — and an ask the vocabulary
+    /// does not serve, answered by its own naming. The engine fake's
+    /// command leg answers `ok` to every line (engine.rs's one-line
+    /// shape); the live ` Pause'd ` event never races this read.
+    #[test]
+    fn a_verb_rides_the_loop_and_the_engine_takes_the_line() {
+        use std::os::unix::fs::PermissionsExt;
+        let dir = fresh("verb-door");
+        std::fs::set_permissions(&dir, std::fs::Permissions::from_mode(0o700)).unwrap();
+
+        let _hold = engine_fake::start(&dir);
+        let (park, parked) = mpsc::channel::<()>();
+        guest::serve(&dir, guest::hello_green(), Some(parked));
+
+        let recorder: Arc<Recorder> = Arc::new(Recorder(Mutex::new(Vec::new())));
+        let run = mpsc::channel();
+        {
+            let sender = run.0.clone();
+            let dir = dir.clone();
+            let recorder = Arc::clone(&recorder);
+            std::thread::spawn(move || {
+                sender
+                    .send(running_on(config(&dir), Some(recorder.as_ref()), clock()))
+                    .unwrap();
+            });
+        }
+
+        // The door: probe until bound, then a granted conversation.
+        for _ in 0..40 {
+            match UnixStream::connect(dir.join(roles::SOCKET_NAME)) {
+                Ok(stream) => {
+                    drop(stream);
+                    break;
+                }
+                Err(_) => std::thread::sleep(Duration::from_millis(50)),
+            }
+        }
+        let mut asker = UnixStream::connect(dir.join(roles::SOCKET_NAME)).unwrap();
+        asker
+            .set_read_timeout(Some(Duration::from_secs(2)))
+            .unwrap();
+        write_envelope(
+            &mut asker,
+            &envelope_of(envelope::Payload::RoleInvite(RoleInvite {
+                role: crate::proto::roles::Role::ControlPanel as i32,
+                package: String::new(),
+                client_version: "the battery's asker".into(),
+            })),
+        )
+        .unwrap();
+        read_envelope(&mut asker).unwrap().unwrap();
+
+        // The ask the engine takes: the loop's line lands, the verdict
+        // says so, and the reply pairs the asker's id.
+        write_envelope(
+            &mut asker,
+            &envelope_of(envelope::Payload::Verb(Verb {
+                name: String::from("pause"),
+                argument: String::new(),
+            })),
+        )
+        .unwrap();
+        let answer = read_envelope(&mut asker).unwrap().unwrap();
+        assert_eq!(answer.request_id, 0, "the ask rode envelope_of's id");
+        match answer.payload {
+            Some(envelope::Payload::Reply(the_reply)) => {
+                assert_eq!(the_reply.status, reply::Status::Ok as i32);
+                assert_eq!(the_reply.message, "the engine took pause");
+            }
+            _ => panic!("a verb's verdict was expected"),
+        }
+
+        // The ask the vocabulary does not serve: it names its own way out.
+        let mut sound = envelope_of(envelope::Payload::Verb(Verb {
+            name: String::from("sound"),
+            argument: String::from("playback on"),
+        }));
+        sound.request_id = 77;
+        write_envelope(&mut asker, &sound).unwrap();
+        let answer = read_envelope(&mut asker).unwrap().unwrap();
+        assert_eq!(answer.request_id, 77, "the refusal pairs the asker's id");
+        match answer.payload {
+            Some(envelope::Payload::Reply(the_reply)) => {
+                assert_eq!(the_reply.status, reply::Status::Unsupported as i32);
+                assert!(
+                    the_reply.message.contains("sound is not served"),
+                    "the refusal names the ask: {}",
+                    the_reply.message
+                );
+            }
+            _ => panic!("a refusal was expected"),
+        }
+
         drop(park);
         let _ = std::fs::remove_dir_all(&dir);
     }

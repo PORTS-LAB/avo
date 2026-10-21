@@ -133,6 +133,23 @@ pub struct RoleGrant {
     pub vm_state: String,
 }
 
+/// Client → daemon on the roles socket, after the hello (tag 64): one
+/// verb ask, the Mac's XPC verb set flat (XPCInterface.swift:17-127 —
+/// the selectors DaemonService.swift's state machines serve). The reply
+/// is the generic Reply, in the asker's id. v1 speaks the engine's
+/// one-line commands; the rest names where its state machine lives.
+#[derive(Clone, PartialEq, Message)]
+pub struct Verb {
+    /// The Mac's verb selector, flat — the engine's own grammar's first
+    /// word ("pause", "resume", "touch"…).
+    #[prost(string, tag = "1")]
+    pub name: String,
+    /// The line's remainder, or empty. Never carries a newline: the
+    /// engine's grammar is one line, and the door refuses earlier.
+    #[prost(string, tag = "2")]
+    pub argument: String,
+}
+
 /// The Mac's `ClientHello.Role` (XPCInterface.swift:268-271), on the same
 /// numbered-ladder shape `pub mod goodbye` uses.
 pub mod roles {
@@ -620,6 +637,8 @@ pub mod envelope {
         RoleInvite(super::RoleInvite),
         #[prost(message, tag = "63")]
         RoleGrant(super::RoleGrant),
+        #[prost(message, tag = "64")]
+        Verb(super::Verb),
     }
 }
 
@@ -635,7 +654,7 @@ pub struct Envelope {
     /// direction.
     #[prost(uint64, tag = "2")]
     pub request_id: u64,
-    #[prost(oneof = "envelope::Payload", tags = "10, 11, 12, 13, 14, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63")]
+    #[prost(oneof = "envelope::Payload", tags = "10, 11, 12, 13, 14, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64")]
     pub payload: Option<envelope::Payload>,
 }
 
