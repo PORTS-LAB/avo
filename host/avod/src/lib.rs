@@ -3,11 +3,13 @@
 //! control channel's framing and protobuf envelopes (`control`, `proto`),
 //! the engine's shared-memory frame rings, read for a window shim
 //! (`frames`), the guest's input channel's fixed-layout records
-//! (`input`), and the engine's sound rings, read and filled past the
-//! engine's process (`audio`). The Mac's daemon (host/AvoDaemon,
+//! (`input`), the engine's sound rings, read and filled past the
+//! engine's process (`audio`), and a local TCP relay the user's own adb
+//! speaks into (`adb`). The Mac's daemon (host/AvoDaemon,
 //! host/AvoKit) is the reference; phase 3 of docs/linux-port.md replaces
 //! it.
 
+pub mod adb;
 pub mod audio;
 pub mod control;
 pub mod frames;
