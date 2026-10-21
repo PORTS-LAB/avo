@@ -4,17 +4,20 @@
 //! the engine's shared-memory frame rings, read for a window shim
 //! (`frames`), the guest's input channel's fixed-layout records
 //! (`input`), the engine's sound rings, read and filled past the
-//! engine's process (`audio`), and a local TCP relay the user's own adb
-//! speaks into (`adb`). The Mac's daemon (host/AvoDaemon,
+//! engine's process (`audio`), a local TCP relay the user's own adb
+//! speaks into (`adb`), the daemon's client for the engine's own runtime
+//! socket (`engine`), and the desktop's notification service, spoken
+//! through libdbus (`notifications`). The Mac's daemon (host/AvoDaemon,
 //! host/AvoKit) is the reference; phase 3 of docs/linux-port.md replaces
 //! it.
 
 pub mod adb;
 pub mod audio;
-pub mod engine;
 pub mod control;
+pub mod engine;
 pub mod frames;
 pub mod input;
+pub mod notifications;
 pub mod proto;
 pub mod session;
 pub mod vsock;

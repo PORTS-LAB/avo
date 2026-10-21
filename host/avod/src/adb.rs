@@ -843,7 +843,7 @@ mod tests {
             }
             ended_sender.send(()).unwrap();
         });
-        let mut dropped = relay(bind(0).unwrap(), guest.vsock()).unwrap();
+        let dropped = relay(bind(0).unwrap(), guest.vsock()).unwrap();
         let address = dropped.local_addr();
         let _client = TcpStream::connect(address).unwrap();
         wait_for("enter the splice", || dropped.sessions() == 1);
