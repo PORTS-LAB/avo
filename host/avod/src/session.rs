@@ -560,6 +560,9 @@ pub struct ControlSession {
     actor: Arc<Actor>,
     negotiated_version: u32,
     events: mpsc::Receiver<Envelope>,
+    /// ends; the tests wait on the signal (the daemon body reads it as
+    /// its lifecycle's own wire when it lands).
+    #[allow(dead_code)]
     keepalive_gone: mpsc::Receiver<()>,
 }
 
