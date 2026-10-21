@@ -267,7 +267,9 @@ fn decide(msg: BodyMsg) -> Decision {
             | Some(envelope::Payload::Ping(_))
             | Some(envelope::Payload::Pong(_))
             | Some(envelope::Payload::Reply(_))
-            | Some(envelope::Payload::Goodbye(_)) => Decision::Log(
+            | Some(envelope::Payload::Goodbye(_))
+            | Some(envelope::Payload::RoleInvite(_))
+            | Some(envelope::Payload::RoleGrant(_)) => Decision::Log(
                 "avod: the session carried a control frame on the event side; moved past".to_string(),
             ),
             // Phase 3's next slices consume these: the control panel reads
