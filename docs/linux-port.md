@@ -123,13 +123,61 @@ unit where the LaunchAgent was. The Control Panel and the per-app window
 shims rewritten on GTK4 or winit, presenting the frame rings; org.freedesktop.Notifications; `.desktop` entries; packaging as
 distro packages or an AppImage.
 
-Begun: `host/avod` carries the daemon's engine-facing foundation — the
-`vsock.sock` transport client (the Firecracker hybrid convention, matching
-the engine's device byte for byte) and the control channel's varint
-framing plus the full `avo.v1` envelope set, hand-transcribed from
-[proto/avo/v1/control.proto](../proto/avo/v1/control.proto) with prost's
-wire derives. Its pinned-byte tests hold the wire still against the Swift
-and Java peers; 13 tests, buildable on any Linux box without hardware.
+Begun: `host/avod` carries the daemon's engine-facing foundation, one
+module per commit, the Mac's sources the truth for each (`host/AvoKit`,
+`host/AvoDaemon`), no framework the crate cannot spell — the whole
+battery runs on any Linux box without hardware or display:
+
+- **Wire** — the `vsock.sock` transport client (the Firecracker hybrid
+  convention, matching the engine's device byte for byte), the control
+  channel's varint framing (8 MiB ceiling) and the full `avo.v1`
+  envelope set, hand-transcribed from
+  [proto/avo/v1/control.proto](../proto/avo/v1/control.proto) with
+  prost's wire derives; pinned-byte tests hold the wire still against
+  the Swift and Java peers.
+- **Session** (`session.rs`) — the Hello gate and version negotiation
+  (the Swift's `consoleActor` shape), request ids from 1 with slots
+  planted before the write, reply pairing, Pong auto-reply, and —
+  since `8a5a760` — the keepalive: the Swift's `startKeepalive`
+  (Ping every 5s, window 5s, dead at three misses, no goodbye on that
+  death) as a third thread the tests drive at fast clocks.
+- **Frames** (`frames.rs`) — the engine's shared-memory ring reader,
+  three whole buffers, discovery over the engine's control-socket text
+  events.
+- **Input** (`input.rs`) — the guest's fixed-layout input records on
+  vsock 6001, re-encoded byte-for-byte against
+  [proto/testdata/input-v1.bin](../proto/testdata/input-v1.bin).
+- **Audio** (`audio.rs`) — the engine's sound rings in tap.rs's exact
+  shape, playback read and capture filled.
+- **adb relay** (`adb.rs`, from `ff007ff`) — the Mac's
+  `LoopbackListener`/`SocketSplice` semantics: one loopback TCP port the
+  user's own adb connects to, spliced to the guest's 5555 over vsock,
+  refusals non-fatal to the accept loop. The ADB *client* stack
+  (CNXN/AUTH RSA, `pm install-*`) the install pipeline needs later is
+  deliberately not here — it wants a signing dependency.
+- **Engine control** (`engine.rs`, from `7d170b4`) — the daemon's client
+  for the engine's own runtime socket: one-line commands (`display`,
+  `touch`, `key`, `sound`, `pause`…), `ok`/`error` replies, `subscribe`
+  turning a connection into the event stream, and the event vocabulary
+  (frames, sound, gpu, paused/microphone) parsed; the stream's end
+  surfaces once as `Closed`, the way the Mac's ends at the byte.
+- **Notifications** (`notifications.rs`, from `74504fd`) — the desktop's
+  `org.freedesktop.Notifications` through a dlopen'd libdbus (no libc
+  dep, no subprocess; the iterator functions only, since libdbus's
+  append_args is variadic), mapping MacIntegrations.swift's
+  `UserNotificationPresenter` line by line: ongoing never shown, the
+  key through a key→id map onto `replaces_id` and `CloseNotification`,
+  silent as the spec's `suppress-sound` hint, expire 0 for the
+  triggerless Mac shape; the icon and the click back-channel are named
+  gaps. Marshaling is proven by round-tripping through libdbus's own
+  bytes — no bus in any test.
+
+The battery is 67 tests. Still to come for the daemon itself: the
+`avod` binary binding the set into a process (engine socket, session,
+adb relay, notifications wired in order), the daemon's own Unix socket
+for the app/GUI (the XPC roles' replacement), system sound/capture
+wiring through the kernel's PCM now that the engine speaks the
+channels, and then the window shims.
 
 **Done when:** the daemon and UI run apps end to end — an installed app
 opens in its own window, input and sound reach it, and notifications arrive
