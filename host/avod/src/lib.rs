@@ -11,6 +11,7 @@
 
 pub mod adb;
 pub mod audio;
+pub mod engine;
 pub mod control;
 pub mod frames;
 pub mod input;
