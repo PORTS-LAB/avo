@@ -1,9 +1,13 @@
 //! The daemon's end of the Control session (vsock 6000): the Hello gate, the
-//! protocol version it settles, request ids and reply pairing, and one
-//! inbound sink for everything a guest says unsolicited. The semantics are
-//! the Mac's ControlSession.swift (host/AvoKit/Sources/AvoDaemonCore), with
-//! its actor/waiting-Task shape replaced by two std threads: the caller's
-//! and a reader that lives on the transport until the session does.
+//! protocol version it settles, request ids and reply pairing, the keepalive,
+//! and one inbound sink for everything a guest says unsolicited. The
+//! semantics are the Mac's ControlSession.swift
+//! (host/AvoKit/Sources/AvoDaemonCore), with its actor/waiting-Task shape
+//! replaced by three std threads: the caller's, a reader that lives on the
+//! transport until the session does, and the keepalive (`startKeepalive`
+//! there) — one Ping every period, the miss limit at three unanswered in a
+//! row ending the session, with no goodbye written on that death: only the
+//! session's own `close` ever says goodbye, and the wire simply ends.
 
 use std::collections::HashMap;
 use std::io::ErrorKind;
@@ -15,7 +19,7 @@ use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use crate::control::{envelope_of, read_envelope, write_envelope};
-use crate::proto::{envelope, goodbye, Envelope, Goodbye, Hello, Pong, PROTOCOL_MIN_VERSION, PROTOCOL_VERSION};
+use crate::proto::{envelope, goodbye, Envelope, Goodbye, Hello, Ping, Pong, PROTOCOL_MIN_VERSION, PROTOCOL_VERSION};
 use crate::vsock::VsockStream;
 
 /// How long the guest has to answer the opening Hello. ControlSession.swift
@@ -26,6 +30,30 @@ pub const HELLO_TIMEOUT: Duration = Duration::from_secs(10);
 /// Default wait for a request that passes no timeout. ControlSession.swift's
 /// `request` takes `.seconds(30)` the same way.
 pub const REQUEST_TIMEOUT: Duration = Duration::from_secs(30);
+
+/// The keepalive's clocks, ControlSession.swift's `startKeepalive` numbers
+/// straight: a Ping every `period` (the task sleeps `.seconds(5)` before its
+/// first ping and between the rest, so the first one rides the period too),
+/// each ping given `window` to be answered — what a miss is; the Swift's
+/// per-ping `request` timeout is `.seconds(5)`, the same number as its
+/// period — and the session ends on the `miss_limit`-th miss in a row (the
+/// Swift counts with `misses >= 3`). `open` runs these; tests build one with
+/// faster clocks.
+struct Keepalive {
+    period: Duration,
+    window: Duration,
+    miss_limit: u32,
+}
+
+impl Default for Keepalive {
+    fn default() -> Self {
+        Keepalive {
+            period: Duration::from_secs(5),
+            window: Duration::from_secs(5),
+            miss_limit: 3,
+        }
+    }
+}
 
 /// What a session's calls can fail with. `Closed` covers both an explicit
 /// `close` and a transport that died mid-anything; `Protocol` is the wire
@@ -127,6 +155,66 @@ impl Actor {
         }
     }
 
+    /// Ends a session the keepalive's way — the death ControlSession.swift's
+    /// `startKeepalive` reaches with `close(error: guestUnavailable)`: the
+    /// flag goes down, every waiter wakes with `Closed`, and the wire shuts
+    /// with no goodbye written. That is the Swift's shape too — only the
+    /// negotiation's refusal writes a goodbye there; a keepalive death lets
+    /// the guest read the stream's end bare. The reader thread's blocked
+    /// read comes back off the shutdown and it ends behind the same flag.
+    fn sever(&self) {
+        if self.closed.swap(true, Ordering::SeqCst) {
+            return;
+        }
+        if let Ok(writer) = self.writer.lock() {
+            let _ = writer.shutdown(Shutdown::Both);
+        }
+        self.drain();
+    }
+
+    /// The session's `request`, thread-side: the keepalive sends its pings
+    /// through the very same ids, pending slots and deadline waits the
+    /// caller's requests use — ControlSession.swift's `startKeepalive`
+    /// calls its own `request` there too, so one miss reads exactly like
+    /// any other request that never got its reply.
+    fn request(&self, payload: envelope::Payload, deadline: Duration) -> Result<Envelope, SessionError> {
+        // An id was never issued for this connection yet; the Swift session
+        // starts its counter at 1 and this keeps its shape.
+        let request_id = self.next_request_id.fetch_add(1, Ordering::SeqCst);
+        let (sender, reply) = mpsc::channel();
+        // The slot is in before the envelope leaves, so a reply already on
+        // its way cannot miss it (the Swift session plants its continuation
+        // before the write task runs).
+        self.pending.lock().expect("the pending mutex is never poisoned").insert(request_id, sender);
+        match self.post(request_id, payload) {
+            Ok(()) => {}
+            Err(error) => {
+                self.pending.lock().expect("the pending mutex is never poisoned").remove(&request_id);
+                // A write the wire refused ends the session (the Swift
+                // session's writeOrFail expires the request and the reading
+                // task finds the break next); `Protocol` is the one local
+                // refusal — the envelope never left — that leaves the
+                // transport unharmed.
+                if !matches!(error, SessionError::Protocol(_)) {
+                    self.mark_dead();
+                }
+                return Err(error);
+            }
+        }
+        match reply.recv_timeout(deadline) {
+            Ok(answer) => answer,
+            Err(mpsc::RecvTimeoutError::Timeout) => {
+                // The slot comes out so the reply that eventually arrives is
+                // unpaired — dropped in `route`, never to reach the next
+                // request's slot (ControlSession.swift's `expire` removes
+                // the map entry the same way).
+                self.pending.lock().expect("the pending mutex is never poisoned").remove(&request_id);
+                Err(SessionError::TimedOut)
+            }
+            Err(mpsc::RecvTimeoutError::Disconnected) => Err(SessionError::Closed),
+        }
+    }
+
     /// One inbound envelope, routed as ControlSession.swift's `handle()`
     /// does: a non-zero id answers the pending request first; what is left
     /// stands on its payload.
@@ -206,8 +294,63 @@ fn read_loop(mut read_half: UnixStream, actor: Arc<Actor>) {
     // with them, and `events()` reads a disconnect after whatever it held.
 }
 
+/// The Mac's keepalive, ControlSession.swift's `startKeepalive` task spelled
+/// out in a thread: sleep one period, check the session still is, send one
+/// Ping as a plain request (a real id and a pending slot, like every other
+/// request — the Swift calls `self.request(...)` with the ping too, so ids
+/// are spent and slots planted by the keepalive the same way), count a miss
+/// on any error the attempt throws up — the window passing being what a
+/// silent peer makes one — and start the count over on every hit. The miss
+/// limit reached, the session ends itself: `close(error:
+/// guestUnavailable)` in the Swift, `sever` here, no goodbye on the wire.
+/// The `try? sleep`'s cancellation the Swift task eats is the flag check
+/// here — the flag is what `close` and every other end trip it with.
+fn keepalive_loop(actor: Arc<Actor>, keepalive: Keepalive) {
+    let mut nonce = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|elapsed| elapsed.as_nanos() as u64)
+        .unwrap_or(0x9E37_79B9_7F4A_7C15)
+        .max(1);
+    let mut misses = 0;
+    while !actor.closed.load(Ordering::SeqCst) {
+        std::thread::sleep(keepalive.period);
+        // The Swift's `guard let self, await self.isOpen` stands between
+        // the sleep and the ping.
+        if actor.closed.load(Ordering::SeqCst) {
+            return;
+        }
+        nonce = ping_nonce(nonce);
+        match actor.request(envelope::Payload::Ping(Ping { nonce }), keepalive.window) {
+            // A hit is whatever the guest answered with; the count starts
+            // over. A miss is any failure — the window's `TimedOut` above
+            // all, writes the transport refused alongside the rest.
+            Ok(_) => misses = 0,
+            Err(_) => {
+                misses += 1;
+                if misses >= keepalive.miss_limit {
+                    actor.sever();
+                    return;
+                }
+            }
+        }
+    }
+}
+
+/// The pings' nonces. The Swift draws its from `UInt64.random(in:
+/// 1...UInt64.max)`; std has no runner for that, so an xorshift64*
+/// seeded once off the wall clock fills the same shape — a state the
+/// range's zero cannot leak into (nonzero in stays nonzero out, the
+/// multiplier is odd), never the same number twice running.
+fn ping_nonce(mut state: u64) -> u64 {
+    state ^= state << 13;
+    state ^= state >> 7;
+    state ^= state << 17;
+    state.wrapping_mul(0x2545_F491_4F6C_DD1D)
+}
+
 impl ControlSession {
-    /// The session's start: the Hello exchange, then the reader thread.
+    /// The session's start: the Hello exchange, then the reader and
+    /// keepalive threads.
     ///
     /// Writes the daemon's Hello (`PROTOCOL_VERSION`, `PROTOCOL_MIN_VERSION`,
     /// this build's `software_version`, request id 0, nothing for
@@ -218,6 +361,16 @@ impl ControlSession {
     /// negotiation's wording (ControlSession.swift sends the same message)
     /// and `Protocol` comes back instead of a session.
     pub fn open(stream: VsockStream, software_version: &str) -> Result<ControlSession, SessionError> {
+        ControlSession::open_on(stream, software_version, Keepalive::default())
+    }
+
+    /// `open` with the keepalive's clocks handed over — the tests' way in;
+    /// `open` itself runs ControlSession.swift's `startKeepalive` numbers.
+    fn open_on(
+        stream: VsockStream,
+        software_version: &str,
+        keepalive: Keepalive,
+    ) -> Result<ControlSession, SessionError> {
         // vsock.rs: past the engine's `OK` line the bytes are the raw vsock
         // stream. Reads keep the one handle; writes go through the duplicate,
         // so the reader thread blocks on nothing the requests write.
@@ -231,6 +384,12 @@ impl ControlSession {
             closed: AtomicBool::new(false),
             sink,
         });
+        // The keepalive thread lets go of its loop with a signal, so the
+        // tests can wait for its end instead of counting the process's
+        // threads. The Mac's session holds its task in `tasks` and
+        // cancels it in `close`; a closed flag does the tripwire work
+        // here, and the signal reads back through the handle.
+        let (keepalive_send, keepalive_gone) = mpsc::channel();
 
         // The Swift session writes its Hello first and only then settles in
         // to wait; a guest that answered during the write is handled next
@@ -326,7 +485,17 @@ impl ControlSession {
         let reader_actor = Arc::clone(&actor);
         std::thread::spawn(move || read_loop(read_half, reader_actor));
 
-        Ok(ControlSession { actor, negotiated_version: raised, events })
+        // The keepalive starts on the negotiated success, the way
+        // ControlSession.swift's `start` reaches `startKeepalive()` only
+        // inside the switch's success case — a gate that refused its peer
+        // never pings it.
+        let keepalive_actor = Arc::clone(&actor);
+        std::thread::spawn(move || {
+            keepalive_loop(keepalive_actor, keepalive);
+            let _ = keepalive_send.send(());
+        });
+
+        Ok(ControlSession { actor, negotiated_version: raised, events, keepalive_gone })
     }
 
     /// The session's settled version (the Swift session's
@@ -348,42 +517,7 @@ impl ControlSession {
     /// typed response or `Reply` (proto.rs: the guest answers with either),
     /// and the caller reads statuses out of what comes back.
     pub fn request(&self, payload: envelope::Payload, timeout: impl Into<Option<Duration>>) -> Result<Envelope, SessionError> {
-        // An id was never issued for this connection yet; the Swift session
-        // starts its counter at 1 and this keeps its shape.
-        let request_id = self.actor.next_request_id.fetch_add(1, Ordering::SeqCst);
-        let (sender, reply) = mpsc::channel();
-        // The slot is in before the envelope leaves, so a reply already on
-        // its way cannot miss it (the Swift session plants its continuation
-        // before the write task runs).
-        self.actor.pending.lock().expect("the pending mutex is never poisoned").insert(request_id, sender);
-        match self.actor.post(request_id, payload) {
-            Ok(()) => {}
-            Err(error) => {
-                self.actor.pending.lock().expect("the pending mutex is never poisoned").remove(&request_id);
-                // A write the wire refused ends the session (the Swift
-                // session's writeOrFail expires the request and the reading
-                // task finds the break next); `Protocol` is the one local
-                // refusal — the envelope never left — that leaves the
-                // transport unharmed.
-                if !matches!(error, SessionError::Protocol(_)) {
-                    self.actor.mark_dead();
-                }
-                return Err(error);
-            }
-        }
-        let deadline = timeout.into().unwrap_or(REQUEST_TIMEOUT);
-        match reply.recv_timeout(deadline) {
-            Ok(answer) => answer,
-            Err(mpsc::RecvTimeoutError::Timeout) => {
-                // The slot comes out so the reply that eventually arrives is
-                // unpaired — dropped in `route`, never to reach the next
-                // request's slot (ControlSession.swift's `expire` removes
-                // the map entry the same way).
-                self.actor.pending.lock().expect("the pending mutex is never poisoned").remove(&request_id);
-                Err(SessionError::TimedOut)
-            }
-            Err(mpsc::RecvTimeoutError::Disconnected) => Err(SessionError::Closed),
-        }
+        self.actor.request(payload, timeout.into().unwrap_or(REQUEST_TIMEOUT))
     }
 
     /// Sends without waiting for an answer (ControlSession.swift's `send`).
@@ -398,8 +532,10 @@ impl ControlSession {
     /// with `Closed`; a second close is nothing.
     pub fn close(&self) {
         if self.actor.closed.swap(true, Ordering::SeqCst) {
-            // The reader thread or the transport ended it first; the goodbye
-            // is theirs, the waiting slots are already emptied.
+            // The reader thread, the transport, the keepalive or a caller
+            // already ended it; the goodbye is theirs or nobody's — a
+            // keepalive death writes none — and the waiting slots are
+            // already emptied.
             return;
         }
         let _ = self.actor.enqueue(
@@ -417,11 +553,14 @@ impl ControlSession {
 }
 
 /// The one session handle: the shared `Actor`, its reader thread holding a
-/// clone of it alive, and the bits the gate's start left for callers.
+/// clone of it alive, and the bits the gate's start left for callers — the
+/// keepalive's goodnight signal among them, a fresh `()` when its thread
+/// has left the wire for good, however the session ended.
 pub struct ControlSession {
     actor: Arc<Actor>,
     negotiated_version: u32,
     events: mpsc::Receiver<Envelope>,
+    keepalive_gone: mpsc::Receiver<()>,
 }
 
 /// `control`'s read/write io errors split two ways: `ErrorKind::InvalidData`
@@ -517,6 +656,17 @@ mod tests {
         // open runs the CONNECT dance and the Hello gate on this thread.
         thread::spawn(move || run_script(accepted.recv().unwrap(), script, sender));
         let opened = ControlSession::open(vsock.connect_to(crate::CONTROL_PORT).unwrap(), "avod 0");
+        (opened, receiver)
+    }
+
+    /// `played` with the keepalive's own clocks handed over — the test's
+    /// way to watch the pings without the default's five seconds in front
+    /// of the first one.
+    fn played_on(script: Vec<Step>, keepalive: Keepalive) -> (Result<ControlSession, SessionError>, mpsc::Receiver<Envelope>) {
+        let (vsock, accepted) = fake_engine();
+        let (sender, receiver) = mpsc::channel();
+        thread::spawn(move || run_script(accepted.recv().unwrap(), script, sender));
+        let opened = ControlSession::open_on(vsock.connect_to(crate::CONTROL_PORT).unwrap(), "avod 0", keepalive);
         (opened, receiver)
     }
 
@@ -770,6 +920,209 @@ mod tests {
             .unwrap_err();
         assert_eq!(ended, SessionError::Closed);
         wire.recv().unwrap();
+        session.close();
+    }
+
+    /// The keepalive's numbers at test speed, shrunk by the same ratio all
+    /// the ways it has: 120ms between the pings, half a second for each
+    /// answer, three misses to end the session.
+    fn fast_keepalive() -> Keepalive {
+        Keepalive {
+            period: Duration::from_millis(120),
+            window: Duration::from_millis(500),
+            miss_limit: 3,
+        }
+    }
+
+    /// The wire's Ping, its id and nonce off the script's reported read.
+    fn ping_of(report: &Envelope) -> (u64, u64) {
+        match &report.payload {
+            Some(envelope::Payload::Ping(ping)) if report.request_id != 0 => (report.request_id, ping.nonce),
+            other => panic!("the keepalive's ping is not on the wire: {other:?}"),
+        }
+    }
+
+    #[test]
+    fn the_keepalive_pings_its_period_and_survives_the_answers() {
+        // Four answered rounds, then the session proves itself once more on
+        // a real request. Ids ride the one counter the calls and pings
+        // share — the gate spends 0, the pings 1..=4, the caller 5, because
+        // the test's request goes out inside the period the keepalive's
+        // sleep bought it (ControlSession.swift spends Ping ids exactly so).
+        let mut script = hello_script(PROTOCOL_VERSION, PROTOCOL_MIN_VERSION);
+        for id in 1..=4 {
+            script.extend([Step::Read, Step::Write(reply_ok(id))]);
+        }
+        script.extend([
+            Step::Read,
+            Step::Write(reply_ok(5)),
+            // The wire stays open through the session's own close beneath.
+            Step::Wait(Duration::from_millis(300)),
+        ]);
+        let (opened, wire) = played_on(script, fast_keepalive());
+        let session = opened.unwrap();
+        read_hello(&wire);
+        let first_ping = std::time::Instant::now();
+        let mut nonces = Vec::new();
+        for id in 1..=4 {
+            let report = wire.recv().unwrap();
+            let (pinged, nonce) = ping_of(&report);
+            assert_eq!(pinged, id, "the ping's id walks the one counter");
+            assert_ne!(nonce, 0, "zero cannot leak into the pings' state");
+            nonces.push(nonce);
+        }
+        for pair in nonces.windows(2) {
+            assert_ne!(pair[0], pair[1], "the pings' nonces never repeat back to back");
+        }
+        // Four sleeps of the period sat between the sends, and not one of
+        // them came early.
+        assert!(first_ping.elapsed() >= Duration::from_millis(400), "the pings rode out four periods");
+        // Four rounds later the session lives on: one more call round-trips,
+        // id 5, the answer the script's last Write carries.
+        let answered = session
+            .request(
+                envelope::Payload::Launch(Launch {
+                    package: "com.avo.notes".into(),
+                    display_id: 1,
+                    width: 720,
+                    height: 1280,
+                    dpi: 320,
+                    ..Default::default()
+                }),
+                Some(CEILING),
+            )
+            .unwrap();
+        assert_eq!(answered.request_id, 5);
+        session.close();
+        // The keepalive's thread lets go without help; the signal is the
+        // proof (the loop wakes inside one period, sees the flag, leaves).
+        session.keepalive_gone.recv_timeout(Duration::from_secs(2)).unwrap();
+    }
+
+    #[test]
+    fn the_miss_limit_ends_a_silent_guest_and_the_requests_know() {
+        // One ping read, never answered; the guest sits silent but keeps
+        // the stream. The window passes on each — the miss counts up — and
+        // the limit reaches itself with no goodbye written first (the
+        // sever's shape: the Swift's guestUnavailable close never sent
+        // Goodbye, and the guest reads the stream's end bare).
+        let mut script = hello_script(PROTOCOL_VERSION, PROTOCOL_MIN_VERSION);
+        script.extend([
+            Step::Read,
+            // ∞ far past two windows: the death is the keepalive's own.
+            Step::Wait(Duration::from_millis(1500)),
+        ]);
+        let (opened, wire) = played_on(
+            script,
+            Keepalive {
+                period: Duration::from_millis(80),
+                window: Duration::from_millis(60),
+                miss_limit: 2,
+            },
+        );
+        let session = opened.unwrap();
+        read_hello(&wire);
+        let (pinged, _) = ping_of(&wire.recv().unwrap());
+        assert_eq!(pinged, 1, "the first ping spends the counter's first id");
+        // The keepalive ends itself — two misses at the window, then the
+        // sever — and its thread's own signal is the test's poll: bounded
+        // at two seconds, far past the ~280ms the two windows earn.
+        session.keepalive_gone.recv_timeout(Duration::from_secs(2)).unwrap();
+        // After the death a call reads the truth: Closed, and fast — the
+        // request never hangs on a wire nobody serves.
+        let ended = session
+            .request(envelope::Payload::Ping(Ping { nonce: 6 }), Some(CEILING))
+            .unwrap_err();
+        assert_eq!(ended, SessionError::Closed);
+    }
+
+    #[test]
+    fn a_close_during_the_keepalive_ends_its_thread_without_leaks() {
+        // A peer answering pings, the miss limit far past the test's reach:
+        // any end the session meets during this test is the test's own
+        // close, so the thread's signal reads back as the close's doing —
+        // the Swift's cancel of its startKeepalive task, spelled with a
+        // flag the loop checks between its sleeps.
+        let mut script = hello_script(PROTOCOL_VERSION, PROTOCOL_MIN_VERSION);
+        for id in 1..=2 {
+            script.extend([Step::Read, Step::Write(reply_ok(id))]);
+        }
+        script.push(Step::Wait(Duration::from_millis(900)));
+        let (opened, wire) = played_on(
+            script,
+            Keepalive {
+                period: Duration::from_millis(60),
+                window: Duration::from_millis(400),
+                miss_limit: 10,
+            },
+        );
+        let session = opened.unwrap();
+        read_hello(&wire);
+        for id in 1..=2 {
+            let (pinged, _) = ping_of(&wire.recv().unwrap());
+            assert_eq!(pinged, id);
+        }
+        session.close();
+        // The thread leaves inside one period of the close, and a call
+        // after answers Closed like any ended session.
+        session.keepalive_gone.recv_timeout(Duration::from_secs(2)).unwrap();
+        let ended = session
+            .request(envelope::Payload::Ping(Ping { nonce: 9 }), Some(CEILING))
+            .unwrap_err();
+        assert_eq!(ended, SessionError::Closed);
+    }
+
+    #[test]
+    fn keepalive_pings_never_confuse_a_callers_own_requests() {
+        // The calls and the pings interleave on the one counter and the one
+        // pending map (the Swift's Ping rides `request` too): the caller's
+        // first call sends inside the keepalive's first sleep, the second
+        // inside the sleep its first ping's answer bought — so the ids walk
+        // 1, 2, 3, 4 in wire order and no reply meets the wrong slot.
+        let mut script = hello_script(PROTOCOL_VERSION, PROTOCOL_MIN_VERSION);
+        script.extend([
+            // The caller's first request, before the keepalive wakes.
+            Step::Read,
+            Step::Write(reply_ok(1)),
+            // The keepalive's first ping — the id one after the call's.
+            Step::Read,
+            Step::Write(reply_ok(2)),
+            // The caller's second, inside the period just bought.
+            Step::Read,
+            Step::Write(reply_ok(3)),
+            // The keepalive's second ping.
+            Step::Read,
+            Step::Write(reply_ok(4)),
+            Step::Wait(Duration::from_millis(400)),
+        ]);
+        let (opened, wire) = played_on(script, fast_keepalive());
+        let session = opened.unwrap();
+        read_hello(&wire);
+        let launch = || {
+            envelope::Payload::Launch(Launch {
+                package: "com.avo.notes".into(),
+                display_id: 1,
+                width: 720,
+                height: 1280,
+                dpi: 320,
+                ..Default::default()
+            })
+        };
+        let first = session.request(launch(), Some(CEILING)).unwrap();
+        assert_eq!(first.request_id, 1, "the caller's first call spends the first id");
+        // The script's Reads report our own envelopes back too: the first
+        // one is the gate's hello, the next the call the script is about
+        // to answer.
+        let heard = wire.recv().unwrap();
+        assert_eq!(heard.request_id, first.request_id);
+        let (pinged, _) = ping_of(&wire.recv().unwrap());
+        assert_eq!(pinged, 2);
+        let second = session.request(launch(), Some(CEILING)).unwrap();
+        assert_eq!(second.request_id, 3, "the ping's id spent between the calls");
+        let heard = wire.recv().unwrap();
+        assert_eq!(heard.request_id, second.request_id);
+        let (pinged, _) = ping_of(&wire.recv().unwrap());
+        assert_eq!(pinged, 4);
         session.close();
     }
 }
